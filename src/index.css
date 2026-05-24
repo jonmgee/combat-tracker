@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
 @import "tailwindcss";
-
+ 
 :root {
   --gold: #C9A84C;
   --gold-light: #E2C97E;
@@ -18,24 +18,24 @@
   --glow-gold: rgba(201, 168, 76, 0.35);
   --glow-gold-strong: rgba(201, 168, 76, 0.6);
 }
-
+ 
 * {
   box-sizing: border-box;
 }
-
+ 
 html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
 }
-
+ 
 body {
   background: var(--bg-base);
   color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-
+ 
 /* Parchment texture overlay on panels */
 .parchment {
   position: relative;
@@ -55,7 +55,7 @@ body {
   position: relative;
   z-index: 1;
 }
-
+ 
 /* Gold glow on active/focus */
 .glow-gold {
   box-shadow: 0 0 12px var(--glow-gold), 0 0 24px rgba(201,168,76,0.15);
@@ -63,7 +63,7 @@ body {
 .glow-gold-strong {
   box-shadow: 0 0 16px var(--glow-gold-strong), 0 0 32px rgba(201,168,76,0.2);
 }
-
+ 
 /* Candle flicker animation */
 @keyframes flicker {
   0%, 100% { opacity: 1; box-shadow: 0 0 12px var(--glow-gold), 0 0 24px rgba(201,168,76,0.15); }
@@ -74,7 +74,7 @@ body {
 .candle-flicker {
   animation: flicker 3s ease-in-out infinite;
 }
-
+ 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -82,7 +82,7 @@ body {
 .fade-in {
   animation: fadeIn 0.3s ease forwards;
 }
-
+ 
 /* Pulse dot */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -91,3 +91,103 @@ body {
 .pulse-dot {
   animation: pulse-dot 1.8s ease-in-out infinite;
 }
+ 
+/* ═══════════════════════════════════════════
+   CONCENTRATION — shifting purple ↔ blue aura
+═══════════════════════════════════════════ */
+ 
+@keyframes conc-shift {
+  0%,100% {
+    box-shadow: 0 0 20px rgba(140,90,220,0.35), 0 0 40px rgba(120,70,200,0.15);
+    border-color: rgba(140,90,220,0.7);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(60,140,220,0.35), 0 0 40px rgba(40,110,200,0.15);
+    border-color: rgba(60,140,220,0.7);
+  }
+}
+ 
+.conc-aura-bg {
+  animation: conc-aura-bg 6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes conc-aura-bg {
+  0%,100% {
+    background:
+      radial-gradient(ellipse 90% 65% at 50% -5%, rgba(140,90,220,0.2) 0%, transparent 65%),
+      radial-gradient(ellipse 60% 45% at 10% 110%, rgba(100,60,180,0.14) 0%, transparent 65%);
+  }
+  50% {
+    background:
+      radial-gradient(ellipse 90% 65% at 50% -5%, rgba(60,140,220,0.2) 0%, transparent 65%),
+      radial-gradient(ellipse 60% 45% at 90% 110%, rgba(40,100,200,0.14) 0%, transparent 65%);
+  }
+}
+ 
+.conc-glow-border {
+  animation: conc-glow-border 6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes conc-glow-border {
+  0%,100% { box-shadow: inset 0 0 18px rgba(120,70,200,0.16); }
+  50%      { box-shadow: inset 0 0 18px rgba(50,120,210,0.16); }
+}
+ 
+/* Concentration chip */
+.conc-chip {
+  animation: conc-chip 6s ease-in-out infinite;
+  border: 0.5px solid;
+}
+@keyframes conc-chip {
+  0%,100% { background: rgba(120,70,200,0.22); border-color: rgba(160,100,240,0.55); color: #c0a0f0; }
+  50%      { background: rgba(40,100,200,0.22); border-color: rgba(80,150,240,0.55); color: #90c0f8; }
+}
+ 
+/* Concentration active edge bar */
+.conc-edge-bar {
+  animation: conc-edge 6s ease-in-out infinite;
+}
+@keyframes conc-edge {
+  0%,100% { background: linear-gradient(to bottom, transparent, rgba(160,100,240,0.9), transparent); }
+  50%      { background: linear-gradient(to bottom, transparent, rgba(80,160,240,0.9), transparent); }
+}
+ 
+/* Floating rune particles */
+.rune-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  bottom: 0;
+  animation: rune-float linear infinite;
+}
+@keyframes rune-float {
+  0%   { transform: translateY(0) scale(1); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 0.5; }
+  100% { transform: translateY(-52px) scale(0.3); opacity: 0; }
+}
+ 
+/* ═══════════════════════════════════════════
+   LANTERN glow wash on active card
+═══════════════════════════════════════════ */
+.lantern-glow-wash {
+  position: absolute;
+  inset: -4px -8px -4px -52px;
+  border-radius: 12px;
+  background: radial-gradient(
+    ellipse 72% 72% at 6% 50%,
+    rgba(232,148,58,0.22) 0%,
+    rgba(201,168,76,0.10) 40%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: lantern-wash 2.6s ease-in-out infinite;
+  z-index: 0;
+}
+@keyframes lantern-wash {
+  0%,100% { opacity: 0.85; }
+  40%     { opacity: 1.0; }
+  70%     { opacity: 0.78; }
+}
+ 

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { CONDITION_MAP } from '../../lib/conditions'
+import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR } from './ConditionIcons'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
+import BloodDrips from './BloodDrips'
 import type { Combatant, Condition, Participant } from '../../types'
-
+ 
 interface Props {
   combatant: Combatant
   conditions: Condition[]
@@ -12,93 +14,191 @@ interface Props {
   me: Participant
   position: number
 }
-
+ 
 export default function CombatantCard({ combatant, conditions, isActive, me, position }: Props) {
   const [showConditions, setShowConditions] = useState(false)
   const [showCondTooltip, setShowCondTooltip] = useState<string | null>(null)
-
+ 
   const isDM      = me.role === 'dm'
   const isMe      = combatant.participant_id === me.id
   const isMonster = combatant.kind === 'monster'
   const isHidden  = combatant.is_hidden
-
+ 
   const canSeeHP  = (isMe && combatant.hp_enabled) || (isDM && isMonster && combatant.hp_enabled)
   const showCard  = !isHidden || isDM
-
+ 
+  // Bloodied: visible to all — true if HP is known to be below 50%
+  // For players who can't see HP, we still show bloodied if the DM has set it
+  const isBloodied = combatant.hp_enabled &&
+    combatant.max_hp !== null &&
+    combatant.current_hp !== null &&
+    combatant.current_hp < combatant.max_hp * 0.5
+ 
+  const isConcentrating = conditions.some(c => c.condition === 'Concentrating')
+ 
   async function decrementCount() {
     if (combatant.count <= 1) return
     await supabase.from('combatants').update({ count: combatant.count - 1 }).eq('id', combatant.id)
   }
-
+ 
   if (!showCard) return null
-
+ 
+  // ── Card style logic ──
+  // Priority: active > concentrating > bloodied > normal
+  // Concentrating and bloodied can stack visually
+  const cardBg = isConcentrating
+    ? (isActive ? '#221a2e' : '#1c1626')
+    : isBloodied
+    ? (isActive ? '#261614' : '#201210')
+    : isActive
+    ? 'var(--bg-raised)'
+    : 'var(--bg-panel)'
+ 
+  const cardBorder = isActive
+    ? (isConcentrating ? 'rgba(140,90,220,0.7)' : '1px solid var(--gold)')
+    : isConcentrating
+    ? 'rgba(110,70,180,0.5)'
+    : isBloodied
+    ? 'rgba(160,40,30,0.4)'
+    : 'var(--border)'
+ 
+  const cardShadow = isActive
+    ? isConcentrating
+      ? '0 0 20px rgba(140,90,220,0.35), 0 0 40px rgba(120,70,200,0.15)'
+      : '0 0 20px rgba(201,168,76,0.35), 0 0 40px rgba(201,168,76,0.1)'
+    : isBloodied
+    ? '0 0 10px rgba(160,30,20,0.2)'
+    : 'none'
+ 
+  // Concentration animation class
+  const concAnimation = isConcentrating ? 'conc-shift' : isActive ? 'flicker' : 'none'
+ 
   return (
     <>
       <div
-        className="rounded-xl parchment transition-all duration-300"
+        className="rounded-xl parchment transition-all duration-300" data-combatant-id={combatant.id}
         style={{
-          background: isActive ? 'var(--bg-raised)' : 'var(--bg-panel)',
-          border: isActive
-            ? '1px solid var(--gold)'
-            : '1px solid var(--border)',
-          boxShadow: isActive
-            ? '0 0 20px rgba(201,168,76,0.35), 0 0 40px rgba(201,168,76,0.1)'
-            : 'none',
-          animation: isActive ? 'flicker 3s ease-in-out infinite' : 'none',
+          background: cardBg,
+          border: `1px solid ${cardBorder}`,
+          boxShadow: cardShadow,
+          animation: `${concAnimation} ${isConcentrating ? '6s' : '3s'} ease-in-out infinite`,
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <div className="p-4">
+        {/* ── Concentration aura layers ── */}
+        {isConcentrating && (
+          <>
+            <div className="conc-aura-bg" style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none', zIndex: 0 }}/>
+            <div className="conc-glow-border" style={{ position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none', zIndex: 0 }}/>
+            {/* Floating rune particles */}
+            <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 'inherit', pointerEvents: 'none', zIndex: 0 }}>
+              {[8, 22, 40, 58, 72, 86].map((left, i) => (
+                <div key={i} className="rune-particle" style={{
+                  left: `${left}%`,
+                  animationDuration: `${2.4 + i * 0.35}s`,
+                  animationDelay: `${i * 0.45}s`,
+                  background: i % 2 === 0 ? 'rgba(180,130,255,0.8)' : 'rgba(120,180,255,0.75)',
+                }}/>
+              ))}
+            </div>
+          </>
+        )}
+ 
+        {/* ── Bloodied left-edge wound ── */}
+        {isBloodied && (
+          <>
+            {/* Red seep from left */}
+            <div style={{
+              position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none', zIndex: 1,
+              background: 'linear-gradient(to right, rgba(160,20,10,0.28) 0%, rgba(140,10,5,0.10) 45%, transparent 75%)',
+            }}/>
+            {/* Wound edge bar */}
+            <div style={{
+              position: 'absolute', left: 0, top: '10%', bottom: '10%', width: 3,
+              background: 'linear-gradient(to bottom, transparent, rgba(190,30,20,0.9), transparent)',
+              borderRadius: '0 2px 2px 0', zIndex: 3,
+            }}/>
+            <BloodDrips count={4} />
+          </>
+        )}
+ 
+        {/* Lantern horizontal glow wash — only when active */}
+        {isActive && (
+          <div className="lantern-glow-wash" />
+        )}
+ 
+        {/* Active gold edge */}
+        {isActive && !isConcentrating && (
+          <div style={{
+            position: 'absolute', left: 0, top: '10%', bottom: '10%', width: 3,
+            background: 'linear-gradient(to bottom, transparent, var(--gold), transparent)',
+            borderRadius: '0 2px 2px 0', zIndex: 3,
+          }}/>
+        )}
+        {/* Active + concentrating edge: purple */}
+        {isActive && isConcentrating && (
+          <div className="conc-edge-bar" style={{
+            position: 'absolute', left: 0, top: '10%', bottom: '10%', width: 3,
+            borderRadius: '0 2px 2px 0', zIndex: 3,
+          }}/>
+        )}
+ 
+        {/* ── Card content — above all layers ── */}
+        <div className="p-4" style={{ position: 'relative', zIndex: 2 }}>
+ 
           {/* ── Top row ── */}
           <div className="flex items-center gap-3">
             {/* Position badge */}
             <div
               className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
               style={{
-                background: isActive ? 'var(--gold)' : 'var(--bg-void)',
-                color: isActive ? '#1a1410' : 'var(--text-dim)',
+                background: isActive ? (isConcentrating ? 'rgba(140,90,220,0.8)' : 'var(--gold)') : 'var(--bg-void)',
+                color: isActive ? (isConcentrating ? '#e8d8ff' : '#1a1410') : 'var(--text-dim)',
                 border: isActive ? 'none' : '1px solid var(--border)',
                 fontFamily: "'Cinzel', serif",
               }}
             >
               {position}
             </div>
-
-            {/* Name + count */}
+ 
+            {/* Name + badges */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className="font-semibold truncate"
                   style={{
-                    color: isActive ? 'var(--gold-light)' : 'var(--text-primary)',
+                    color: isConcentrating
+                      ? (isActive ? '#ddd0ff' : '#c8b8f0')
+                      : isBloodied
+                      ? (isActive ? '#e8c8c0' : '#c8a0a0')
+                      : isActive
+                      ? 'var(--gold-light)'
+                      : 'var(--text-primary)',
                     fontFamily: "'Cinzel', serif",
                     fontSize: '0.95rem',
                   }}
                 >
                   {combatant.name}
                 </span>
-
-                {/* Monster count badge (DMs can decrement) */}
+ 
                 {isMonster && combatant.count > 1 && (
-                  <span
-                    className="flex items-center gap-1 px-2 py-0.5 rounded text-xs"
-                    style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}
-                  >
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded text-xs"
+                    style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}>
                     ×{combatant.count}
-                    {isDM && combatant.count > 1 && (
-                      <button
-                        onClick={decrementCount}
+                    {isDM && (
+                      <button onClick={decrementCount}
                         className="text-xs leading-none transition-colors hover:opacity-70"
-                        style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', lineHeight: 1 }}
-                        title="Remove one"
-                      >
+                        style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', lineHeight: 1 }}>
                         −
                       </button>
                     )}
                   </span>
                 )}
-
+ 
                 {isHidden && isDM && (
-                  <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
+                  <span className="text-xs px-1.5 py-0.5 rounded"
+                    style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
                     HIDDEN
                   </span>
                 )}
@@ -106,13 +206,19 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   <span className="text-xs" style={{ color: 'var(--text-dim)' }}>👹</span>
                 )}
                 {isActive && (
-                  <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'rgba(201,168,76,0.2)', color: 'var(--gold)', border: '1px solid var(--gold-dark)', fontSize: '0.65rem', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
+                  <span className="text-xs px-2 py-0.5 rounded"
+                    style={{
+                      background: isConcentrating ? 'rgba(140,90,220,0.2)' : 'rgba(201,168,76,0.2)',
+                      color: isConcentrating ? '#c0a0f0' : 'var(--gold)',
+                      border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.4)' : 'var(--gold-dark)'}`,
+                      fontSize: '0.65rem', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif",
+                    }}>
                     ACTIVE
                   </span>
                 )}
               </div>
             </div>
-
+ 
             {/* Initiative */}
             <div className="shrink-0 text-right">
               <div className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>INIT</div>
@@ -121,60 +227,152 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               </div>
             </div>
           </div>
-
+ 
           {/* ── Conditions row ── */}
           {conditions.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3 relative">
               {conditions.map(c => {
                 const def = CONDITION_MAP[c.condition]
+                const IconComp = CONDITION_ICON_MAP[c.condition]
+                const colours = CONDITION_COLOURS[c.condition] ?? DEFAULT_CONDITION_COLOUR
                 const isTooltipVisible = showCondTooltip === c.id
+                const isConc = c.condition === 'Concentrating'
+ 
                 return (
                   <span key={c.id} className="relative">
-                    <span
-                      className="text-lg cursor-default"
-                      style={{ lineHeight: 1 }}
-                      onMouseEnter={() => setShowCondTooltip(c.id)}
-                      onMouseLeave={() => setShowCondTooltip(null)}
-                      onClick={() => setShowCondTooltip(isTooltipVisible ? null : c.id)}
-                    >
-                      {def?.icon ?? '?'}
-                    </span>
+                    {isConc ? (
+                      // Concentration chip — wider, labelled
+                      <span
+                        className="conc-chip flex items-center gap-1.5 cursor-default"
+                        style={{
+                          padding: '3px 9px 3px 6px',
+                          borderRadius: 5,
+                          fontSize: '0.65rem',
+                          letterSpacing: '0.1em',
+                          fontFamily: "'Cinzel', serif",
+                          textTransform: 'uppercase',
+                          userSelect: 'none',
+                        }}
+                        onMouseEnter={() => setShowCondTooltip(c.id)}
+                        onMouseLeave={() => setShowCondTooltip(null)}
+                        onClick={() => setShowCondTooltip(isTooltipVisible ? null : c.id)}
+                      >
+                        {IconComp && (
+                          <span style={{ width: 13, height: 13, display: 'inline-block', flexShrink: 0 }}>
+                            <IconComp />
+                          </span>
+                        )}
+                        Concentration
+                      </span>
+                    ) : (
+                      // Standard icon chip
+                      <span
+                        className="cursor-default flex items-center justify-center"
+                        style={{
+                          width: 24, height: 24,
+                          borderRadius: 4,
+                          background: colours.bg,
+                          border: `0.5px solid ${colours.border}`,
+                          color: colours.color,
+                        }}
+                        onMouseEnter={() => setShowCondTooltip(c.id)}
+                        onMouseLeave={() => setShowCondTooltip(null)}
+                        onClick={() => setShowCondTooltip(isTooltipVisible ? null : c.id)}
+                      >
+                        <span style={{ width: 14, height: 14, display: 'block' }}>
+                          {IconComp
+                            ? <IconComp />
+                            : <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>{def?.icon ?? '?'}</span>
+                          }
+                        </span>
+                      </span>
+                    )}
+ 
                     {isTooltipVisible && (
                       <span
                         className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded text-xs whitespace-nowrap z-20 pointer-events-none"
-                        style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-light)' }}
-                      >
+                        style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-light)' }}>
                         {c.condition}
                       </span>
                     )}
                   </span>
                 )
               })}
+ 
+              {/* Bloodied badge — always shown when bloodied, regardless of HP visibility */}
+              {isBloodied && (
+                <span
+                  className="flex items-center gap-1"
+                  style={{
+                    padding: '3px 7px 3px 5px',
+                    borderRadius: 4,
+                    border: '0.5px solid rgba(180,50,40,0.55)',
+                    background: 'rgba(140,20,15,0.3)',
+                    color: '#c07070',
+                    fontFamily: "'Cinzel', serif",
+                    fontSize: '0.62rem',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
+                    <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
+                      stroke="currentColor" strokeWidth="0.9" fill="rgba(180,40,30,0.35)"/>
+                  </svg>
+                  Bloodied
+                </span>
+              )}
             </div>
           )}
-
+ 
+          {/* Bloodied badge when no other conditions */}
+          {isBloodied && conditions.length === 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              <span
+                className="flex items-center gap-1"
+                style={{
+                  padding: '3px 7px 3px 5px',
+                  borderRadius: 4,
+                  border: '0.5px solid rgba(180,50,40,0.55)',
+                  background: 'rgba(140,20,15,0.3)',
+                  color: '#c07070',
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: '0.62rem',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
+                  <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
+                    stroke="currentColor" strokeWidth="0.9" fill="rgba(180,40,30,0.35)"/>
+                </svg>
+                Bloodied
+              </span>
+            </div>
+          )}
+ 
           {/* ── HP bar ── */}
           {canSeeHP && combatant.max_hp !== null && combatant.current_hp !== null && (
             <HPBar
               combatantId={combatant.id}
               currentHp={combatant.current_hp}
               maxHp={combatant.max_hp}
+              isBloodied={isBloodied}
             />
           )}
-
+ 
           {/* ── Actions row ── */}
           <div className="flex gap-2 mt-3">
             <button
               onClick={() => setShowConditions(true)}
               className="flex-1 py-1.5 rounded-lg text-xs transition-all active:scale-95"
-              style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}
-            >
+              style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
               + Condition
             </button>
           </div>
         </div>
       </div>
-
+ 
       {showConditions && (
         <ConditionPicker
           combatantId={combatant.id}
@@ -185,3 +383,4 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
     </>
   )
 }
+ 

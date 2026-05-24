@@ -1,19 +1,28 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
-
+ 
 interface Props {
   combatantId: string
   currentHp: number
   maxHp: number
+  isBloodied?: boolean
 }
-
-export default function HPBar({ combatantId, currentHp, maxHp }: Props) {
+ 
+export default function HPBar({ combatantId, currentHp, maxHp, isBloodied = false }: Props) {
   const [editing, setEditing] = useState(false)
   const [delta, setDelta]     = useState('')
-
-  const pct     = Math.max(0, Math.min(100, (currentHp / maxHp) * 100))
-  const barColor = pct > 50 ? '#4ade80' : pct > 25 ? '#facc15' : '#f87171'
-
+ 
+  const pct = Math.max(0, Math.min(100, (currentHp / maxHp) * 100))
+ 
+  // Warm tavern palette instead of clinical greens
+  const barColor = isBloodied
+    ? 'linear-gradient(to right, #6a1010, #a83030)'   // bloodied — deep red
+    : pct > 50
+    ? '#4a8e3a'                                         // healthy — forest green
+    : pct > 25
+    ? '#c8873a'                                         // hurt — amber
+    : '#b03030'                                         // critical — red
+ 
   async function applyDelta(sign: 1 | -1) {
     const val = parseInt(delta)
     if (isNaN(val) || val <= 0) return
@@ -22,25 +31,31 @@ export default function HPBar({ combatantId, currentHp, maxHp }: Props) {
     setDelta('')
     setEditing(false)
   }
-
+ 
   return (
     <div className="mt-2">
-      {/* Bar */}
       <div className="flex items-center gap-2 mb-1">
-        <div className="flex-1 rounded-full overflow-hidden" style={{ height: '6px', background: 'var(--bg-void)' }}>
-          <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: '9999px', transition: 'width 0.3s ease' }} />
+        <div className="flex-1 rounded-full overflow-hidden" style={{ height: '5px', background: 'rgba(255,255,255,0.06)' }}>
+          <div style={{
+            width: `${pct}%`,
+            height: '100%',
+            background: barColor,
+            borderRadius: '9999px',
+            transition: 'width 0.3s ease',
+            boxShadow: isBloodied ? '0 0 6px rgba(160,30,20,0.5)' : pct <= 25 ? '0 0 5px rgba(176,48,48,0.4)' : 'none',
+          }}/>
         </div>
         <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)', minWidth: '48px', textAlign: 'right' }}>
           {currentHp}/{maxHp}
         </span>
-        <button onClick={() => setEditing(e => !e)}
+        <button
+          onClick={() => setEditing(e => !e)}
           className="text-xs px-1.5 py-0.5 rounded transition-all"
           style={{ color: 'var(--text-dim)', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}>
           {editing ? '✕' : '±'}
         </button>
       </div>
-
-      {/* Inline editor */}
+ 
       {editing && (
         <div className="flex gap-1.5 mt-1 fade-in">
           <input
@@ -53,12 +68,12 @@ export default function HPBar({ combatantId, currentHp, maxHp }: Props) {
           />
           <button onClick={() => applyDelta(1)}
             className="px-3 py-1.5 rounded text-sm font-bold transition-all active:scale-95"
-            style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}>
+            style={{ background: 'rgba(74,142,58,0.15)', color: '#4a8e3a', border: '1px solid rgba(74,142,58,0.3)' }}>
             +
           </button>
           <button onClick={() => applyDelta(-1)}
             className="px-3 py-1.5 rounded text-sm font-bold transition-all active:scale-95"
-            style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}>
+            style={{ background: 'rgba(176,48,48,0.15)', color: '#c06060', border: '1px solid rgba(176,48,48,0.3)' }}>
             −
           </button>
         </div>
@@ -66,3 +81,4 @@ export default function HPBar({ combatantId, currentHp, maxHp }: Props) {
     </div>
   )
 }
+ 
