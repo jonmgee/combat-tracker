@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { CONDITIONS, CATEGORY_LABELS } from '../../lib/conditions'
+import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR } from './ConditionIcons'
 import type { Condition, ConditionCategory } from '../../types'
 
 interface Props {
@@ -73,7 +74,9 @@ export default function ConditionPicker({ combatantId, activeConditions, onClose
                     border: `1px solid ${active ? 'var(--gold-dark)' : 'var(--border)'}`,
                     cursor: 'pointer',
                   }}>
-                  <span className="text-2xl">{c.icon}</span>
+                  <span className="condition-icon-picker" style={{ width: '1.6rem', height: '1.6rem', color: (CONDITION_COLOURS[c.name] ?? DEFAULT_CONDITION_COLOUR).color }}>
+                    {(() => { const Ic = CONDITION_ICON_MAP[c.name]; return Ic ? <Ic /> : <span style={{ fontSize: '1.2rem' }}>{c.icon}</span> })()}
+                  </span>
                   <span className="text-xs leading-tight" style={{ color: active ? 'var(--gold-light)' : 'var(--text-secondary)', fontSize: '0.65rem' }}>
                     {c.name}
                   </span>
