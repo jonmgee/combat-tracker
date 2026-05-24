@@ -115,21 +115,26 @@ export default function CombatScreen({ session, me, initialState }: Props) {
         combatants={combatants}
         me={me}
         onReady={async () => {
-          // Sort and assign initiative order
-          const all = [...combatants].filter(c => c.initiative !== null)
+          // Fetch ALL combatants fresh (monsters were just inserted, not in closed-over state)
+          const { data: fresh } = await supabase.from('combatants')
+            .select('*').eq('session_id', session.id)
+
+          const all = (fresh ?? []).filter(c => c.initiative !== null)
           const sorted = all.sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0))
+
           for (let i = 0; i < sorted.length; i++) {
             await supabase.from('combatants').update({ initiative_order: i + 1 }).eq('id', sorted[i].id)
           }
-          // Re-fetch to get monsters too
-          const { data: allCombatants } = await supabase.from('combatants')
-            .select('*').eq('session_id', session.id).order('initiative', { ascending: false })
 
-          if (allCombatants && allCombatants.length > 0) {
-            const firstId = (allCombatants as Combatant[])[0].id
+          if (sorted.length > 0) {
+            const first = sorted[0]
+            // If the first combatant is a hidden monster, reveal it immediately
+            if (first.is_hidden || (first.kind === 'monster' && !first.has_taken_turn)) {
+              await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', first.id)
+            }
             await supabase.from('combat_state').update({
               phase: 'active',
-              current_combatant_id: firstId,
+              current_combatant_id: first.id,
               updated_at: new Date().toISOString(),
             }).eq('session_id', session.id)
           }
