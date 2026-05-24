@@ -1,63 +1,96 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Session, Participant } from '../types'
+import { requestNotificationPermission, registerServiceWorker } from '../lib/notifications'
+import type { Session, Participant, CombatState } from '../types'
 
 interface Props {
   session: Session
   me: Participant
+  onCombatStart: (state: CombatState) => void
 }
 
-export default function LobbyScreen({ session, me }: Props) {
+export default function LobbyScreen({ session, me, onCombatStart }: Props) {
   const [participants, setParticipants] = useState<Participant[]>([])
-  const [loading, setLoading] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [loading, setLoading]           = useState(false)
+  const [copied, setCopied]             = useState(false)
+  const [hpOptIn, setHpOptIn]           = useState(me.hp_opt_in)
 
-  const isDM = me.role === 'dm'
-  const players = participants.filter(p => p.role === 'player')
-  const canStart = isDM && players.length >= 1
+  const isDM      = me.role === 'dm'
+  const players   = participants.filter(p => p.role === 'player')
+  const canStart  = isDM && players.length >= 1
 
   // ── Initial load ──
   useEffect(() => {
-    supabase
-      .from('participants')
-      .select('*')
-      .eq('session_id', session.id)
+    supabase.from('participants').select('*').eq('session_id', session.id)
       .order('joined_at', { ascending: true })
-      .then(({ data }) => { if (data) setParticipants(data) })
+      .then(({ data }) => { if (data) setParticipants(data as Participant[]) })
   }, [session.id])
 
-  // ── Real-time subscription ──
+  // ── Real-time participants ──
   useEffect(() => {
-    const channel = supabase
-      .channel(`lobby:${session.id}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'participants', filter: `session_id=eq.${session.id}` },
-        () => {
-          // Re-fetch on any change
-          supabase
-            .from('participants')
-            .select('*')
-            .eq('session_id', session.id)
-            .order('joined_at', { ascending: true })
-            .then(({ data }) => { if (data) setParticipants(data) })
-        }
-      )
+    const channel = supabase.channel(`lobby:${session.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'participants', filter: `session_id=eq.${session.id}` }, () => {
+        supabase.from('participants').select('*').eq('session_id', session.id)
+          .order('joined_at', { ascending: true })
+          .then(({ data }) => { if (data) setParticipants(data as Participant[]) })
+      })
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   }, [session.id])
+
+  // ── Watch for DM starting combat (for players) ──
+  useEffect(() => {
+    if (isDM) return
+    const channel = supabase.channel(`combat_state:${session.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'combat_state', filter: `session_id=eq.${session.id}` }, (payload) => {
+        const state = payload.new as CombatState
+        if (state?.phase) onCombatStart(state)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [session.id, isDM, onCombatStart])
+
+  // ── Register SW for notifications ──
+  useEffect(() => {
+    registerServiceWorker()
+  }, [])
+
+  async function toggleHpOptIn() {
+    const next = !hpOptIn
+    setHpOptIn(next)
+    await supabase.from('participants').update({ hp_opt_in: next }).eq('id', me.id)
+  }
 
   async function handleStartCombat() {
     if (!canStart) return
     setLoading(true)
-    await supabase
-      .from('sessions')
-      .update({ status: 'active' })
-      .eq('id', session.id)
-    // Phase 2 will navigate to the combat screen
-    setLoading(false)
-    alert('Combat started! (Phase 2 will open the tracker here)')
+    try {
+      // Update session status
+      await supabase.from('sessions').update({ status: 'active' }).eq('id', session.id)
+
+      // Create a combatant row for each player participant
+      const playerParts = participants.filter(p => p.role === 'player')
+      const combatantRows = playerParts.map(p => ({
+        session_id:     session.id,
+        participant_id: p.id,
+        name:           p.name,
+        kind:           'player',
+        is_hidden:      false,
+        hp_enabled:     p.hp_opt_in,
+      }))
+      await supabase.from('combatants').insert(combatantRows)
+
+      // Create combat_state row
+      const { data: state } = await supabase.from('combat_state')
+        .insert({ session_id: session.id, phase: 'initiative', round_number: 1 })
+        .select().single()
+
+      if (state) onCombatStart(state as CombatState)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   function copyCode() {
@@ -67,18 +100,18 @@ export default function LobbyScreen({ session, me }: Props) {
     })
   }
 
+  async function handleRequestNotifications() {
+    const granted = await requestNotificationPermission()
+    if (!granted) alert("Notifications blocked. You can enable them in your browser settings.")
+  }
+
   return (
-    <div
-      className="min-h-screen flex flex-col items-center px-5 py-10"
-      style={{ background: 'var(--bg-void)' }}
-    >
+    <div className="min-h-screen flex flex-col items-center px-5 py-10" style={{ background: 'var(--bg-void)' }}>
+
       {/* ── Header ── */}
       <div className="text-center mb-8 fade-in">
         <div className="text-4xl mb-2" style={{ filter: 'drop-shadow(0 0 10px #C9A84C)' }}>🕯️</div>
-        <h1
-          className="text-3xl font-bold tracking-wider"
-          style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 16px rgba(201,168,76,0.4)' }}
-        >
+        <h1 className="text-3xl font-bold tracking-wider" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 16px rgba(201,168,76,0.4)' }}>
           {isDM ? 'Your War Room' : 'The Lobby'}
         </h1>
         <p className="mt-1 text-sm" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>
@@ -86,104 +119,49 @@ export default function LobbyScreen({ session, me }: Props) {
         </p>
       </div>
 
-      {/* ── Room code panel ── */}
-      <div
-        className="w-full max-w-sm rounded-xl mb-5 parchment fade-in"
-        style={{
-          background: 'var(--bg-panel)',
-          border: '1px solid var(--gold-dark)',
-          boxShadow: '0 0 24px rgba(201,168,76,0.15)',
-          animationDelay: '0.05s',
-        }}
-      >
+      {/* ── Room code ── */}
+      <div className="w-full max-w-sm rounded-xl mb-5 parchment fade-in"
+        style={{ background: 'var(--bg-panel)', border: '1px solid var(--gold-dark)', boxShadow: '0 0 24px rgba(201,168,76,0.15)', animationDelay: '0.05s' }}>
         <div className="p-6 text-center">
-          <p className="text-xs uppercase tracking-widest mb-3" style={{ color: 'var(--text-dim)' }}>
-            Room Code
-          </p>
-          <div
-            className="text-5xl font-bold tracking-widest mb-4 candle-flicker"
-            style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', letterSpacing: '0.25em' }}
-          >
+          <p className="text-xs uppercase tracking-widest mb-3" style={{ color: 'var(--text-dim)' }}>Room Code</p>
+          <div className="text-5xl font-bold tracking-widest mb-4 candle-flicker"
+            style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', letterSpacing: '0.25em' }}>
             {session.room_code}
           </div>
-          <button
-            onClick={copyCode}
+          <button onClick={copyCode}
             className="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-150 active:scale-95"
-            style={{
-              background: copied ? 'var(--bg-raised)' : 'transparent',
-              color: copied ? 'var(--gold-light)' : 'var(--text-dim)',
-              border: '1px solid var(--border-light)',
-              letterSpacing: '0.06em',
-            }}
-          >
+            style={{ background: copied ? 'var(--bg-raised)' : 'transparent', color: copied ? 'var(--gold-light)' : 'var(--text-dim)', border: '1px solid var(--border-light)', letterSpacing: '0.06em' }}>
             {copied ? '✓ Copied' : 'Copy Code'}
           </button>
         </div>
       </div>
 
-      {/* ── Participants panel ── */}
-      <div
-        className="w-full max-w-sm rounded-xl mb-5 parchment fade-in"
-        style={{
-          background: 'var(--bg-panel)',
-          border: '1px solid var(--border)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-          animationDelay: '0.1s',
-        }}
-      >
+      {/* ── Participants ── */}
+      <div className="w-full max-w-sm rounded-xl mb-5 parchment fade-in"
+        style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', animationDelay: '0.1s' }}>
         <div className="px-5 pt-5 pb-1 flex items-center justify-between">
-          <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
-            Adventurers
-          </span>
-          <span
-            className="text-xs font-mono px-2 py-0.5 rounded"
-            style={{ background: 'var(--bg-raised)', color: 'var(--gold)', border: '1px solid var(--border-light)' }}
-          >
+          <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Adventurers</span>
+          <span className="text-xs font-mono px-2 py-0.5 rounded"
+            style={{ background: 'var(--bg-raised)', color: 'var(--gold)', border: '1px solid var(--border-light)' }}>
             {participants.length}
           </span>
         </div>
-
         <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
           {participants.map(p => (
-            <li
-              key={p.id}
-              className="flex items-center gap-3 px-5 py-3.5 fade-in"
-            >
-              {/* Status dot */}
-              <span
-                className="pulse-dot shrink-0"
-                style={{
-                  width: '8px', height: '8px', borderRadius: '50%',
-                  background: 'var(--gold)',
-                  boxShadow: '0 0 6px var(--glow-gold)',
-                  display: 'inline-block',
-                }}
-              />
-              <span
-                className="flex-1 text-base"
-                style={{
-                  color: p.id === me.id ? 'var(--gold-light)' : 'var(--text-primary)',
-                  fontWeight: p.id === me.id ? 600 : 400,
-                }}
-              >
+            <li key={p.id} className="flex items-center gap-3 px-5 py-3.5 fade-in">
+              <span className="pulse-dot shrink-0" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--gold)', boxShadow: '0 0 6px var(--glow-gold)', display: 'inline-block' }} />
+              <span className="flex-1 text-base" style={{ color: p.id === me.id ? 'var(--gold-light)' : 'var(--text-primary)', fontWeight: p.id === me.id ? 600 : 400 }}>
                 {p.name}
               </span>
-              <span
-                className="text-xs uppercase tracking-wider px-2 py-0.5 rounded shrink-0"
-                style={{
-                  background: p.role === 'dm' ? 'rgba(201,168,76,0.15)' : 'var(--bg-raised)',
-                  color: p.role === 'dm' ? 'var(--gold)' : 'var(--text-dim)',
-                  border: p.role === 'dm' ? '1px solid var(--gold-dark)' : '1px solid var(--border)',
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: '0.65rem',
-                  letterSpacing: '0.1em',
-                }}
-              >
+              {p.role === 'player' && p.hp_opt_in && (
+                <span className="text-xs" title="HP tracking enabled" style={{ color: 'var(--text-dim)' }}>❤️</span>
+              )}
+              <span className="text-xs uppercase tracking-wider px-2 py-0.5 rounded shrink-0"
+                style={{ background: p.role === 'dm' ? 'rgba(201,168,76,0.15)' : 'var(--bg-raised)', color: p.role === 'dm' ? 'var(--gold)' : 'var(--text-dim)', border: p.role === 'dm' ? '1px solid var(--gold-dark)' : '1px solid var(--border)', fontSize: '0.65rem', letterSpacing: '0.1em' }}>
                 {p.role === 'dm' ? 'DM' : 'Player'}
               </span>
             </li>
           ))}
-
           {participants.length === 0 && (
             <li className="px-5 py-6 text-center" style={{ color: 'var(--text-dim)' }}>
               <span className="text-2xl block mb-2">⚔️</span>
@@ -193,42 +171,62 @@ export default function LobbyScreen({ session, me }: Props) {
         </ul>
       </div>
 
+      {/* ── Player options ── */}
+      {!isDM && (
+        <div className="w-full max-w-sm flex flex-col gap-3 mb-5 fade-in" style={{ animationDelay: '0.12s' }}>
+          {/* HP opt-in */}
+          <button onClick={toggleHpOptIn}
+            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl transition-all duration-150 active:scale-95"
+            style={{ background: 'var(--bg-panel)', border: `1px solid ${hpOptIn ? 'var(--gold-dark)' : 'var(--border)'}` }}>
+            <div className="flex items-center gap-3">
+              <span className="text-xl">❤️</span>
+              <div className="text-left">
+                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Track my HP</div>
+                <div className="text-xs" style={{ color: 'var(--text-dim)' }}>Optional — only you will see it</div>
+              </div>
+            </div>
+            <div className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5"
+              style={{ background: hpOptIn ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)' }}>
+              <div className="w-5 h-5 rounded-full transition-all duration-200"
+                style={{ background: hpOptIn ? 'var(--gold)' : 'var(--text-dim)', transform: hpOptIn ? 'translateX(20px)' : 'translateX(0)' }} />
+            </div>
+          </button>
+
+          {/* Notification opt-in */}
+          <button onClick={handleRequestNotifications}
+            className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl transition-all duration-150 active:scale-95"
+            style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>
+            <span className="text-xl">🔔</span>
+            <div className="text-left">
+              <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Enable turn notifications</div>
+              <div className="text-xs" style={{ color: 'var(--text-dim)' }}>Get an alert when it's your turn</div>
+            </div>
+          </button>
+        </div>
+      )}
+
       {/* ── DM action / Player waiting ── */}
       <div className="w-full max-w-sm fade-in" style={{ animationDelay: '0.15s' }}>
         {isDM ? (
-          <button
-            onClick={handleStartCombat}
-            disabled={!canStart || loading}
-            className="w-full py-4 rounded-xl font-bold text-lg transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{
-              background: canStart
-                ? 'linear-gradient(135deg, var(--gold-dark), var(--gold))'
-                : 'var(--bg-raised)',
-              color: canStart ? '#1a1410' : 'var(--text-dim)',
-              fontFamily: "'Cinzel', serif",
-              letterSpacing: '0.08em',
-              boxShadow: canStart ? '0 4px 20px rgba(201,168,76,0.4)' : 'none',
-              border: canStart ? 'none' : '1px solid var(--border)',
-            }}
-          >
-            {loading ? 'Starting…' : canStart ? '⚔️  Start Combat' : 'Waiting for Players…'}
-          </button>
+          <>
+            <button onClick={handleStartCombat} disabled={!canStart || loading}
+              className="w-full py-4 rounded-xl font-bold text-lg transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: canStart ? 'linear-gradient(135deg, var(--gold-dark), var(--gold))' : 'var(--bg-raised)', color: canStart ? '#1a1410' : 'var(--text-dim)', fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', boxShadow: canStart ? '0 4px 20px rgba(201,168,76,0.4)' : 'none', border: canStart ? 'none' : '1px solid var(--border)' }}>
+              {loading ? 'Preparing battle…' : canStart ? '⚔️  Start Combat' : 'Waiting for Players…'}
+            </button>
+            {!canStart && (
+              <p className="text-center text-xs mt-3" style={{ color: 'var(--text-dim)', letterSpacing: '0.06em' }}>
+                At least one player must join before combat can begin
+              </p>
+            )}
+          </>
         ) : (
-          <div
-            className="w-full py-4 rounded-xl text-center"
-            style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}
-          >
+          <div className="w-full py-4 rounded-xl text-center" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>
             <span className="pulse-dot inline-block mr-2" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--gold)', boxShadow: '0 0 6px var(--glow-gold)', verticalAlign: 'middle' }} />
             <span style={{ color: 'var(--text-secondary)', fontFamily: "'Cinzel', serif", letterSpacing: '0.06em', fontSize: '0.95rem' }}>
               Waiting for DM to start…
             </span>
           </div>
-        )}
-
-        {isDM && !canStart && (
-          <p className="text-center text-xs mt-3" style={{ color: 'var(--text-dim)', letterSpacing: '0.06em' }}>
-            At least one player must join before combat can begin
-          </p>
         )}
       </div>
     </div>
