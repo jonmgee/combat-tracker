@@ -1,0 +1,93 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  --gold: #C9A84C;
+  --gold-light: #E2C97E;
+  --gold-dark: #9C7A2E;
+  --bg-void: #0e0b08;
+  --bg-base: #1a1410;
+  --bg-panel: #221c16;
+  --bg-raised: #2c2419;
+  --bg-input: #181210;
+  --border: #3a2e22;
+  --border-light: #4a3d2d;
+  --text-primary: #f0e6d3;
+  --text-secondary: #b8a48a;
+  --text-dim: #7a6a55;
+  --glow-gold: rgba(201, 168, 76, 0.35);
+  --glow-gold-strong: rgba(201, 168, 76, 0.6);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Parchment texture overlay on panels */
+.parchment {
+  position: relative;
+}
+.parchment::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.6;
+  z-index: 0;
+}
+.parchment > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Gold glow on active/focus */
+.glow-gold {
+  box-shadow: 0 0 12px var(--glow-gold), 0 0 24px rgba(201,168,76,0.15);
+}
+.glow-gold-strong {
+  box-shadow: 0 0 16px var(--glow-gold-strong), 0 0 32px rgba(201,168,76,0.2);
+}
+
+/* Candle flicker animation */
+@keyframes flicker {
+  0%, 100% { opacity: 1; box-shadow: 0 0 12px var(--glow-gold), 0 0 24px rgba(201,168,76,0.15); }
+  25%       { opacity: 0.95; box-shadow: 0 0 10px var(--glow-gold), 0 0 20px rgba(201,168,76,0.12); }
+  50%       { opacity: 1; box-shadow: 0 0 16px var(--glow-gold-strong), 0 0 30px rgba(201,168,76,0.2); }
+  75%       { opacity: 0.97; box-shadow: 0 0 11px var(--glow-gold), 0 0 22px rgba(201,168,76,0.14); }
+}
+.candle-flicker {
+  animation: flicker 3s ease-in-out infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Pulse dot */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.85); }
+}
+.pulse-dot {
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
