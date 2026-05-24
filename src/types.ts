@@ -30,6 +30,7 @@ export interface Combatant {
   initiative_order: number | null
   is_hidden: boolean
   has_taken_turn: boolean
+  count: number
   hp_enabled: boolean
   max_hp: number | null
   current_hp: number | null

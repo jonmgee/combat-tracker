@@ -16,6 +16,7 @@ create table if not exists combatants (
   initiative_order  smallint,
   is_hidden         boolean not null default false,
   has_taken_turn    boolean not null default false,
+  count             integer not null default 1,
   hp_enabled        boolean not null default false,
   max_hp            smallint,
   current_hp        smallint,

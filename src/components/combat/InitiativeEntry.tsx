@@ -15,8 +15,8 @@ export default function InitiativeEntry({ sessionId, combatants, me, onReady }: 
   // Initiatives keyed by combatant id
   const [initiatives, setInitiatives] = useState<Record<string, string>>({})
   // Monster rows (DM only)
-  const [monsters, setMonsters] = useState<{ name: string; initiative: string; hp: string; hpEnabled: boolean }[]>([
-    { name: '', initiative: '', hp: '', hpEnabled: false }
+  const [monsters, setMonsters] = useState<{ name: string; count: string; initiative: string; hp: string; hpEnabled: boolean }[]>([
+    { name: '', count: '1', initiative: '', hp: '', hpEnabled: false }
   ])
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState<string | null>(null)
@@ -52,16 +52,21 @@ export default function InitiativeEntry({ sessionId, combatants, me, onReady }: 
       // Insert monsters
       const validMonsters = monsters.filter(m => m.name.trim() && m.initiative.trim())
       if (validMonsters.length > 0) {
-        await supabase.from('combatants').insert(validMonsters.map(m => ({
+        // Insert each monster as a separate combatant with group count
+      for (const m of validMonsters) {
+        const groupCount = Math.max(1, parseInt(m.count) || 1)
+        await supabase.from('combatants').insert({
           session_id:  sessionId,
           name:        m.name.trim(),
           kind:        'monster',
           initiative:  parseInt(m.initiative),
           is_hidden:   true,
+          count:       groupCount,
           hp_enabled:  m.hpEnabled,
           max_hp:      m.hpEnabled && m.hp ? parseInt(m.hp) : null,
           current_hp:  m.hpEnabled && m.hp ? parseInt(m.hp) : null,
-        })))
+        })
+      }
       }
       onReady()
     } catch (e: unknown) {
@@ -159,7 +164,7 @@ export default function InitiativeEntry({ sessionId, combatants, me, onReady }: 
             <div className="rounded-xl parchment" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>
               <div className="px-5 pt-4 pb-1 flex items-center justify-between">
                 <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Monsters</span>
-                <button onClick={() => setMonsters(m => [...m, { name: '', initiative: '', hp: '', hpEnabled: false }])}
+                <button onClick={() => setMonsters(m => [...m, { name: '', count: '1', initiative: '', hp: '', hpEnabled: false }])}
                   className="text-xs px-2 py-1 rounded transition-all"
                   style={{ color: 'var(--gold)', border: '1px solid var(--gold-dark)', background: 'transparent' }}>
                   + Add
@@ -175,6 +180,15 @@ export default function InitiativeEntry({ sessionId, combatants, me, onReady }: 
                       placeholder="Monster name"
                       className="flex-1 px-3 py-2 rounded text-sm outline-none"
                       style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      value={m.count}
+                      onChange={e => setMonsters(ms => ms.map((x, j) => j === i ? { ...x, count: e.target.value } : x))}
+                      placeholder="#"
+                      className="w-12 px-2 py-2 rounded text-center text-sm outline-none"
+                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
                     />
                     <input
                       type="number"
