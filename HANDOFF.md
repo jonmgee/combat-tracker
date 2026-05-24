@@ -2,9 +2,9 @@
 
 ## Current Status
 
-**Phase:** Phase 1 complete
+**Phase:** Phase 2 complete
 **Date:** 2026-05-23
-**Verified working:** 2026-05-23 19:09 PDT
+**Verified working:** 2026-05-23 21:28 PDT
 
 ## What Was Built
 
@@ -38,17 +38,44 @@ Schema is in `supabase-schema.sql`. RLS enabled on both tables. Real-time replic
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
+## Phase 2 Complete
+
+### Initiative Tracker
+- DM clicks Start Combat → combatant rows created, initiative entry phase begins
+- Players enter their own initiative (number input + Set button)
+- DM enters initiatives for all players and adds monsters with names/initiative/HP
+- DM clicks "Lock In & Begin Combat" → initiative order sorted, hidden monsters hidden from players
+- Round counter in sticky header, active turn candle-flicker glow
+- DM advances turn with "Next" button
+- Players see "It's your turn!" banner; browser push notification fires
+- Hidden monsters revealed after their first turn
+
+### HP Tracking
+- HP opt-in toggle in lobby (completely optional per character)
+- Color-coded HP bars (green > 50%, amber > 25%, red ≤ 25%)
+- Inline ± damage/heal editor with type-and-click interface
+- Players only see their own HP; DM only sees monster HP
+
+### Conditions
+- 27 conditions across 3 tabs: Standard D&D (15), Weapon Mastery (8), Spell (8)
+- Bottom sheet picker with emoji icons
+- Anyone can add/remove conditions on any visible combatant
+- Hidden monster conditions hidden from players
+
+### Combatant Cards
+- Position badge, name, initiative value, active turn indicator
+- Conditions displayed as icon row
+- HP bar shown when applicable
+- "+ Condition" button on every card
+
+### New Tables (run supabase-migration-phase2.sql)
+- combatants, combat_state, conditions
+- Full RLS, grants, and real-time subscriptions included
+
 ## Known Issues Fixed
 
-- **RLS permission denied on sessions/participants** — Root cause: Postgres checks table-level grants before evaluating RLS policies. The anon role had no grants. Fix: added `GRANT SELECT, INSERT, UPDATE ON sessions TO anon` and `GRANT SELECT, INSERT ON participants TO anon` (plus authenticated role). Applied directly in Supabase SQL editor on 2026-05-23. Schema file updated accordingly.
+- **RLS permission denied on sessions/participants** — Root cause: Postgres checks table-level grants before evaluating RLS policies. The anon role had no grants. Fix: added GRANT statements. Applied in Supabase 2026-05-23. Schema file updated.
 
 ## Next Task
 
-**Phase 2 — Initiative Tracker**
-
-Phase 2 will add:
-- Initiative order entry and tracking
-- Turn management (current turn indicator with candlelight glow)
-- HP tracking per combatant
-- Conditions system
-- Real-time sync so all players see the same state
+TBD — Phase 3 or polish
