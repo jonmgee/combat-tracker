@@ -4,6 +4,7 @@
 
 **Phase:** Phase 1 complete
 **Date:** 2026-05-23
+**Verified working:** 2026-05-23 19:09 PDT
 
 ## What Was Built
 
@@ -36,6 +37,10 @@ Schema is in `supabase-schema.sql`. RLS enabled on both tables. Real-time replic
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+## Known Issues Fixed
+
+- **RLS permission denied on sessions/participants** — Root cause: Postgres checks table-level grants before evaluating RLS policies. The anon role had no grants. Fix: added `GRANT SELECT, INSERT, UPDATE ON sessions TO anon` and `GRANT SELECT, INSERT ON participants TO anon` (plus authenticated role). Applied directly in Supabase SQL editor on 2026-05-23. Schema file updated accordingly.
 
 ## Next Task
 
