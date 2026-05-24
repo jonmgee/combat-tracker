@@ -4,7 +4,7 @@
 
 **Phase:** Phase 2 complete
 **Date:** 2026-05-23
-**Verified working:** 2026-05-23 21:28 PDT
+**Verified working:** 2026-05-23 23:27 PDT
 
 ## What Was Built
 
@@ -29,9 +29,13 @@ React/Vite app with Supabase integration:
 
 ## Database
 
-**Tables created:** `sessions`, `participants`
+**Tables created:** `sessions`, `participants`, `combatants`, `combat_state`, `conditions`
 
-Schema is in `supabase-schema.sql`. RLS enabled on both tables. Real-time replication enabled on both tables.
+Schema files:
+- `supabase-schema.sql` — Phase 1 (sessions + participants)
+- `supabase-migration-phase2.sql` — Phase 2 (combatants + combat_state + conditions)
+
+RLS and real-time replication enabled on all tables.
 
 ## Environment Variables (set in Vercel)
 
@@ -43,12 +47,14 @@ Schema is in `supabase-schema.sql`. RLS enabled on both tables. Real-time replic
 ### Initiative Tracker
 - DM clicks Start Combat → combatant rows created, initiative entry phase begins
 - Players enter their own initiative (number input + Set button)
-- DM enters initiatives for all players and adds monsters with names/initiative/HP
-- DM clicks "Lock In & Begin Combat" → initiative order sorted, hidden monsters hidden from players
+- DM enters initiatives for all players and adds monsters with name, count (#), initiative, optional HP
+- DM clicks "Lock In & Begin Combat" → initiative order sorted (fetches fresh from DB), hidden monsters hidden from players
+- First combatant in order revealed immediately (even if a hidden monster)
 - Round counter in sticky header, active turn candle-flicker glow
 - DM advances turn with "Next" button
 - Players see "It's your turn!" banner; browser push notification fires
 - Hidden monsters revealed after their first turn
+- Monster group count (×N badge) with DM − button to decrement as they're killed off
 
 ### HP Tracking
 - HP opt-in toggle in lobby (completely optional per character)
@@ -61,6 +67,7 @@ Schema is in `supabase-schema.sql`. RLS enabled on both tables. Real-time replic
 - Bottom sheet picker with emoji icons
 - Anyone can add/remove conditions on any visible combatant
 - Hidden monster conditions hidden from players
+- Hover or tap condition icon to see the condition name in a tooltip
 
 ### Combatant Cards
 - Position badge, name, initiative value, active turn indicator
@@ -75,6 +82,9 @@ Schema is in `supabase-schema.sql`. RLS enabled on both tables. Real-time replic
 ## Known Issues Fixed
 
 - **RLS permission denied on sessions/participants** — Root cause: Postgres checks table-level grants before evaluating RLS policies. The anon role had no grants. Fix: added GRANT statements. Applied in Supabase 2026-05-23. Schema file updated.
+- **Initiative order wrong** — Stale closure in `onReady` callback used client-side state that didn't include freshly inserted monsters. Fix: fetch all combatants from DB before sorting.
+- **First monster hidden on turn 1** — If a hidden monster was first in initiative order, it stayed hidden while acting. Fix: reveal first combatant immediately on combat start.
+- **`count` column added to combatants** — Run manually: `alter table combatants add column if not exists count integer not null default 1;`
 
 ## Next Task
 
