@@ -234,6 +234,19 @@ export function NickIcon() {
   )
 }
  
+// ── Bloodied (manual toggle) ──
+
+export function BloodiedIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none">
+      <path d="M10 2.5 Q14 7 14 10.5 A4 4 0 0 1 6 10.5 Q6 7 10 2.5Z" stroke="currentColor" strokeWidth="1.2" fill="rgba(180,40,30,0.25)"/>
+      <path d="M7.5 13 Q10 15 12.5 13" stroke="currentColor" strokeWidth="1" strokeLinecap="round" fill="none" opacity="0.6"/>
+      <circle cx="10" cy="9" r="1" fill="currentColor" opacity="0.7"/>
+      <path d="M7 6 L6 4.5 M13 6 L14 4.5" stroke="currentColor" strokeWidth="0.9" strokeLinecap="round" opacity="0.5"/>
+    </svg>
+  )
+}
+
 // ── Spell conditions ──
  
 export function SilencedIcon() {
@@ -351,6 +364,7 @@ export const CONDITION_ICON_MAP: Record<string, React.FC> = {
   'Restrained (Spell)': RestrainedSpellIcon,
   'Banished':           BanishedIcon,
   'Polymorphed':        PolymorphedIcon,
+  'Bloodied':           BloodiedIcon,
 }
  
 // Colour theme per condition (background, border, icon colour)
@@ -386,6 +400,7 @@ export const CONDITION_COLOURS: Record<string, { bg: string; border: string; col
   'Restrained (Spell)': { bg: 'rgba(30,60,80,0.25)',   border: 'rgba(60,120,160,0.45)',  color: '#5090c0' },
   'Banished':           { bg: 'rgba(20,20,60,0.25)',   border: 'rgba(60,60,160,0.45)',   color: '#6060c0' },
   'Polymorphed':        { bg: 'rgba(20,70,40,0.25)',   border: 'rgba(40,140,80,0.45)',   color: '#40a060' },
+  'Bloodied':           { bg: 'rgba(140,20,15,0.35)',  border: 'rgba(180,50,40,0.55)',   color: '#c07070' },
 }
  
 export const DEFAULT_CONDITION_COLOUR = { bg: 'rgba(60,50,40,0.25)', border: 'rgba(120,100,80,0.45)', color: '#907060' }

@@ -43,6 +43,9 @@ export const CONDITIONS: ConditionDef[] = [
   { name: 'Restrained (Spell)',    category: 'spell', icon: '🕸️' },
   { name: 'Banished',              category: 'spell', icon: '🌌' },
   { name: 'Polymorphed',           category: 'spell', icon: '🐸' },
+
+  // Special (card-level toggles, not in picker)
+  { name: 'Bloodied',              category: 'spell', icon: '🩸' },
 ]
 
 export const CONDITION_MAP = Object.fromEntries(CONDITIONS.map(c => [c.name, c]))

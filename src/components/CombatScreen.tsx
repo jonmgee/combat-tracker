@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { fireLocalNotification } from '../lib/notifications'
 import InitiativeEntry from './combat/InitiativeEntry'
@@ -19,6 +19,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const [advancing, setAdvancing]       = useState(false)
  
   const isDM = me.role === 'dm'
+  const subPaused = useRef(false)
  
   // ── Load combatants ──
   const loadCombatants = useCallback(async () => {
@@ -64,7 +65,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   useEffect(() => {
     const channel = supabase.channel(`combatants:${session.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'combatants', filter: `session_id=eq.${session.id}` }, () => {
-        loadCombatants()
+        if (!subPaused.current) loadCombatants()
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -116,17 +117,26 @@ export default function CombatScreen({ session, me, initialState }: Props) {
         combatants={combatants}
         me={me}
         onReady={async () => {
+          // Pause subscription-driven loads while we set up the combat order
+          subPaused.current = true
+
           // Fetch ALL combatants fresh (monsters were just inserted, not in closed-over state)
           const { data: fresh } = await supabase.from('combatants')
             .select('*').eq('session_id', session.id)
- 
+
           const all = (fresh ?? []).filter(c => c.initiative !== null)
           const sorted = all.sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0))
- 
+
           for (let i = 0; i < sorted.length; i++) {
             await supabase.from('combatants').update({ initiative_order: i + 1 }).eq('id', sorted[i].id)
           }
- 
+
+          // Set the combatants state directly from our fresh fetch
+          setCombatants(sorted)
+
+          // Re-enable subscriptions
+          subPaused.current = false
+
           if (sorted.length > 0) {
             const first = sorted[0]
             // If the first combatant is a hidden monster, reveal it immediately
