@@ -42,7 +42,7 @@ export default function InitiativeEntry({ sessionId, combatants, me, onReady }: 
     setSaving(true)
     setError(null)
     try {
-      // Update player initiatives
+      // Update player initiatives — any player still pending stays null (they'll roll during combat)
       for (const c of combatants) {
         const val = parseInt(initiatives[c.id] ?? '')
         if (!isNaN(val)) {

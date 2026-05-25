@@ -76,16 +76,28 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
         .single()
 
       if (combatState) {
-        // Combat has started — insert combatant
+        // Combat has started — insert combatant at the end of the order
+        // Find the highest initiative_order currently assigned
+        const { data: orderMax } = await supabase
+          .from('combatants')
+          .select('initiative_order')
+          .eq('session_id', session.id)
+          .order('initiative_order', { ascending: false })
+          .limit(1)
+
+        const nextOrder = orderMax && orderMax.length > 0
+          ? (orderMax[0].initiative_order ?? 0) + 1
+          : 1
+
         await supabase.from('combatants').insert({
-          session_id:     session.id,
-          participant_id: participant.id,
-          name:           playerName.trim(),
-          kind:           'player',
-          initiative:     null,
-          initiative_order: null,
-          is_hidden:      false,
-          hp_enabled:     false,
+          session_id:       session.id,
+          participant_id:   participant.id,
+          name:             playerName.trim(),
+          kind:             'player',
+          initiative:       null,
+          initiative_order: nextOrder,
+          is_hidden:        false,
+          hp_enabled:       false,
         })
 
         onEnterCombat(session, participant, combatState as CombatState)

@@ -17,6 +17,8 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const [combatants, setCombatants]     = useState<Combatant[]>([])
   const [conditions, setConditions]     = useState<Condition[]>([])
   const [advancing, setAdvancing]       = useState(false)
+  const [lateInit, setLateInit]         = useState('')
+  const [lateInitSaving, setLateInitSaving] = useState(false)
  
   const isDM = me.role === 'dm'
   const subPaused = useRef(false)
@@ -82,6 +84,40 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     return () => { supabase.removeChannel(channel) }
   }, [session.id, combatants.length, loadConditions])
  
+  // ── Late-joiner submits initiative ──
+  async function handleLateInitiative() {
+    const val = parseInt(lateInit)
+    if (isNaN(val)) return
+    setLateInitSaving(true)
+
+    const myCombatant = combatants.find(c => c.participant_id === me.id && c.kind === 'player')
+    if (!myCombatant) { setLateInitSaving(false); return }
+
+    // Update initiative on the combatant
+    await supabase.from('combatants').update({ initiative: val }).eq('id', myCombatant.id)
+
+    // Re-fetch all combatants with initiatives to recalculate order
+    const { data: fresh } = await supabase.from('combatants')
+      .select('*')
+      .eq('session_id', session.id)
+    if (fresh) {
+      // Sort all by initiative descending, 0 values last
+      const sorted = fresh
+        .filter(c => c.initiative !== null)
+        .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0))
+
+      // Reassign initiative_order
+      for (let i = 0; i < sorted.length; i++) {
+        await supabase.from('combatants').update({ initiative_order: i + 1 }).eq('id', sorted[i].id)
+      }
+
+      setCombatants(fresh as Combatant[])
+    }
+
+    setLateInit('')
+    setLateInitSaving(false)
+  }
+
   // ── Advance turn (DM only) ──
   async function advanceTurn() {
     if (!isDM || advancing) return
@@ -124,12 +160,19 @@ export default function CombatScreen({ session, me, initialState }: Props) {
           const { data: fresh } = await supabase.from('combatants')
             .select('*').eq('session_id', session.id)
 
-          const all = (fresh ?? []).filter(c => c.initiative !== null)
-          const sorted = all.sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0))
+          // Sort: players with no initiative sink to the bottom
+          const sorted = (fresh ?? [])
+            .sort((a, b) => {
+              const ia = a.initiative ?? -1
+              const ib = b.initiative ?? -1
+              return ib - ia
+            })
 
           for (let i = 0; i < sorted.length; i++) {
             await supabase.from('combatants').update({ initiative_order: i + 1 }).eq('id', sorted[i].id)
           }
+
+          setCombatants(sorted)
 
           // Set the combatants state directly from our fresh fetch
           setCombatants(sorted)
@@ -161,6 +204,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
  
   const currentCombatant = combatants.find(c => c.id === combatState.current_combatant_id)
   const isMyTurn = !!combatants.find(c => c.id === combatState.current_combatant_id && c.participant_id === me.id)
+  const myCombatantNoInit = !isDM && !!combatants.find(c => c.participant_id === me.id && c.initiative === null && c.kind === 'player')
  
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-void)' }}>
@@ -201,6 +245,37 @@ export default function CombatScreen({ session, me, initialState }: Props) {
         </div>
       </div>
  
+      {/* ── Late-joiner initiative prompt ── */}
+      {!isDM && myCombatantNoInit && (
+        <div
+          className="px-5 py-4 text-center"
+          style={{ background: 'rgba(201,168,76,0.08)', borderBottom: '1px solid var(--gold-dark)' }}
+        >
+          <p style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', fontSize: '0.9rem', marginBottom: 8 }}>
+            ⚔️  Roll Initiative — you joined mid-combat!
+          </p>
+          <div className="flex justify-center gap-2">
+            <input
+              type="number"
+              min={1} max={30}
+              value={lateInit}
+              onChange={e => setLateInit(e.target.value)}
+              placeholder="Roll"
+              className="w-20 px-3 py-2 rounded text-center text-lg outline-none"
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
+            />
+            <button
+              onClick={handleLateInitiative}
+              disabled={lateInitSaving}
+              className="px-4 py-2 rounded-lg font-semibold transition-all active:scale-95 disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+            >
+              {lateInitSaving ? '…' : 'Set'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Your turn banner (players) ── */}
       {!isDM && isMyTurn && (
         <div
