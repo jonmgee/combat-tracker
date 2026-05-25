@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { generateRoomCode } from '../lib/utils'
-import type { Session, Participant } from '../types'
+import type { Session, Participant, CombatState } from '../types'
 
 interface Props {
   onEnterLobby: (session: Session, participant: Participant) => void
+  onEnterCombat: (session: Session, participant: Participant, state: CombatState) => void
 }
 
-export default function HomeScreen({ onEnterLobby }: Props) {
+export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
   const [mode, setMode] = useState<'idle' | 'join'>('idle')
   const [roomCode, setRoomCode] = useState('')
   const [playerName, setPlayerName] = useState('')
@@ -54,7 +55,7 @@ export default function HomeScreen({ onEnterLobby }: Props) {
         .from('sessions')
         .select()
         .eq('room_code', roomCode.trim().toUpperCase())
-        .eq('status', 'lobby')
+        .neq('status', 'ended')
         .single()
 
       if (findErr || !session) throw new Error('Room not found. Check the code and try again.')
@@ -67,7 +68,31 @@ export default function HomeScreen({ onEnterLobby }: Props) {
 
       if (partErr || !participant) throw new Error(partErr?.message ?? 'Failed to join session')
 
-      onEnterLobby(session, participant)
+      // Check if combat has already started
+      const { data: combatState } = await supabase
+        .from('combat_state')
+        .select()
+        .eq('session_id', session.id)
+        .single()
+
+      if (combatState) {
+        // Combat has started — insert combatant
+        await supabase.from('combatants').insert({
+          session_id:     session.id,
+          participant_id: participant.id,
+          name:           playerName.trim(),
+          kind:           'player',
+          initiative:     null,
+          initiative_order: null,
+          is_hidden:      false,
+          hp_enabled:     false,
+        })
+
+        onEnterCombat(session, participant, combatState as CombatState)
+      } else {
+        // Still in lobby phase — go to lobby
+        onEnterLobby(session, participant)
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {

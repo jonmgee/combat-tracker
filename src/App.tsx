@@ -23,6 +23,13 @@ export default function App() {
     setScreen('combat')
   }
 
+  function handleEnterCombat(session: Session, participant: Participant, state: CombatState) {
+    setSession(session)
+    setMe(participant)
+    setCombatState(state)
+    setScreen('combat')
+  }
+
   if (screen === 'combat' && session && me && combatState) {
     return <CombatScreen session={session} me={me} initialState={combatState} />
   }
@@ -31,5 +38,5 @@ export default function App() {
     return <LobbyScreen session={session} me={me} onCombatStart={handleCombatStart} />
   }
 
-  return <HomeScreen onEnterLobby={handleEnterLobby} />
+  return <HomeScreen onEnterLobby={handleEnterLobby} onEnterCombat={handleEnterCombat} />
 }
