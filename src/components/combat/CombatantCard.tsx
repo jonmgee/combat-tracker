@@ -304,11 +304,15 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 const colours = CONDITION_COLOURS[c.condition] ?? DEFAULT_CONDITION_COLOUR
                 const isTooltipVisible = showCondTooltip === c.id
 
+                async function removeCondition() {
+                  await supabase.from('conditions').delete().eq('id', c.id)
+                }
+
                 return (
-                  <span key={c.id} className="relative">
+                  <span key={c.id} className="relative group">
                     {/* Standard icon chip */}
                     <span
-                      className="cursor-default flex items-center justify-center"
+                      className="cursor-default flex items-center justify-center relative"
                       style={{
                         width: 24, height: 24,
                         borderRadius: 4,
@@ -326,6 +330,25 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                           : <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>{def?.icon ?? '?'}</span>
                         }
                       </span>
+
+                      {/* X remove button — shows on hover/tap */}
+                      <button
+                        onClick={e => { e.stopPropagation(); removeCondition() }}
+                        className="absolute -top-1.5 -right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
+                        style={{
+                          width: 14, height: 14,
+                          borderRadius: '50%',
+                          background: 'rgba(0,0,0,0.7)',
+                          border: '1px solid rgba(180,60,50,0.8)',
+                          color: '#e06050',
+                          cursor: 'pointer',
+                          fontSize: 10,
+                          lineHeight: 1,
+                          padding: 0,
+                        }}
+                      >
+                        ✕
+                      </button>
                     </span>
 
                     {isTooltipVisible && (

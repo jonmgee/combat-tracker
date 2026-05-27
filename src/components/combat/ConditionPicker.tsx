@@ -14,14 +14,25 @@ const CATEGORIES: ConditionCategory[] = ['standard', 'weapon_mastery', 'spell']
 
 export default function ConditionPicker({ combatantId, activeConditions, onClose }: Props) {
   const [activeTab, setActiveTab] = useState<ConditionCategory>('standard')
+  const [toggling, setToggling] = useState<Set<string>>(new Set())
   const activeNames = new Set(activeConditions.map(c => c.condition))
 
   async function toggle(name: string, category: ConditionCategory) {
-    if (activeNames.has(name)) {
-      const cond = activeConditions.find(c => c.condition === name)
-      if (cond) await supabase.from('conditions').delete().eq('id', cond.id)
-    } else {
-      await supabase.from('conditions').insert({ combatant_id: combatantId, condition: name, category })
+    if (toggling.has(name)) return // already in flight — prevent duplicate
+    setToggling(prev => new Set(prev).add(name))
+    try {
+      if (activeNames.has(name)) {
+        const cond = activeConditions.find(c => c.condition === name)
+        if (cond) await supabase.from('conditions').delete().eq('id', cond.id)
+      } else {
+        await supabase.from('conditions').insert({ combatant_id: combatantId, condition: name, category })
+      }
+    } finally {
+      setToggling(prev => {
+        const next = new Set(prev)
+        next.delete(name)
+        return next
+      })
     }
   }
 
