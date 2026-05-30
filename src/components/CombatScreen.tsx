@@ -23,7 +23,6 @@ export default function CombatScreen({ session, me, initialState }: Props) {
  
   const isDM = me.role === 'dm'
   const subPaused = useRef(false)
-  const mountedRef = useRef(false)
 
   // ── Load everything (combatants + conditions) in one shot ──
   const loadAll = useCallback(async () => {
@@ -337,10 +336,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
         <div className="relative px-4" id="combatant-list-wrap" style={{ paddingLeft: '56px' }}>
  
           {/* Lantern — tracks active card position */}
-          <LanternColumnWrapper
-            combatants={visibleCombatants}
-            activeId={combatState.current_combatant_id}
-          />
+          <LanternColumnWrapper activeId={combatState.current_combatant_id} />
  
           <div className="flex flex-col gap-3">
             {(() => {
@@ -396,13 +392,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
 // Measures card positions after render and passes the active card's midpoint
 // to LanternColumn so the lantern centres on it.
 // Uses a ref + resize observer to avoid re-render loops from unstable array props.
-function LanternColumnWrapper({
-  combatants,
-  activeId,
-}: {
-  combatants: Combatant[]
-  activeId: string | null
-}) {
+function LanternColumnWrapper({ activeId }: { activeId: string | null }) {
   const [activeMidY, setActiveMidY] = useState(60)
   const activeIdRef = useRef(activeId)
   activeIdRef.current = activeId
