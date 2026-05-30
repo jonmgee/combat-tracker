@@ -2,6 +2,7 @@ import { useState } from 'react'
 import HomeScreen from './components/HomeScreen'
 import LobbyScreen from './components/LobbyScreen'
 import CombatScreen from './components/CombatScreen'
+import ErrorBoundary from './components/ErrorBoundary'
 import type { Session, Participant, CombatState } from './types'
 
 type Screen = 'home' | 'lobby' | 'combat'
@@ -31,7 +32,7 @@ export default function App() {
   }
 
   if (screen === 'combat' && session && me && combatState) {
-    return <CombatScreen session={session} me={me} initialState={combatState} />
+    return <ErrorBoundary><CombatScreen session={session} me={me} initialState={combatState} /></ErrorBoundary>
   }
 
   if (screen === 'lobby' && session && me) {
