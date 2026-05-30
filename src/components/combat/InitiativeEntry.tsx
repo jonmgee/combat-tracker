@@ -49,24 +49,28 @@ export default function InitiativeEntry({ sessionId, combatants, me, onReady }: 
           await supabase.from('combatants').update({ initiative: val }).eq('id', c.id)
         }
       }
-      // Insert monsters
+      // Insert monsters — individual rows per creature
       const validMonsters = monsters.filter(m => m.name.trim() && m.initiative.trim())
       if (validMonsters.length > 0) {
-        // Insert each monster as a separate combatant with group count
-      for (const m of validMonsters) {
-        const groupCount = Math.max(1, parseInt(m.count) || 1)
-        await supabase.from('combatants').insert({
-          session_id:  sessionId,
-          name:        m.name.trim(),
-          kind:        'monster',
-          initiative:  parseInt(m.initiative),
-          is_hidden:   true,
-          count:       groupCount,
-          hp_enabled:  m.hpEnabled,
-          max_hp:      m.hpEnabled && m.hp ? parseInt(m.hp) : null,
-          current_hp:  m.hpEnabled && m.hp ? parseInt(m.hp) : null,
-        })
-      }
+        const rows: any[] = []
+        for (const m of validMonsters) {
+          const groupCount = Math.max(1, parseInt(m.count) || 1)
+          for (let j = 0; j < groupCount; j++) {
+            rows.push({
+              session_id:  sessionId,
+              name:        m.name.trim(),
+              kind:        'monster',
+              initiative:  parseInt(m.initiative),
+              is_hidden:   true,
+              count:       1,
+              hp_enabled:  m.hpEnabled,
+              max_hp:      m.hpEnabled && m.hp ? parseInt(m.hp) : null,
+              current_hp:  m.hpEnabled && m.hp ? parseInt(m.hp) : null,
+
+            })
+          }
+        }
+        await supabase.from('combatants').insert(rows)
       }
       onReady()
     } catch (e: unknown) {

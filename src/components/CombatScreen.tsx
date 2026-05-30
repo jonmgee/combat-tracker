@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { fireLocalNotification } from '../lib/notifications'
 import InitiativeEntry from './combat/InitiativeEntry'
 import CombatantCard from './combat/CombatantCard'
 import LanternColumn from './combat/LanternColumn'
+import GroupCombatantCard from './combat/GroupCombatantCard'
 import type { Session, Participant, Combatant, CombatState, Condition } from '../types'
  
 interface Props {
@@ -201,6 +202,43 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const visibleCombatants = isDM
     ? combatants
     : combatants.filter(c => !c.is_hidden || c.kind === 'player')
+
+  // ── Group adjacent same-name monsters ──
+  const groupedCombatants = useMemo(() => {
+    type GroupedEntry =
+      | { type: 'single'; combatant: Combatant }
+      | { type: 'group'; combatants: Combatant[]; name: string; initiative: number }
+    const groups: GroupedEntry[] = []
+    let i = 0
+    while (i < visibleCombatants.length) {
+      const c = visibleCombatants[i]
+      if (c.kind === 'monster') {
+        // Walk forward to collect same-name monsters
+        let j = i + 1
+        while (j < visibleCombatants.length &&
+               visibleCombatants[j].kind === 'monster' &&
+               visibleCombatants[j].name === c.name) {
+          j++
+        }
+        const count = j - i
+        if (count > 1) {
+          groups.push({
+            type: 'group',
+            combatants: visibleCombatants.slice(i, j),
+            name: c.name,
+            initiative: c.initiative ?? 0,
+          })
+        } else {
+          groups.push({ type: 'single', combatant: c })
+        }
+        i = j
+      } else {
+        groups.push({ type: 'single', combatant: c })
+        i++
+      }
+    }
+    return groups
+  }, [visibleCombatants])
  
   const currentCombatant = combatants.find(c => c.id === combatState.current_combatant_id)
   const isMyTurn = !!combatants.find(c => c.id === combatState.current_combatant_id && c.participant_id === me.id)
@@ -299,17 +337,42 @@ export default function CombatScreen({ session, me, initialState }: Props) {
           />
  
           <div className="flex flex-col gap-3">
-            {visibleCombatants.map((c, i) => (
-              <CombatantCard
-                key={c.id}
-                combatant={c}
-                conditions={conditions.filter(cond => cond.combatant_id === c.id)}
-                isActive={c.id === combatState.current_combatant_id}
-                me={me}
-                position={c.initiative_order ?? i + 1}
-              />
-            ))}
- 
+            {(() => {
+              let idx = 0
+              return groupedCombatants.map((g) => {
+                if (g.type === 'group') {
+                  const pos = g.combatants[0].initiative_order ?? idx + 1
+                  idx += g.combatants.length
+                  return (
+                    <GroupCombatantCard
+                      key={g.combatants[0].id}
+                      combatants={g.combatants}
+                      conditions={conditions}
+                      isActive={g.combatants.some(c => c.id === combatState.current_combatant_id)}
+                      activeId={combatState.current_combatant_id}
+                      me={me}
+                      position={pos}
+                      sharedName={g.name}
+                      sharedInitiative={g.initiative}
+                    />
+                  )
+                } else {
+                  const pos = g.combatant.initiative_order ?? idx + 1
+                  idx++
+                  return (
+                    <CombatantCard
+                      key={g.combatant.id}
+                      combatant={g.combatant}
+                      conditions={conditions.filter(cond => cond.combatant_id === g.combatant.id)}
+                      isActive={g.combatant.id === combatState.current_combatant_id}
+                      me={me}
+                      position={pos}
+                    />
+                  )
+                }
+              })
+            })()}
+
             {visibleCombatants.length === 0 && (
               <div className="text-center py-16" style={{ color: 'var(--text-dim)' }}>
                 <div className="text-4xl mb-3">⚔️</div>
