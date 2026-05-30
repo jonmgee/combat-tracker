@@ -7,17 +7,4 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  build: {
-    minify: false,
-    rollupOptions: {
-      output: {
-        manualChunks: undefined,
-      },
-    },
-  },
-  define: {
-    // Force React into development mode even in production build
-    'process.env.NODE_ENV': JSON.stringify('development'),
-    '__DEV__': true,
-  },
 })
