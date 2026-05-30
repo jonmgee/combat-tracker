@@ -397,6 +397,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
 // ── LanternColumnWrapper ──
 // Measures card positions after render and passes the active card's midpoint
 // to LanternColumn so the lantern centres on it.
+// Uses a ref + resize observer to avoid re-render loops from unstable array props.
 function LanternColumnWrapper({
   combatants,
   activeId,
@@ -405,23 +406,39 @@ function LanternColumnWrapper({
   activeId: string | null
 }) {
   const [activeMidY, setActiveMidY] = useState(60)
- 
+  const activeIdRef = useRef(activeId)
+  activeIdRef.current = activeId
+
   useEffect(() => {
-    // Give the DOM a frame to settle, then measure
-    const raf = requestAnimationFrame(() => {
+    // Measure once on mount, then only on resize
+    function measure() {
       const wrap = document.getElementById('combatant-list-wrap')
-      if (!wrap || !activeId) return
+      const id = activeIdRef.current
+      if (!wrap || !id) return
       const cards = wrap.querySelectorAll<HTMLElement>('[data-combatant-id]')
       cards.forEach(el => {
-        if (el.dataset.combatantId === activeId) {
+        if (el.dataset.combatantId === id) {
           const wrapRect = wrap.getBoundingClientRect()
           const cardRect = el.getBoundingClientRect()
           setActiveMidY(cardRect.top - wrapRect.top + cardRect.height / 2)
         }
       })
+    }
+
+    const raf = requestAnimationFrame(measure)
+
+    // Also re-measure on resize
+    const ro = new ResizeObserver(() => {
+      requestAnimationFrame(measure)
     })
-    return () => cancelAnimationFrame(raf)
-  }, [activeId, combatants])
+    const wrapEl = document.getElementById('combatant-list-wrap')
+    if (wrapEl) ro.observe(wrapEl)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+    }
+  }, []) // intentionally empty — activeId read via ref, combatants not needed for positioning
  
   return <LanternColumn activeMidY={activeMidY} />
 }
