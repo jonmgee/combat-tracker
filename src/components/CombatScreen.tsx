@@ -23,36 +23,34 @@ export default function CombatScreen({ session, me, initialState }: Props) {
  
   const isDM = me.role === 'dm'
   const subPaused = useRef(false)
- 
-  // ── Load combatants ──
-  const loadCombatants = useCallback(async () => {
-    const { data } = await supabase
+  const mountedRef = useRef(false)
+
+  // ── Load everything (combatants + conditions) in one shot ──
+  const loadAll = useCallback(async () => {
+    const { data: combatantsData } = await supabase
       .from('combatants')
       .select('*')
       .eq('session_id', session.id)
       .order('initiative_order', { ascending: true })
-    if (data) setCombatants(data as Combatant[])
-  }, [session.id])
- 
-  // ── Load conditions (fetches combatant IDs from DB to avoid depending on state) ──
-  const loadConditions = useCallback(async () => {
+    if (combatantsData) setCombatants(combatantsData as Combatant[])
+
     const { data: combatantIds } = await supabase
       .from('combatants')
       .select('id')
       .eq('session_id', session.id)
     if (!combatantIds || combatantIds.length === 0) {
       setConditions([])
-      return
+    } else {
+      const { data: conditionsData } = await supabase
+        .from('conditions')
+        .select('*')
+        .in('combatant_id', combatantIds.map(c => c.id))
+      if (conditionsData) setConditions(conditionsData as Condition[])
     }
-    const { data } = await supabase
-      .from('conditions')
-      .select('*')
-      .in('combatant_id', combatantIds.map(c => c.id))
-    if (data) setConditions(data as Condition[])
   }, [session.id])
- 
-  useEffect(() => { loadCombatants() }, [loadCombatants])
-  useEffect(() => { loadConditions() }, [loadConditions])
+
+  // Load once on mount
+  useEffect(() => { loadAll() }, [loadAll])
  
   // ── Real-time: combat state ──
   const combatantsRef = useRef(combatants)
@@ -80,21 +78,21 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   useEffect(() => {
     const channel = supabase.channel(`combatants:${session.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'combatants', filter: `session_id=eq.${session.id}` }, () => {
-        if (!subPaused.current) loadCombatants()
+        if (!subPaused.current) loadAll()
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [session.id, loadCombatants])
+  }, [session.id, loadAll])
  
   // ── Real-time: conditions ──
   useEffect(() => {
     const channel = supabase.channel(`conditions:${session.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conditions' }, () => {
-        loadConditions()
+        loadAll()
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [session.id, loadConditions])
+  }, [session.id, loadAll])
  
   // ── Late-joiner submits initiative ──
   async function handleLateInitiative() {
