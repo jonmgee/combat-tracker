@@ -34,27 +34,39 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     if (data) setCombatants(data as Combatant[])
   }, [session.id])
  
-  // ── Load conditions ──
+  // ── Load conditions (fetches combatant IDs from DB to avoid depending on state) ──
   const loadConditions = useCallback(async () => {
+    const { data: combatantIds } = await supabase
+      .from('combatants')
+      .select('id')
+      .eq('session_id', session.id)
+    if (!combatantIds || combatantIds.length === 0) {
+      setConditions([])
+      return
+    }
     const { data } = await supabase
       .from('conditions')
       .select('*')
-      .in('combatant_id', combatants.map(c => c.id))
+      .in('combatant_id', combatantIds.map(c => c.id))
     if (data) setConditions(data as Condition[])
-  }, [combatants])
+  }, [session.id])
  
   useEffect(() => { loadCombatants() }, [loadCombatants])
-  useEffect(() => { if (combatants.length > 0) loadConditions() }, [combatants.length, loadConditions])
+  useEffect(() => { loadConditions() }, [loadConditions])
  
   // ── Real-time: combat state ──
+  const combatantsRef = useRef(combatants)
+  combatantsRef.current = combatants
+
   useEffect(() => {
     const channel = supabase.channel(`combat_state:${session.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'combat_state', filter: `session_id=eq.${session.id}` }, (payload) => {
         const next = payload.new as CombatState
         setCombatState(next)
-        // Notify player if it's now their turn
+        // Notify player if it's now their turn — use ref to avoid dep on combatants
         if (!isDM && next.current_combatant_id) {
-          const myCombatant = combatants.find(c => c.participant_id === me.id)
+          const currentCombatants = combatantsRef.current
+          const myCombatant = currentCombatants.find(c => c.participant_id === me.id)
           if (myCombatant && next.current_combatant_id === myCombatant.id) {
             fireLocalNotification('⚔️ Your Turn!', "It's your turn in combat!")
           }
@@ -62,7 +74,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [session.id, isDM, combatants, me.id])
+  }, [session.id, isDM, me.id])
  
   // ── Real-time: combatants ──
   useEffect(() => {
@@ -76,14 +88,13 @@ export default function CombatScreen({ session, me, initialState }: Props) {
  
   // ── Real-time: conditions ──
   useEffect(() => {
-    if (combatants.length === 0) return
     const channel = supabase.channel(`conditions:${session.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'conditions' }, () => {
         loadConditions()
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [session.id, combatants.length, loadConditions])
+  }, [session.id, loadConditions])
  
   // ── Late-joiner submits initiative ──
   async function handleLateInitiative() {
@@ -173,9 +184,6 @@ export default function CombatScreen({ session, me, initialState }: Props) {
             await supabase.from('combatants').update({ initiative_order: i + 1 }).eq('id', sorted[i].id)
           }
 
-          setCombatants(sorted)
-
-          // Set the combatants state directly from our fresh fetch
           setCombatants(sorted)
 
           // Re-enable subscriptions
