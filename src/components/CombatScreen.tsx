@@ -26,7 +26,11 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const subPaused = useRef(false)
 
   // Live participant data from DB — captures toggles set in lobby (alert_feat etc.)
-  const meRefreshed = participants.find(p => p.id === me.id) ?? me
+  // Must be useMemo so it re-evaluates when participants loads asynchronously
+  const meRefreshed = useMemo(
+    () => participants.find(p => p.id === me.id) ?? me,
+    [participants, me]
+  )
 
   // ── Load everything (combatants + conditions + participants) in one shot ──
   const loadAll = useCallback(async () => {
@@ -174,7 +178,16 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     const newRound = nextIdx <= currentIdx ? combatState.round_number + 1 : combatState.round_number
 
     if (next.is_hidden) {
-      await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', next.id)
+      // Reveal entire monster group (same name, same initiative) when any member becomes active
+      if (next.kind === 'monster') {
+        await supabase.from('combatants')
+          .update({ is_hidden: false, has_taken_turn: true })
+          .eq('session_id', session.id)
+          .eq('name', next.name)
+          .eq('initiative', next.initiative)
+      } else {
+        await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', next.id)
+      }
     } else if (next.kind === 'monster' && !next.has_taken_turn) {
       await supabase.from('combatants').update({ has_taken_turn: true }).eq('id', next.id)
     }
@@ -354,9 +367,19 @@ export default function CombatScreen({ session, me, initialState }: Props) {
 
             if (orderedList.length > 0) {
               const first = orderedList[0]
-              // If the first combatant is a hidden monster, reveal it immediately
+              // If the first combatant is a hidden monster (or part of a monster group),
+              // reveal the entire group so players can see all sub-cards
               if (first.is_hidden || (first.kind === 'monster' && !first.has_taken_turn)) {
-                await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', first.id)
+                if (first.kind === 'monster') {
+                  // Reveal all same-name same-initiative monsters together
+                  await supabase.from('combatants')
+                    .update({ is_hidden: false, has_taken_turn: true })
+                    .eq('session_id', session.id)
+                    .eq('name', first.name)
+                    .eq('initiative', first.initiative)
+                } else {
+                  await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', first.id)
+                }
               }
               await supabase.from('combat_state').update({
                 phase: 'active',
