@@ -101,6 +101,32 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     return () => { supabase.removeChannel(channel) }
   }, [session.id, loadAll])
 
+  // ── Assign grouped initiative_order to combatants ──
+  // Same-name monsters with the same initiative share an order number,
+  // so the whole group acts as one turn slot
+  async function assignGroupedInitiativeOrders(list: Combatant[]) {
+    const sorted = [...list].sort((a, b) => {
+      const ia = a.initiative ?? -1
+      const ib = b.initiative ?? -1
+      return ib - ia
+    })
+
+    let order = 0
+    for (let i = 0; i < sorted.length; i++) {
+      const c = sorted[i]
+      const prev = sorted[i - 1]
+      // Same group as previous?
+      const sameGroup = prev &&
+        c.kind === 'monster' &&
+        prev.kind === 'monster' &&
+        c.name === prev.name &&
+        c.initiative === prev.initiative
+
+      if (!sameGroup) order++
+      await supabase.from('combatants').update({ initiative_order: order }).eq('id', c.id)
+    }
+  }
+
   // ── Late-joiner submits initiative ──
   async function handleLateInitiative() {
     const val = parseInt(lateInit)
@@ -110,24 +136,13 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     const myCombatant = combatants.find(c => c.participant_id === me.id && c.kind === 'player')
     if (!myCombatant) { setLateInitSaving(false); return }
 
-    // Update initiative on the combatant
     await supabase.from('combatants').update({ initiative: val }).eq('id', myCombatant.id)
 
-    // Re-fetch all combatants with initiatives to recalculate order
     const { data: fresh } = await supabase.from('combatants')
       .select('*')
       .eq('session_id', session.id)
     if (fresh) {
-      // Sort all by initiative descending, 0 values last
-      const sorted = fresh
-        .filter(c => c.initiative !== null)
-        .sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0))
-
-      // Reassign initiative_order
-      for (let i = 0; i < sorted.length; i++) {
-        await supabase.from('combatants').update({ initiative_order: i + 1 }).eq('id', sorted[i].id)
-      }
-
+      await assignGroupedInitiativeOrders(fresh)
       setCombatants(fresh as Combatant[])
     }
 
@@ -136,17 +151,25 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   }
 
   // ── Advance turn (DM only) ──
+  // Skips to the next combatant in a different group (different initiative_order)
   async function advanceTurn() {
     if (!isDM || advancing) return
     setAdvancing(true)
 
     const ordered = [...combatants].sort((a, b) => (a.initiative_order ?? 0) - (b.initiative_order ?? 0))
     const currentIdx = ordered.findIndex(c => c.id === combatState.current_combatant_id)
-    const nextIdx    = (currentIdx + 1) % ordered.length
-    const next       = ordered[nextIdx]
-    const newRound   = nextIdx === 0 ? combatState.round_number + 1 : combatState.round_number
+    const currentOrder = ordered[currentIdx]?.initiative_order
 
-    // If next is a hidden monster, reveal it (first turn rule)
+    // Walk forward to find next combatant with a different initiative_order
+    let nextIdx = (currentIdx + 1) % ordered.length
+    let safety = 0
+    while (nextIdx !== currentIdx && ordered[nextIdx]?.initiative_order === currentOrder && safety < ordered.length) {
+      nextIdx = (nextIdx + 1) % ordered.length
+      safety++
+    }
+    const next = ordered[nextIdx]
+    const newRound = nextIdx <= currentIdx ? combatState.round_number + 1 : combatState.round_number
+
     if (next.is_hidden) {
       await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', next.id)
     } else if (next.kind === 'monster' && !next.has_taken_turn) {
@@ -259,29 +282,29 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   }
 
   async function swapBlocks(idx: number, swapIdx: number) {
-    // idx is the card being moved, swapIdx is the one it's swapping with
+    // Swap the initiative_order values between two blocks (ties only)
     subPaused.current = true
     try {
       const block = groupedCombatants[idx]
       const swapBlock = groupedCombatants[swapIdx]
 
+      const blockOrder = block.type === 'group'
+        ? (block.combatants[0].initiative_order ?? 1)
+        : (block.combatant.initiative_order ?? 1)
+      const swapOrder = swapBlock.type === 'group'
+        ? (swapBlock.combatants[0].initiative_order ?? 1)
+        : (swapBlock.combatant.initiative_order ?? 1)
+
       const combatantsInBlock = block.type === 'group' ? block.combatants : [block.combatant]
       const combatantsInSwap = swapBlock.type === 'group' ? swapBlock.combatants : [swapBlock.combatant]
 
-      const baseOrder = combatantsInSwap[0].initiative_order ?? 1
-
-      // Move swap block down by the size of the moving block
-      for (let i = 0; i < combatantsInSwap.length; i++) {
-        await supabase.from('combatants').update({
-          initiative_order: baseOrder + combatantsInBlock.length + i
-        }).eq('id', combatantsInSwap[i].id)
+      // Give every member of this block the swap block's order
+      for (const c of combatantsInBlock) {
+        await supabase.from('combatants').update({ initiative_order: swapOrder }).eq('id', c.id)
       }
-
-      // Move current block up to where swap block was
-      for (let i = 0; i < combatantsInBlock.length; i++) {
-        await supabase.from('combatants').update({
-          initiative_order: baseOrder + i
-        }).eq('id', combatantsInBlock[i].id)
+      // Give every member of the swap block this block's order
+      for (const c of combatantsInSwap) {
+        await supabase.from('combatants').update({ initiative_order: blockOrder }).eq('id', c.id)
       }
 
       await loadAll()
@@ -312,26 +335,16 @@ export default function CombatScreen({ session, me, initialState }: Props) {
               await supabase.from('combatants').insert(rows)
             }
 
-            // Fetch ALL combatants fresh
+            // Fetch ALL combatants fresh and assign grouped orders
             const { data: fresh } = await supabase.from('combatants')
               .select('*').eq('session_id', session.id)
+            const freshList = (fresh ?? []) as Combatant[]
 
-            // Sort: players with no initiative sink to the bottom
-            const sorted = (fresh ?? [])
-              .sort((a, b) => {
-                const ia = a.initiative ?? -1
-                const ib = b.initiative ?? -1
-                return ib - ia
-              })
+            await assignGroupedInitiativeOrders(freshList)
+            setCombatants(freshList)
 
-            for (let i = 0; i < sorted.length; i++) {
-              await supabase.from('combatants').update({ initiative_order: i + 1 }).eq('id', sorted[i].id)
-            }
-
-            setCombatants(sorted)
-
-            if (sorted.length > 0) {
-              const first = sorted[0]
+            if (freshList.length > 0) {
+              const first = freshList[0]
               // If the first combatant is a hidden monster, reveal it immediately
               if (first.is_hidden || (first.kind === 'monster' && !first.has_taken_turn)) {
                 await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', first.id)
@@ -444,7 +457,6 @@ export default function CombatScreen({ session, me, initialState }: Props) {
 
           <div className="flex flex-col gap-3">
             {(() => {
-              let idx = 0
               return groupedCombatants.map((g, groupIndex) => {
                 const thisInit = getGroupInitiative(g)
                 const prevInit = groupIndex > 0 ? getGroupInitiative(groupedCombatants[groupIndex - 1]) : null
@@ -453,8 +465,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
                 const tiedBelow = isDM && thisInit !== null && thisInit === nextInit
 
                 if (g.type === 'group') {
-                  const pos = g.combatants[0].initiative_order ?? idx + 1
-                  idx += g.combatants.length
+                  const pos = g.combatants[0].initiative_order ?? 1
                   return (
                     <GroupCombatantCard
                       key={g.combatants[0].id}
@@ -473,8 +484,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
                     />
                   )
                 } else {
-                  const pos = g.combatant.initiative_order ?? idx + 1
-                  idx++
+                  const pos = g.combatant.initiative_order ?? 1
                   return (
                     <CombatantCard
                       key={g.combatant.id}

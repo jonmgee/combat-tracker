@@ -3,7 +3,6 @@ import { supabase } from '../../lib/supabase'
 import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR, BloodiedIcon } from './ConditionIcons'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
-import BloodDrips from './BloodDrips'
 import type { Combatant, Condition, Participant } from '../../types'
 
 interface Props {
@@ -56,24 +55,14 @@ export default function GroupCombatantCard({
     }
   }
 
-  // Any bloodied in the group? (for card-level tint)
-  const anyBloodied = combatants.some(c => {
-    const hpBased = c.hp_enabled && c.max_hp !== null && c.current_hp !== null &&
-      c.current_hp < c.max_hp * 0.5
-    const condBased = conditions.some(cond => cond.combatant_id === c.id && cond.condition === 'Bloodied')
-    return hpBased || condBased
-  })
-
-  // Any concentrating?
+  // Any concentrating? (group-level; bloodied is per-sub-card only)
   const anyConcentrating = combatants.some(c =>
     conditions.some(cond => cond.combatant_id === c.id && cond.condition === 'Concentrating')
   )
 
-  // Group-level styling
+  // Group-level styling — bloodied no longer tints the whole card
   const cardBg = anyConcentrating
     ? (isActive ? '#221a2e' : '#1c1626')
-    : anyBloodied
-    ? (isActive ? '#261614' : '#201210')
     : isActive
     ? 'var(--bg-raised)'
     : 'var(--bg-panel)'
@@ -82,16 +71,12 @@ export default function GroupCombatantCard({
     ? (anyConcentrating ? 'rgba(140,90,220,0.7)' : '1px solid var(--gold)')
     : anyConcentrating
     ? 'rgba(110,70,180,0.5)'
-    : anyBloodied
-    ? 'rgba(160,40,30,0.4)'
     : 'var(--border)'
 
   const cardShadow = isActive
     ? anyConcentrating
       ? '0 0 20px rgba(140,90,220,0.35), 0 0 40px rgba(120,70,200,0.15)'
       : '0 0 20px rgba(201,168,76,0.35), 0 0 40px rgba(201,168,76,0.1)'
-    : anyBloodied
-    ? '0 0 10px rgba(160,30,20,0.2)'
     : 'none'
 
   const concAnimation = anyConcentrating ? 'conc-shift' : isActive ? 'flicker' : 'none'
@@ -108,21 +93,7 @@ export default function GroupCombatantCard({
         overflow: 'hidden',
       }}
     >
-      {/* ── Group-level visual effects ── */}
-      {anyBloodied && (
-        <>
-          <div style={{
-            position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none', zIndex: 1,
-            background: 'linear-gradient(to right, rgba(160,20,10,0.28) 0%, rgba(140,10,5,0.10) 45%, transparent 75%)',
-          }}/>
-          <div style={{
-            position: 'absolute', left: 0, top: '10%', bottom: '10%', width: 3,
-            background: 'linear-gradient(to bottom, transparent, rgba(190,30,20,0.9), transparent)',
-            borderRadius: '0 2px 2px 0', zIndex: 3,
-          }}/>
-          <BloodDrips count={4} />
-        </>
-      )}
+      {/* ── No group-level bloodied effects; each sub-card handles its own ── */}
 
       {isActive && !anyConcentrating && (
         <div style={{
@@ -180,8 +151,6 @@ export default function GroupCombatantCard({
                 style={{
                   color: anyConcentrating
                     ? (isActive ? '#ddd0ff' : '#c8b8f0')
-                    : anyBloodied
-                    ? (isActive ? '#e8c8c0' : '#c8a0a0')
                     : isActive
                     ? 'var(--gold-light)'
                     : 'var(--text-primary)',
@@ -220,9 +189,9 @@ export default function GroupCombatantCard({
         </div>
       </div>
 
-      {/* ── Sub-cards grid ── */}
+      {/* ── Sub-cards grid — wider min so action buttons don't clip ── */}
       <div className="px-3 pb-3 grid gap-2" style={{
-        gridTemplateColumns: `repeat(${Math.min(combatants.length, 4)}, 1fr)`,
+        gridTemplateColumns: `repeat(auto-fill, minmax(140px, 1fr))`,
       }}>
         {combatants.map((c, idx) => {
           const cConditions = conditions.filter(cond => cond.combatant_id === c.id)
@@ -259,7 +228,7 @@ export default function GroupCombatantCard({
               )}
 
               <div className="p-2" style={{ position: 'relative', zIndex: 1 }}>
-                {/* Numbered label */}
+                {/* Letter label (A, B, C...) instead of #1, #2, #3... */}
                 <div className="flex items-center justify-between mb-1">
                   <span style={{
                     fontFamily: "'Cinzel', serif",
@@ -267,7 +236,7 @@ export default function GroupCombatantCard({
                     color: cBloodied ? '#c07070' : isSubActive ? 'var(--gold)' : 'var(--text-dim)',
                     fontWeight: 600,
                   }}>
-                    #{idx + 1}
+                    {String.fromCharCode(65 + idx)}
                   </span>
                   {cConcentrating && (
                     <span style={{ color: '#b090f0', fontSize: '0.55rem' }}>
