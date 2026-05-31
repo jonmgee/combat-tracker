@@ -67,8 +67,8 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
   }
 
   // ── Alert swap ──
-  // Find participant IDs that have Alert and haven't used it
-  const eligibleAlertParticipantIds = useMemo(
+  // Participant IDs that have Alert and haven't used it yet
+  const alertEnabledParticipantIds = useMemo(
     () => new Set(
       participants
         .filter(p => p.alert_feat && !p.alert_used)
@@ -77,25 +77,24 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
     [participants]
   )
 
+  // My combatant — only if I have Alert and haven't used it
   const myAlertCombatant = useMemo(
     () => players.find(c =>
       c.participant_id !== null &&
-      eligibleAlertParticipantIds.has(c.participant_id) &&
+      alertEnabledParticipantIds.has(c.participant_id) &&
       c.participant_id === me.id
     ),
-    [players, eligibleAlertParticipantIds, me.id]
+    [players, alertEnabledParticipantIds, me.id]
   )
 
-  // Meets conditions for Alert swap — used to gate the info panel below
-
+  // Swap targets: any PC who is NOT me (they don't need Alert — I'm the one swapping)
   const alertSwapTargets = useMemo(() => {
     if (!myAlertCombatant) return []
     return players.filter(c =>
       c.id !== myAlertCombatant.id &&
-      c.participant_id !== null &&
-      eligibleAlertParticipantIds.has(c.participant_id)
+      c.participant_id !== null
     )
-  }, [players, myAlertCombatant, eligibleAlertParticipantIds])
+  }, [players, myAlertCombatant])
 
   async function handleAlertSwap(targetId: string) {
     if (!myAlertCombatant) return
@@ -110,11 +109,8 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
     await supabase.from('combatants').update({ initiative: targetInit }).eq('id', myAlertCombatant.id)
     await supabase.from('combatants').update({ initiative: myInit }).eq('id', target.id)
 
-    // Mark both as used
+    // Mark me as used (target doesn't need Alert — they just let me swap)
     await supabase.from('participants').update({ alert_used: true }).eq('id', meRefreshed.id)
-    if (target.participant_id) {
-      await supabase.from('participants').update({ alert_used: true }).eq('id', target.participant_id)
-    }
   }
 
   // ── Render a single combatant row ──
@@ -126,7 +122,7 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
     const tDown = isDM && tiedBelow(c, list)
 
     // Alert: does this combatant have Alert, haven't used it, and is me?
-    const thisHasAlert = eligibleAlertParticipantIds.has(c.participant_id ?? '')
+    const thisHasAlert = alertEnabledParticipantIds.has(c.participant_id ?? '')
     const isAlertSwapTarget = alertSwapTargets.some(t => t.id === c.id)
 
     return (
@@ -195,8 +191,8 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
           </div>
         </div>
 
-        {/* Alert eligible indicator (DM) */}
-        {isDM && thisHasAlert && (
+        {/* Alert eligible indicator (DM) — player has Alert toggled */}
+        {isDM && isPlayer && thisHasAlert && (
           <span className="text-xs px-1.5 py-0.5 rounded"
             style={{
               background: 'rgba(201,168,76,0.1)',
