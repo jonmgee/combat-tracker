@@ -311,11 +311,11 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
                 </p>
               ) : alertSwapTargets.length > 0 ? (
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  You can swap initiative with another Alert-enabled ally. Tap ↔ Swap next to their name above.
+                  You can swap initiative with another player. Tap ↔ Swap next to their name above.
                 </p>
               ) : (
                 <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-                  No other Alert-enabled allies in this combat. Your Alert feat will be available next time.
+                  No other players in this combat. Your Alert feat will be available next time.
                 </p>
               )}
             </div>
