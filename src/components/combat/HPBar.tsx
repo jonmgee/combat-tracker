@@ -6,11 +6,25 @@ interface Props {
   currentHp: number
   maxHp: number
   isBloodied?: boolean
+  isDead?: boolean
 }
  
-export default function HPBar({ combatantId, currentHp, maxHp, isBloodied = false }: Props) {
+export default function HPBar({ combatantId, currentHp, maxHp, isBloodied = false, isDead = false }: Props) {
   const [editing, setEditing] = useState(false)
   const [delta, setDelta]     = useState('')
+
+  // Dead state — show skull
+  if (isDead) {
+    return (
+      <div className="mt-2">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-mono" style={{ color: 'var(--text-dim)', minWidth: '48px', textAlign: 'left' }}>
+            💀 0/0
+          </span>
+        </div>
+      </div>
+    )
+  }
  
   const pct = Math.max(0, Math.min(100, (currentHp / maxHp) * 100))
  
@@ -27,7 +41,11 @@ export default function HPBar({ combatantId, currentHp, maxHp, isBloodied = fals
     const val = parseInt(delta)
     if (isNaN(val) || val <= 0) return
     const next = Math.max(0, Math.min(maxHp, currentHp + sign * val))
-    await supabase.from('combatants').update({ current_hp: next }).eq('id', combatantId)
+    if (next <= 0) {
+      await supabase.from('combatants').update({ current_hp: 0, dead: true }).eq('id', combatantId)
+    } else {
+      await supabase.from('combatants').update({ current_hp: next }).eq('id', combatantId)
+    }
     setDelta('')
     setEditing(false)
   }

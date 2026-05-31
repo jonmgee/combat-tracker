@@ -29,6 +29,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
   const isMe      = combatant.participant_id === me.id
   const isMonster = combatant.kind === 'monster'
   const isHidden  = combatant.is_hidden
+  const isDead    = combatant.dead
 
   const canSeeHP  = (isMe && combatant.hp_enabled) || (isDM && isMonster && combatant.hp_enabled)
   const showCard  = !isHidden || isDM
@@ -77,6 +78,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
   if (!showCard) return null
 
   // ── Card style logic ──
+  // Dead overrides everything
   // Priority: active > concentrating > bloodied > normal
   // Concentrating and bloodied can stack visually
   const cardBg = isConcentrating
@@ -87,7 +89,9 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
     ? 'var(--bg-raised)'
     : 'var(--bg-panel)'
 
-  const cardBorder = isActive
+  const cardBorder = isDead
+    ? 'rgba(60,60,60,0.4)'
+    : isActive
     ? (isConcentrating ? 'rgba(140,90,220,0.7)' : '1px solid var(--gold)')
     : isConcentrating
     ? 'rgba(110,70,180,0.5)'
@@ -178,7 +182,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         )}
 
         {/* ── Card content - above all layers ── */}
-        <div className="p-4" style={{ position: 'relative', zIndex: 2 }}>
+        <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1 }}>
 
           {/* ── Top row ── */}
           <div className="flex items-center gap-3">
@@ -235,6 +239,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   }}
                 >
                   {combatant.name}
+                  {isDead && <span className="text-sm" style={{ marginLeft: 4 }}>💀</span>}
                 </span>
 
                 {isMonster && combatant.count > 1 && (
@@ -251,6 +256,12 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   </span>
                 )}
 
+                {isDead && (
+                  <span className="text-xs px-2 py-0.5 rounded"
+                    style={{ background: 'rgba(60,30,30,0.5)', color: '#c06060', border: '1px solid rgba(180,60,50,0.4)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
+                    💀 Dead
+                  </span>
+                )}
                 {isHidden && isDM && (
                   <span className="text-xs px-1.5 py-0.5 rounded"
                     style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
@@ -284,44 +295,46 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
           </div>
 
           {/* ── Card-level toggles row ── */}
-          <div className="flex gap-2 mt-3">
-            {/* Concentration toggle */}
-            <button
-              onClick={toggleConcentration}
-              className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-              style={{
-                background: isConcentrating ? 'rgba(140,90,220,0.25)' : 'var(--bg-void)',
-                border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.5)' : 'var(--border)'}`,
-                color: isConcentrating ? '#c0a0f0' : 'var(--text-dim)',
-                cursor: 'pointer',
-              }}
-            >
-              <svg viewBox="0 0 14 14" fill="none" style={{ width: 12, height: 12, flexShrink: 0 }}>
-                <ellipse cx="7" cy="7" rx="5.5" ry="4" stroke="currentColor" strokeWidth="1"/>
-                <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="0.8"/>
-                <circle cx="7" cy="7" r="0.7" fill="currentColor"/>
-              </svg>
-              {isConcentrating ? 'Concentrating' : 'Concentrate'}
-            </button>
+          {!isDead && (
+            <div className="flex gap-2 mt-3">
+              {/* Concentration toggle */}
+              <button
+                onClick={toggleConcentration}
+                className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                style={{
+                  background: isConcentrating ? 'rgba(140,90,220,0.25)' : 'var(--bg-void)',
+                  border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.5)' : 'var(--border)'}`,
+                  color: isConcentrating ? '#c0a0f0' : 'var(--text-dim)',
+                  cursor: 'pointer',
+                }}
+              >
+                <svg viewBox="0 0 14 14" fill="none" style={{ width: 12, height: 12, flexShrink: 0 }}>
+                  <ellipse cx="7" cy="7" rx="5.5" ry="4" stroke="currentColor" strokeWidth="1"/>
+                  <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="0.8"/>
+                  <circle cx="7" cy="7" r="0.7" fill="currentColor"/>
+                </svg>
+                {isConcentrating ? 'Concentrating' : 'Concentrate'}
+              </button>
 
-            {/* Bloodied toggle */}
-            <button
-              onClick={toggleBloodied}
-              className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-              style={{
-                background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
-                border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
-                color: isBloodied ? '#c07070' : 'var(--text-dim)',
-                cursor: 'pointer',
-              }}
-            >
-              <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
-                <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
-                  stroke="currentColor" strokeWidth="0.9" fill={isBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
-              </svg>
-              {isBloodied ? 'Bloodied' : 'Bloody'}
-            </button>
-          </div>
+              {/* Bloodied toggle */}
+              <button
+                onClick={toggleBloodied}
+                className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                style={{
+                  background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
+                  border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
+                  color: isBloodied ? '#c07070' : 'var(--text-dim)',
+                  cursor: 'pointer',
+                }}
+              >
+                <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
+                  <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
+                    stroke="currentColor" strokeWidth="0.9" fill={isBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
+                </svg>
+                {isBloodied ? 'Bloodied' : 'Bloody'}
+              </button>
+            </div>
+          )}
 
           {/* ── Normal conditions row (card-level ones excluded) ── */}
           {conditions.some(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied') && (
@@ -443,26 +456,29 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               currentHp={combatant.current_hp}
               maxHp={combatant.max_hp}
               isBloodied={isBloodied}
+              isDead={isDead}
             />
           )}
 
           {/* ── Actions row ── */}
-          <div className="flex gap-2 mt-2">
-            {canSwapTarget && (
+          {!isDead && (
+            <div className="flex gap-2 mt-2">
+              {canSwapTarget && (
+                <button
+                  onClick={onSwapTarget}
+                  className="flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs transition-all active:scale-95"
+                  style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid var(--gold-dark)', color: 'var(--gold)', cursor: 'pointer', fontWeight: 600 }}>
+                  ↔ Alert Swap
+                </button>
+              )}
               <button
-                onClick={onSwapTarget}
-                className="flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs transition-all active:scale-95"
-                style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid var(--gold-dark)', color: 'var(--gold)', cursor: 'pointer', fontWeight: 600 }}>
-                ↔ Alert Swap
+                onClick={() => setShowConditions(true)}
+                className={`py-1.5 rounded-lg text-xs transition-all active:scale-95 ${canSwapTarget ? '' : 'flex-1'}`}
+                style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
+                + Condition
               </button>
-            )}
-            <button
-              onClick={() => setShowConditions(true)}
-              className={`py-1.5 rounded-lg text-xs transition-all active:scale-95 ${canSwapTarget ? '' : 'flex-1'}`}
-              style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
-              + Condition
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

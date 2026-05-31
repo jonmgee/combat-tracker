@@ -14,6 +14,9 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
   const [loading, setLoading]           = useState(false)
   const [copied, setCopied]             = useState(false)
   const [hpOptIn, setHpOptIn]           = useState(me.hp_opt_in)
+  const [startingHp, setStartingHp]     = useState('')
+  const [maxHpInput, setMaxHpInput]     = useState('')
+  const [isMaxHp, setIsMaxHp]           = useState(true)
   const [notifEnabled, setNotifEnabled] = useState(me.notifications_enabled)
   const [alertFeat, setAlertFeat]       = useState(me.alert_feat)
 
@@ -60,7 +63,35 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
   async function toggleHpOptIn() {
     const next = !hpOptIn
     setHpOptIn(next)
-    await supabase.from('participants').update({ hp_opt_in: next }).eq('id', me.id)
+    if (next) {
+      // Show entry panel — don't save hp_opt_in until they hit Save
+      setStartingHp(me.starting_hp?.toString() ?? '')
+      setMaxHpInput(me.max_hp_participant?.toString() ?? '')
+      setIsMaxHp(!me.max_hp_participant)
+    } else {
+      await supabase.from('participants').update({ hp_opt_in: false }).eq('id', me.id)
+    }
+  }
+
+  async function saveHp() {
+    const hp = parseInt(startingHp)
+    if (isNaN(hp) || hp <= 0) return
+    const max = isMaxHp ? hp : parseInt(maxHpInput)
+    if (!isMaxHp && (isNaN(max) || max <= 0 || max < hp)) return
+    await supabase.from('participants').update({
+      hp_opt_in: true,
+      starting_hp: hp,
+      max_hp_participant: isMaxHp ? null : max,
+    }).eq('id', me.id)
+  }
+
+  function hpSummary(): string | null {
+    const sh = me.starting_hp
+    const mh = me.max_hp_participant
+    if (sh === null && mh === null) return null
+    if (mh) return `HP: ${sh}/${mh}`
+    if (sh) return `HP: ${sh}`
+    return null
   }
 
   async function toggleNotifications() {
@@ -95,6 +126,8 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
         kind:           'player',
         is_hidden:      false,
         hp_enabled:     p.hp_opt_in,
+        current_hp:     p.starting_hp,
+        max_hp:         p.max_hp_participant ?? p.starting_hp,
       }))
       await supabase.from('combatants').insert(combatantRows)
 
@@ -187,23 +220,89 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
       {/* ── Player options ── */}
       {!isDM && (
         <div className="w-full max-w-sm flex flex-col gap-3 mb-5 fade-in" style={{ animationDelay: '0.12s' }}>
-          {/* HP opt-in */}
-          <button onClick={toggleHpOptIn}
-            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl transition-all duration-150 active:scale-95"
+              {/* HP opt-in */}
+          <div className="w-full rounded-xl"
             style={{ background: 'var(--bg-panel)', border: `1px solid ${hpOptIn ? 'var(--gold-dark)' : 'var(--border)'}` }}>
-            <div className="flex items-center gap-3">
-              <span className="text-xl">❤️</span>
-              <div className="text-left">
-                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Track my HP</div>
-                <div className="text-xs" style={{ color: 'var(--text-dim)' }}>Optional — only you will see it</div>
+            <button onClick={toggleHpOptIn}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl transition-all duration-150 active:scale-95"
+              style={{ background: 'transparent' }}>
+              <div className="flex items-center gap-3">
+                <span className="text-xl">❤️</span>
+                <div className="text-left">
+                  <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Track my HP</div>
+                  <div className="text-xs" style={{ color: 'var(--text-dim)' }}>Optional — only you will see it</div>
+                </div>
               </div>
-            </div>
-            <div className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5"
-              style={{ background: hpOptIn ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)' }}>
-              <div className="w-5 h-5 rounded-full transition-all duration-200"
-                style={{ background: hpOptIn ? 'var(--gold)' : 'var(--text-dim)', transform: hpOptIn ? 'translateX(20px)' : 'translateX(0)' }} />
-            </div>
-          </button>
+              <div className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5"
+                style={{ background: hpOptIn ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)' }}>
+                <div className="w-5 h-5 rounded-full transition-all duration-200"
+                  style={{ background: hpOptIn ? 'var(--gold)' : 'var(--text-dim)', transform: hpOptIn ? 'translateX(20px)' : 'translateX(0)' }} />
+              </div>
+            </button>
+
+            {/* HP entry panel — shown when toggle is ON but no HP saved yet */}
+            {hpOptIn && (me.starting_hp === null || hpSummary() === null) && (
+              <div className="px-5 pb-4 fade-in" style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="pt-3 flex flex-col gap-3">
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Current HP</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={startingHp}
+                      onChange={e => setStartingHp(e.target.value)}
+                      placeholder="e.g. 42"
+                      className="w-full px-3 py-2 rounded text-sm outline-none"
+                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isMaxHp}
+                      onChange={e => setIsMaxHp(e.target.checked)}
+                      style={{ accentColor: 'var(--gold)' }}
+                    />
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>This is my max HP</span>
+                  </label>
+
+                  {!isMaxHp && (
+                    <div>
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Max HP</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={maxHpInput}
+                        onChange={e => setMaxHpInput(e.target.value)}
+                        placeholder="e.g. 50"
+                        className="w-full px-3 py-2 rounded text-sm outline-none"
+                        style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                  )}
+
+                  <button
+                    onClick={saveHp}
+                    disabled={!startingHp || parseInt(startingHp) <= 0}
+                    className="w-full py-2 rounded-lg text-sm font-semibold transition-all active:scale-95 disabled:opacity-40"
+                    style={{ background: 'var(--gold-dark)', color: '#1a1410' }}
+                  >
+                    Save HP
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* HP summary — shown when HP is saved */}
+            {hpOptIn && hpSummary() !== null && (
+              <div className="px-5 pb-3" style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="pt-2 text-sm" style={{ color: 'var(--gold-light)', fontFamily: "'Cinzel', serif", letterSpacing: '0.04em' }}>
+                  {hpSummary()}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Notification toggle */}
           <button onClick={toggleNotifications}
@@ -250,7 +349,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
             <button onClick={handleStartCombat} disabled={!canStart || loading}
               className="w-full py-4 rounded-xl font-bold text-lg transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ background: canStart ? 'linear-gradient(135deg, var(--gold-dark), var(--gold))' : 'var(--bg-raised)', color: canStart ? '#1a1410' : 'var(--text-dim)', fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', boxShadow: canStart ? '0 4px 20px rgba(201,168,76,0.4)' : 'none', border: canStart ? 'none' : '1px solid var(--border)' }}>
-              {loading ? 'Preparing battle…' : canStart ? '⚔️  Start Combat' : 'Waiting for Players…'}
+              {loading ? 'Preparing battle…' : canStart ? '⚔️  Roll for Initiative' : 'Waiting for Players…'}
             </button>
             {!canStart && (
               <p className="text-center text-xs mt-3" style={{ color: 'var(--text-dim)', letterSpacing: '0.06em' }}>

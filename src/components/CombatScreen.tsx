@@ -161,14 +161,23 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     const currentIdx = ordered.findIndex(c => c.id === combatState.current_combatant_id)
     const currentOrder = ordered[currentIdx]?.initiative_order
 
-    // Walk forward to find next combatant with a different initiative_order
+    // Walk forward to find next combatant with a different initiative_order (and not dead)
     let nextIdx = (currentIdx + 1) % ordered.length
     let safety = 0
-    while (nextIdx !== currentIdx && ordered[nextIdx]?.initiative_order === currentOrder && safety < ordered.length) {
+    while (nextIdx !== currentIdx && safety < ordered.length) {
+      const candidate = ordered[nextIdx]
+      if (!candidate.dead && candidate.initiative_order !== currentOrder) break
       nextIdx = (nextIdx + 1) % ordered.length
       safety++
     }
     const next = ordered[nextIdx]
+
+    // If we looped back to the same combatant (all are dead), don't advance
+    if (next.id === combatState.current_combatant_id) {
+      setAdvancing(false)
+      return
+    }
+
     const newRound = nextIdx <= currentIdx ? combatState.round_number + 1 : combatState.round_number
 
     if (next.is_hidden) {
@@ -200,7 +209,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     ? combatants
     : combatants.filter(c => !c.is_hidden || c.kind === 'player')
 
-  // ── Group adjacent same-name monsters ──
+  // ── Group adjacent same-name monsters, exclude all-dead groups ──
   const groupedCombatants = useMemo(() => {
     type GroupedEntry =
       | { type: 'single'; combatant: Combatant }
@@ -217,16 +226,22 @@ export default function CombatScreen({ session, me, initialState }: Props) {
                visibleCombatants[j].name === c.name) {
           j++
         }
+        const monsters = visibleCombatants.slice(i, j)
+        // Exclude group if ALL are dead
+        if (monsters.every(m => m.dead)) {
+          i = j
+          continue
+        }
         const count = j - i
         if (count > 1) {
           groups.push({
             type: 'group',
-            combatants: visibleCombatants.slice(i, j),
+            combatants: monsters,
             name: c.name,
             initiative: c.initiative ?? 0,
           })
         } else {
-          groups.push({ type: 'single', combatant: c })
+          groups.push({ type: 'single', combatant: monsters[0] })
         }
         i = j
       } else {

@@ -172,6 +172,7 @@ export default function GroupCombatantCard({
             c.current_hp < c.max_hp * 0.5
           const cBloodied = cHpBloodied || cConditions.some(cond => cond.condition === 'Bloodied')
           const cConcentrating = cConditions.some(cond => cond.condition === 'Concentrating')
+          const cDead = c.dead
           const isSubActive = c.id === activeId && isActive
           const canSeeHP = isDM && c.hp_enabled
 
@@ -181,7 +182,7 @@ export default function GroupCombatantCard({
               data-combatant-id={c.id}
               className="rounded-lg transition-all duration-200"
               style={{
-                background: cBloodied ? 'rgba(30,12,10,0.6)' : 'rgba(0,0,0,0.2)',
+                background: cDead ? 'rgba(20,15,15,0.5)' : cBloodied ? 'rgba(30,12,10,0.6)' : 'rgba(0,0,0,0.2)',
                 border: isSubActive
                   ? '1px solid var(--gold)'
                   : cBloodied
@@ -190,6 +191,7 @@ export default function GroupCombatantCard({
                 boxShadow: isSubActive ? '0 0 12px rgba(201,168,76,0.3)' : 'none',
                 position: 'relative',
                 overflow: 'hidden',
+                opacity: cDead ? 0.5 : 1,
               }}
             >
               {/* Sub-card bloodied seep */}
@@ -221,10 +223,10 @@ export default function GroupCombatantCard({
                   <span style={{
                     fontFamily: "'Cinzel', serif",
                     fontSize: '0.65rem',
-                    color: cBloodied ? '#c07070' : cConcentrating ? '#b090f0' : isSubActive ? 'var(--gold)' : 'var(--text-dim)',
+                    color: cDead ? '#808080' : cBloodied ? '#c07070' : cConcentrating ? '#b090f0' : isSubActive ? 'var(--gold)' : 'var(--text-dim)',
                     fontWeight: 600,
                   }}>
-                    {String.fromCharCode(65 + idx)}
+                    {String.fromCharCode(65 + idx)} {cDead ? '💀' : ''}
                   </span>
                   {cConcentrating && (
                     <span style={{ color: '#b090f0', fontSize: '0.55rem' }}>✦ Conc</span>
@@ -238,6 +240,7 @@ export default function GroupCombatantCard({
                     currentHp={c.current_hp}
                     maxHp={c.max_hp}
                     isBloodied={cBloodied}
+                    isDead={cDead}
                   />
                 )}
 
@@ -294,8 +297,13 @@ export default function GroupCombatantCard({
                   </div>
                 )}
 
+                {/* Dead badge */}
+                {cDead && (
+                  <div className="mt-1 text-xs" style={{ color: '#c06060' }}>💀 Dead</div>
+                )}
+
                 {/* Actions — DM only */}
-                {isDM && (
+                {isDM && !cDead && (
                   <div className="flex gap-1 mt-1">
                     {/* Concentration toggle */}
                     <button

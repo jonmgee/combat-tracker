@@ -20,6 +20,8 @@ export interface Participant {
   notifications_enabled: boolean
   alert_feat: boolean
   alert_used: boolean
+  starting_hp: number | null
+  max_hp_participant: number | null
   joined_at: string
 }
 
@@ -33,6 +35,7 @@ export interface Combatant {
   initiative_order: number | null
   is_hidden: boolean
   has_taken_turn: boolean
+  dead: boolean
   count: number
   hp_enabled: boolean
   max_hp: number | null

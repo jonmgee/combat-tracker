@@ -310,7 +310,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
               cursor: 'pointer',
             }}
           >
-            ⚔️  Begin Combat
+            ⚔️  Let Battle Commence
           </button>
         </div>
       )}
