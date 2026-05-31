@@ -14,8 +14,24 @@ type GroupedEntry =
   | { type: 'player'; combatant: Combatant }
   | { type: 'monster'; combatants: Combatant[]; name: string; count: number; initiative: number; isHidden: boolean }
 
-export default function OrderReviewScreen({ combatants, participants: initialParticipants, me, sessionId, onBeginCombat }: Props) {
+export default function OrderReviewScreen({ combatants: initialCombatants, participants: initialParticipants, me, sessionId, onBeginCombat }: Props) {
   const isDM = me.role === 'dm'
+
+  // ── Own combatants state — re-fetched after every swap/nudge so screen stays in sync ──
+  const [combatants, setCombatants] = useState<Combatant[]>(initialCombatants)
+  const [revision, setRevision] = useState(0)
+
+  useEffect(() => {
+    supabase.from('combatants')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('initiative', { ascending: false })
+      .then(({ data }) => { if (data) setCombatants(data as Combatant[]) })
+  }, [sessionId, revision])
+
+  function reloadCombatants() {
+    setRevision(r => r + 1)
+  }
 
   // ── Fresh participant data — fetch directly so lobby toggles are always current ──
   const [participants, setParticipants] = useState<Participant[]>(initialParticipants)
@@ -100,6 +116,7 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
 
     for (const id of ids1) await supabase.from('combatants').update({ initiative: init2 }).eq('id', id)
     for (const id of ids2) await supabase.from('combatants').update({ initiative: init1 }).eq('id', id)
+    reloadCombatants()
   }
 
   // ── Alert swap ──
@@ -137,6 +154,10 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
     await supabase.from('combatants').update({ initiative: targetInit }).eq('id', myAlertCombatant.id)
     await supabase.from('combatants').update({ initiative: myInit }).eq('id', target.id)
     await supabase.from('participants').update({ alert_used: true }).eq('id', meRefreshed.id)
+    reloadCombatants()
+    // Refresh participants so alert_used state updates immediately
+    supabase.from('participants').select('*').eq('session_id', sessionId)
+      .then(({ data }) => { if (data) setParticipants(data as Participant[]) })
   }
 
   // ── Render a grouped entry row ──
@@ -335,7 +356,7 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
                 </p>
               ) : alertSwapTargets.length > 0 ? (
                 <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                  You can swap initiative with another player. Tap ↔ Swap next to their name above.
+                  You may swap your initiative with a willing ally. Tap ↔ Swap next to their name above.
                 </p>
               ) : (
                 <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
