@@ -3,13 +3,12 @@ import { supabase } from '../../lib/supabase'
 import type { Combatant, Participant } from '../../types'
 
 interface Props {
-  sessionId: string
   combatants: Combatant[]
   me: Participant
-  onReady: () => void
+  onReady: (data: { playerUpdates: { id: string; initiative: number }[]; monsterInserts: any[] }) => void
 }
 
-export default function InitiativeEntry({ sessionId, combatants, me, onReady }: Props) {
+export default function InitiativeEntry({ combatants, me, onReady }: Props) {
   const isDM = me.role === 'dm'
 
   // Initiatives keyed by combatant id
@@ -27,7 +26,6 @@ export default function InitiativeEntry({ sessionId, combatants, me, onReady }: 
   // Which combatants still need initiative
   const pending = combatants.filter(c => c.initiative === null)
   const allPlayersDone = pending.length === 0
-
   async function submitPlayerInitiative() {
     if (!myCombatant) return
     const val = parseInt(initiatives[myCombatant.id] ?? '')
@@ -42,37 +40,35 @@ export default function InitiativeEntry({ sessionId, combatants, me, onReady }: 
     setSaving(true)
     setError(null)
     try {
-      // Update player initiatives — any player still pending stays null (they'll roll during combat)
+      // Collect player initiative updates
+      const playerUpdates: { id: string; initiative: number }[] = []
       for (const c of combatants) {
         const val = parseInt(initiatives[c.id] ?? '')
         if (!isNaN(val)) {
-          await supabase.from('combatants').update({ initiative: val }).eq('id', c.id)
+          playerUpdates.push({ id: c.id, initiative: val })
         }
       }
-      // Insert monsters — individual rows per creature
-      const validMonsters = monsters.filter(m => m.name.trim() && m.initiative.trim())
-      if (validMonsters.length > 0) {
-        const rows: any[] = []
-        for (const m of validMonsters) {
-          const groupCount = Math.max(1, parseInt(m.count) || 1)
-          for (let j = 0; j < groupCount; j++) {
-            rows.push({
-              session_id:  sessionId,
-              name:        m.name.trim(),
-              kind:        'monster',
-              initiative:  parseInt(m.initiative),
-              is_hidden:   true,
-              count:       1,
-              hp_enabled:  m.hpEnabled,
-              max_hp:      m.hpEnabled && m.hp ? parseInt(m.hp) : null,
-              current_hp:  m.hpEnabled && m.hp ? parseInt(m.hp) : null,
 
-            })
-          }
+      // Collect monster inserts
+      const validMonsters = monsters.filter(m => m.name.trim() && m.initiative.trim())
+      const monsterInserts: any[] = []
+      for (const m of validMonsters) {
+        const groupCount = Math.max(1, parseInt(m.count) || 1)
+        for (let j = 0; j < groupCount; j++) {
+          monsterInserts.push({
+            name:        m.name.trim(),
+            kind:        'monster',
+            initiative:  parseInt(m.initiative),
+            is_hidden:   true,
+            count:       1,
+            hp_enabled:  m.hpEnabled,
+            max_hp:      m.hpEnabled && m.hp ? parseInt(m.hp) : null,
+            current_hp:  m.hpEnabled && m.hp ? parseInt(m.hp) : null,
+          })
         }
-        await supabase.from('combatants').insert(rows)
       }
-      onReady()
+
+      onReady({ playerUpdates, monsterInserts })
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {

@@ -158,45 +158,57 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   if (combatState.phase === 'initiative') {
     return (
       <InitiativeEntry
-        sessionId={session.id}
         combatants={combatants}
         me={me}
-        onReady={async () => {
-          // Pause subscription-driven loads while we set up the combat order
+        onReady={async ({ playerUpdates, monsterInserts }) => {
+          // Pause subscription-driven loads while we write
           subPaused.current = true
 
-          // Fetch ALL combatants fresh (monsters were just inserted, not in closed-over state)
-          const { data: fresh } = await supabase.from('combatants')
-            .select('*').eq('session_id', session.id)
-
-          // Sort: players with no initiative sink to the bottom
-          const sorted = (fresh ?? [])
-            .sort((a, b) => {
-              const ia = a.initiative ?? -1
-              const ib = b.initiative ?? -1
-              return ib - ia
-            })
-
-          for (let i = 0; i < sorted.length; i++) {
-            await supabase.from('combatants').update({ initiative_order: i + 1 }).eq('id', sorted[i].id)
-          }
-
-          setCombatants(sorted)
-
-          // Re-enable subscriptions
-          subPaused.current = false
-
-          if (sorted.length > 0) {
-            const first = sorted[0]
-            // If the first combatant is a hidden monster, reveal it immediately
-            if (first.is_hidden || (first.kind === 'monster' && !first.has_taken_turn)) {
-              await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', first.id)
+          try {
+            // Apply player initiative updates
+            for (const { id, initiative } of playerUpdates) {
+              await supabase.from('combatants').update({ initiative }).eq('id', id)
             }
-            await supabase.from('combat_state').update({
-              phase: 'active',
-              current_combatant_id: first.id,
-              updated_at: new Date().toISOString(),
-            }).eq('session_id', session.id)
+
+            // Insert monster rows
+            if (monsterInserts.length > 0) {
+              const rows = monsterInserts.map(m => ({ ...m, session_id: session.id }))
+              await supabase.from('combatants').insert(rows)
+            }
+
+            // Fetch ALL combatants fresh
+            const { data: fresh } = await supabase.from('combatants')
+              .select('*').eq('session_id', session.id)
+
+            // Sort: players with no initiative sink to the bottom
+            const sorted = (fresh ?? [])
+              .sort((a, b) => {
+                const ia = a.initiative ?? -1
+                const ib = b.initiative ?? -1
+                return ib - ia
+              })
+
+            for (let i = 0; i < sorted.length; i++) {
+              await supabase.from('combatants').update({ initiative_order: i + 1 }).eq('id', sorted[i].id)
+            }
+
+            setCombatants(sorted)
+
+            if (sorted.length > 0) {
+              const first = sorted[0]
+              // If the first combatant is a hidden monster, reveal it immediately
+              if (first.is_hidden || (first.kind === 'monster' && !first.has_taken_turn)) {
+                await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', first.id)
+              }
+              await supabase.from('combat_state').update({
+                phase: 'active',
+                current_combatant_id: first.id,
+                updated_at: new Date().toISOString(),
+              }).eq('session_id', session.id)
+            }
+          } finally {
+            // Re-enable subscriptions
+            subPaused.current = false
           }
         }}
       />
