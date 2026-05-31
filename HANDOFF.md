@@ -1,91 +1,124 @@
-# Combat Tracker — Handoff Notes
+# Handoff: React Error #310 — "Maximum update depth exceeded"
 
-## Current Status
+**Date:** 2026-05-31
+**From:** Geordi La Forge
+**To:** Claude (next engineer)
 
-**Phase:** Phase 2 complete
-**Date:** 2026-05-23
-**Verified working:** 2026-05-23 23:27 PDT
+## The Problem
 
-## What Was Built
+Clicking "⚔️ Lock In & Begin Combat" (the DM button in the initiative entry phase) causes a blank screen with React error #310 — **"Maximum update depth exceeded"** (infinite re-render loop).
 
-React/Vite app with Supabase integration:
-- Home screen with Create Session (DM) and Join Session (player) flows
-- Lobby screen with prominent room code display
-- Real-time participant list via Supabase subscriptions
-- DM session creation with generated 6-character room code
-- Player join flow with character name and room code entry
-- Start Combat button (DM only, enabled when 1+ players joined)
-- Warm tavern aesthetic — Cinzel serif, gold/amber palette, candlelight feel
-- Mobile-first layout
+This happened **after** the monster group-splitting commit (`70e6808`) was deployed. Before that commit, the combat worked fine.
 
-## Infrastructure
+## Symptoms
 
-| Key | Value |
-|-----|-------|
-| GitHub repo | jonmgee/combat-tracker |
-| Live URL | combat-tracker-54k641y7s-jon-mg-ee-s-projects.vercel.app |
-| Supabase project | rtiklwyvnlfcgsefctut.supabase.co |
-| Deploy target | Vercel |
+- Error #310 on production build (minified)
+- Stack trace passes through condition icon/colour map functions (`CONDITION_ICON_MAP`, `CONDITION_COLOURS`)
+- Occurs when the DM clicks the "Lock In & Begin Combat" button in `InitiativeEntry`
+- The app transitions to a blank page with the `ErrorBoundary` fallback (if deployed) or a completely blank screen
 
-## Database
+## How It Works
 
-**Tables created:** `sessions`, `participants`, `combatants`, `combat_state`, `conditions`
+### Flow
+1. DM is on `InitiativeEntry` screen (loaded inside `CombatScreen` conditionally: `if (combatState.phase === 'initiative')`)
+2. DM fills in player initiatives + monster rows, clicks "Lock In & Begin Combat"
+3. `submitDMInitiatives()` collects the data and calls `onReady({ playerUpdates, monsterInserts })`
+4. `onReady` (defined in `CombatScreen.tsx`) writes to Supabase, re-orders combatants, and updates `combat_state.phase` to `'active'`
+5. React re-renders: `combatState.phase` is now `'active'`, so the combat view renders instead of `InitiativeEntry`
 
-Schema files:
-- `supabase-schema.sql` — Phase 1 (sessions + participants)
-- `supabase-migration-phase2.sql` — Phase 2 (combatants + combat_state + conditions)
+### Real-time subscriptions
+All three Supabase tables have `postgres_changes` subscriptions in `CombatScreen.tsx`:
+- `combat_state` — updates `setCombatState()` when anyone advances turn
+- `combatants` — calls `loadAll()` to refresh combatant data
+- `conditions` — calls `loadAll()` to refresh condition data
 
-RLS and real-time replication enabled on all tables.
+## What Has Been Tried (in order)
 
-## Environment Variables (set in Vercel)
+### 1. `loadConditions` dependency cycle (commit `276165e`)
+**Problem:** `loadConditions` had `combatants` in its `useCallback` dependency array. Every `setCombatants()` gave `combatants` a new reference, which recreated `loadConditions`, which fired the `useEffect`, which called `loadConditions()` → `setConditions()` → re-render... infinite loop.
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
+**Fix:** Changed `loadConditions` to fetch combatant IDs from the DB directly instead of reading them from `combatants` state. Dependency was reduced to just `[session.id]`.
 
-## Phase 2 Complete
+**Result:** Still crashing.
 
-### Initiative Tracker
-- DM clicks Start Combat → combatant rows created, initiative entry phase begins
-- Players enter their own initiative (number input + Set button)
-- DM enters initiatives for all players and adds monsters with name, count (#), initiative, optional HP
-- DM clicks "Lock In & Begin Combat" → initiative order sorted (fetches fresh from DB), hidden monsters hidden from players
-- First combatant in order revealed immediately (even if a hidden monster)
-- Round counter in sticky header, active turn candle-flicker glow
-- DM advances turn with "Next" button
-- Players see "It's your turn!" banner; browser push notification fires
-- Hidden monsters revealed after their first turn
-- Monster group count (×N badge) with DM − button to decrement as they're killed off
+### 2. `LanternColumnWrapper` loop (commit `d509ab8`)
+**Problem:** `LanternColumnWrapper` had `combatants` in its `useEffect` dependency array. `visibleCombatants` (the prop passed to it) is computed inline every render as `isDM ? combatants : combatants.filter(...)`, which creates a new array reference on every render. So the effect fired every render → `setActiveMidY()` → re-render → infinite loop.
 
-### HP Tracking
-- HP opt-in toggle in lobby (completely optional per character)
-- Color-coded HP bars (green > 50%, amber > 25%, red ≤ 25%)
-- Inline ± damage/heal editor with type-and-click interface
-- Players only see their own HP; DM only sees monster HP
+**Fix:** Removed `combatants` from the deps array. Used a ref for `activeId` and a `ResizeObserver` for re-measuring.
 
-### Conditions
-- 27 conditions across 3 tabs: Standard D&D (15), Weapon Mastery (8), Spell (8)
-- Bottom sheet picker with emoji icons
-- Anyone can add/remove conditions on any visible combatant
-- Hidden monster conditions hidden from players
-- Hover or tap condition icon to see the condition name in a tooltip
+**Result:** Still crashing.
 
-### Combatant Cards
-- Position badge, name, initiative value, active turn indicator
-- Conditions displayed as icon row
-- HP bar shown when applicable
-- "+ Condition" button on every card
+### 3. Consolidated `loadAll` (commit `03c0286`)
+**Problem:** `loadCombatants` and `loadConditions` were separate `useCallback` hooks. Even though their dependency arrays were fixed, having two separate state updates in separate effects could cascade. Also the conditions subscription fired `loadConditions` which could cross-trigger.
 
-### New Tables (run supabase-migration-phase2.sql)
-- combatants, combat_state, conditions
-- Full RLS, grants, and real-time subscriptions included
+**Fix:** Merged both into a single `loadAll` callback that fetches combatants and conditions in one shot. One `useEffect`, one subscription callback.
 
-## Known Issues Fixed
+**Result:** Still crashing.
 
-- **RLS permission denied on sessions/participants** — Root cause: Postgres checks table-level grants before evaluating RLS policies. The anon role had no grants. Fix: added GRANT statements. Applied in Supabase 2026-05-23. Schema file updated.
-- **Initiative order wrong** — Stale closure in `onReady` callback used client-side state that didn't include freshly inserted monsters. Fix: fetch all combatants from DB before sorting.
-- **First monster hidden on turn 1** — If a hidden monster was first in initiative order, it stayed hidden while acting. Fix: reveal first combatant immediately on combat start.
-- **`count` column added to combatants** — Run manually: `alter table combatants add column if not exists count integer not null default 1;`
+### 4. DB writes inside `subPaused` guard (commit `ed0811c`)
+**Problem:** The DM's "Lock In" flow did DB writes outside the `subPaused` guard. `submitDMInitiatives()` in `InitiativeEntry.tsx` would write player initiatives and monster rows to Supabase BEFORE calling `onReady()` (which sets `subPaused.current = true`). Each DB write triggered the real-time subscription → `loadAll()` → `setCombatants()` → re-render. During an async function with multiple sequential `await`s, React could see these as too many nested state updates and throw #310.
 
-## Next Task
+**Fix:** Refactored the flow:
+- `InitiativeEntry.submitDMInitiatives()` now only **collects** data and passes it to `onReady()`. No DB writes.
+- `CombatScreen`'s `onReady` now receives `{ playerUpdates, monsterInserts }`, sets `subPaused = true` FIRST, then does ALL DB writes inside the guard.
+- Added `try/finally` to ensure `subPaused = false` gets reset.
+- Removed `sessionId` prop from `InitiativeEntry` (no longer needed since DB calls moved up).
 
-TBD — Phase 3 or polish
+**Result:** **Still crashing.** (Confirmed by screenshot after deploy.) This means the real cause is something else, or this fix didn't fully address it.
+
+## The Monster Group-Splitting Commit
+
+The breaking commit (`70e6808`) did two things:
+1. Changed `submitDMInitiatives()` to insert individual rows per monster instead of one row with `count: N`
+2. Introduced the `GroupCombatantCard` component with sub-card grid
+
+These are the main differences from when the app worked.
+
+## Components Involved
+
+- `CombatScreen.tsx` — orchestrates data loading, subscriptions, phase rendering
+- `InitiativeEntry.tsx` — DM enters initiatives + monsters, clicks Lock In
+- `CombatantCard.tsx` — renders a single combatant (used when monsters are solo or players)
+- `GroupCombatantCard.tsx` — renders grouped same-name monsters in sub-cards
+- `ConditionIcons.tsx` — all icons + colour maps (mentioned in crash stack trace)
+- `ConditionPicker.tsx` — bottom sheet for picking conditions
+
+## Suspected But Unconfirmed
+
+The stack trace always mentions `CONDITION_ICON_MAP` and `CONDITION_COLOURS` (the file is `ConditionIcons.tsx`). These are used in:
+- `CombatantCard.tsx` (condition rendering)
+- `GroupCombatantCard.tsx` (condition rendering inside sub-cards)
+- `ConditionPicker.tsx` (condition grid in the bottom sheet)
+
+The error might not be in the initiative phase at all — it might happen **after** the phase transitions to `'active'` and React tries to render the combat view with conditions. The conditions subscription fires, loads conditions, and something re-triggers.
+
+## To Debug Locally
+
+Use the development build to get the real error message instead of `#310`:
+
+```bash
+cd ~/combat-tracker
+npx vite --port 5173
+```
+
+Open `http://localhost:5173/` in a browser (Safari or Chrome), reproduce the crash, and check the browser console. The dev build of React will show the full error message including the component name and the exact state setter causing the infinite loop.
+
+## Current Codebase State
+
+`main` branch at commit `ed0811c` — pushed and deployed.
+
+Files changed in latest fix:
+- `src/components/CombatScreen.tsx` — `onReady` now receives data, does DB writes inside `subPaused`
+- `src/components/combat/InitiativeEntry.tsx` — collects data only, passes to `onReady`, removed `sessionId` prop
+
+Files changed in earlier fixes (all still deployed):
+- `src/components/ErrorBoundary.tsx` — error boundary to catch crashes with readable UI
+- `src/components/CombatScreen.tsx` — `loadAll` consolidation, `LanternColumnWrapper` loop fix
+
+## What Would Help
+
+1. Read the dev-mode error message (run locally, check browser console)
+2. Check if the loop is in the initiative phase or the combat phase (the error occurs after clicking Lock In, but might be during the re-render with the new combat view)
+3. Check if removing conditions rendering from `GroupCombatantCard` resolves the crash (narrow the cause)
+4. The `visibleCombatants` inline computation (`isDM ? combatants : combatants.filter(...)`) creates new array refs every render — may cause downstream re-renders
+5. Check if the conditions subscription fires during the phase transition and triggers another `loadAll()` after the `subPaused` guard is released
