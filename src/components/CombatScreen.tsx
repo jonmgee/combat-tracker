@@ -6,13 +6,13 @@ import CombatantCard from './combat/CombatantCard'
 import LanternColumn from './combat/LanternColumn'
 import GroupCombatantCard from './combat/GroupCombatantCard'
 import type { Session, Participant, Combatant, CombatState, Condition } from '../types'
- 
+
 interface Props {
   session: Session
   me: Participant
   initialState: CombatState
 }
- 
+
 export default function CombatScreen({ session, me, initialState }: Props) {
   const [combatState, setCombatState]   = useState<CombatState>(initialState)
   const [combatants, setCombatants]     = useState<Combatant[]>([])
@@ -20,7 +20,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const [advancing, setAdvancing]       = useState(false)
   const [lateInit, setLateInit]         = useState('')
   const [lateInitSaving, setLateInitSaving] = useState(false)
- 
+
   const isDM = me.role === 'dm'
   const subPaused = useRef(false)
 
@@ -50,7 +50,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
 
   // Load once on mount
   useEffect(() => { loadAll() }, [loadAll])
- 
+
   // ── Real-time: combat state ──
   const combatantsRef = useRef(combatants)
   combatantsRef.current = combatants
@@ -60,7 +60,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'combat_state', filter: `session_id=eq.${session.id}` }, (payload) => {
         const next = payload.new as CombatState
         setCombatState(next)
-        // Notify player if it's now their turn — use ref to avoid dep on combatants
+        // Notify player if it's now their turn - use ref to avoid dep on combatants
         if (!isDM && next.current_combatant_id) {
           const currentCombatants = combatantsRef.current
           const myCombatant = currentCombatants.find(c => c.participant_id === me.id)
@@ -72,7 +72,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [session.id, isDM, me.id])
- 
+
   // ── Real-time: combatants ──
   useEffect(() => {
     const channel = supabase.channel(`combatants:${session.id}`)
@@ -82,7 +82,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [session.id, loadAll])
- 
+
   // ── Real-time: conditions ──
   useEffect(() => {
     const channel = supabase.channel(`conditions:${session.id}`)
@@ -92,7 +92,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [session.id, loadAll])
- 
+
   // ── Late-joiner submits initiative ──
   async function handleLateInitiative() {
     const val = parseInt(lateInit)
@@ -131,29 +131,75 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   async function advanceTurn() {
     if (!isDM || advancing) return
     setAdvancing(true)
- 
+
     const ordered = [...combatants].sort((a, b) => (a.initiative_order ?? 0) - (b.initiative_order ?? 0))
     const currentIdx = ordered.findIndex(c => c.id === combatState.current_combatant_id)
     const nextIdx    = (currentIdx + 1) % ordered.length
     const next       = ordered[nextIdx]
     const newRound   = nextIdx === 0 ? combatState.round_number + 1 : combatState.round_number
- 
+
     // If next is a hidden monster, reveal it (first turn rule)
     if (next.is_hidden) {
       await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', next.id)
     } else if (next.kind === 'monster' && !next.has_taken_turn) {
       await supabase.from('combatants').update({ has_taken_turn: true }).eq('id', next.id)
     }
- 
+
     await supabase.from('combat_state').update({
       current_combatant_id: next.id,
       round_number: newRound,
       updated_at: new Date().toISOString(),
     }).eq('session_id', session.id)
- 
+
     setAdvancing(false)
   }
- 
+
+  // ── Derived values (must be above early return to keep hook order consistent) ──
+  const visibleCombatants = isDM
+    ? combatants
+    : combatants.filter(c => !c.is_hidden || c.kind === 'player')
+
+  // ── Group adjacent same-name monsters ──
+  const groupedCombatants = useMemo(() => {
+    type GroupedEntry =
+      | { type: 'single'; combatant: Combatant }
+      | { type: 'group'; combatants: Combatant[]; name: string; initiative: number }
+    const groups: GroupedEntry[] = []
+    let i = 0
+    while (i < visibleCombatants.length) {
+      const c = visibleCombatants[i]
+      if (c.kind === 'monster') {
+        // Walk forward to collect same-name monsters
+        let j = i + 1
+        while (j < visibleCombatants.length &&
+               visibleCombatants[j].kind === 'monster' &&
+               visibleCombatants[j].name === c.name) {
+          j++
+        }
+        const count = j - i
+        if (count > 1) {
+          groups.push({
+            type: 'group',
+            combatants: visibleCombatants.slice(i, j),
+            name: c.name,
+            initiative: c.initiative ?? 0,
+          })
+        } else {
+          groups.push({ type: 'single', combatant: c })
+        }
+        i = j
+      } else {
+        groups.push({ type: 'single', combatant: c })
+        i++
+      }
+    }
+    return groups
+  }, [visibleCombatants])
+
+  const currentCombatant = combatants.find(c => c.id === combatState.current_combatant_id)
+  const isMyTurn = !!combatants.find(c => c.id === combatState.current_combatant_id && c.participant_id === me.id)
+  const myCombatantNoInit = !isDM && !!combatants.find(c => c.participant_id === me.id && c.initiative === null && c.kind === 'player')
+
   // ── Initiative entry phase ──
   if (combatState.phase === 'initiative') {
     return (
@@ -214,56 +260,12 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       />
     )
   }
- 
-  // ── Active combat ──
-  const visibleCombatants = isDM
-    ? combatants
-    : combatants.filter(c => !c.is_hidden || c.kind === 'player')
 
-  // ── Group adjacent same-name monsters ──
-  const groupedCombatants = useMemo(() => {
-    type GroupedEntry =
-      | { type: 'single'; combatant: Combatant }
-      | { type: 'group'; combatants: Combatant[]; name: string; initiative: number }
-    const groups: GroupedEntry[] = []
-    let i = 0
-    while (i < visibleCombatants.length) {
-      const c = visibleCombatants[i]
-      if (c.kind === 'monster') {
-        // Walk forward to collect same-name monsters
-        let j = i + 1
-        while (j < visibleCombatants.length &&
-               visibleCombatants[j].kind === 'monster' &&
-               visibleCombatants[j].name === c.name) {
-          j++
-        }
-        const count = j - i
-        if (count > 1) {
-          groups.push({
-            type: 'group',
-            combatants: visibleCombatants.slice(i, j),
-            name: c.name,
-            initiative: c.initiative ?? 0,
-          })
-        } else {
-          groups.push({ type: 'single', combatant: c })
-        }
-        i = j
-      } else {
-        groups.push({ type: 'single', combatant: c })
-        i++
-      }
-    }
-    return groups
-  }, [visibleCombatants])
- 
-  const currentCombatant = combatants.find(c => c.id === combatState.current_combatant_id)
-  const isMyTurn = !!combatants.find(c => c.id === combatState.current_combatant_id && c.participant_id === me.id)
-  const myCombatantNoInit = !isDM && !!combatants.find(c => c.participant_id === me.id && c.initiative === null && c.kind === 'player')
- 
+  // ── Active combat ──
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-void)' }}>
- 
+
       {/* ── Header ── */}
       <div
         className="sticky top-0 z-10 px-5 py-3 flex items-center justify-between"
@@ -275,14 +277,14 @@ export default function CombatScreen({ session, me, initialState }: Props) {
             {combatState.round_number}
           </div>
         </div>
- 
+
         <div className="text-center">
           <div className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>Now Acting</div>
           <div className="text-sm font-semibold" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold-light)' }}>
-            {currentCombatant?.name ?? '—'}
+            {currentCombatant?.name ?? '-'}
           </div>
         </div>
- 
+
         <div className="text-right">
           <div className="text-xs mb-1 uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
             {session.room_code}
@@ -294,12 +296,12 @@ export default function CombatScreen({ session, me, initialState }: Props) {
               className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
               style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
             >
-              {advancing ? '…' : 'Next ▶'}
+              {advancing ? '...' : 'Next ▶'}
             </button>
           )}
         </div>
       </div>
- 
+
       {/* ── Late-joiner initiative prompt ── */}
       {!isDM && myCombatantNoInit && (
         <div
@@ -307,7 +309,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
           style={{ background: 'rgba(201,168,76,0.08)', borderBottom: '1px solid var(--gold-dark)' }}
         >
           <p style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', fontSize: '0.9rem', marginBottom: 8 }}>
-            ⚔️  Roll Initiative — you joined mid-combat!
+            ⚔️  Roll Initiative - you joined mid-combat!
           </p>
           <div className="flex justify-center gap-2">
             <input
@@ -325,7 +327,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
               className="px-4 py-2 rounded-lg font-semibold transition-all active:scale-95 disabled:opacity-50"
               style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
             >
-              {lateInitSaving ? '…' : 'Set'}
+              {lateInitSaving ? '...' : 'Set'}
             </button>
           </div>
         </div>
@@ -342,14 +344,14 @@ export default function CombatScreen({ session, me, initialState }: Props) {
           </span>
         </div>
       )}
- 
+
       {/* ── Combatant list with lantern ── */}
       <div className="flex-1 overflow-auto py-4">
         <div className="relative px-4" id="combatant-list-wrap" style={{ paddingLeft: '56px' }}>
- 
-          {/* Lantern — tracks active card position */}
+
+          {/* Lantern - tracks active card position */}
           <LanternColumnWrapper activeId={combatState.current_combatant_id} />
- 
+
           <div className="flex flex-col gap-3">
             {(() => {
               let idx = 0
@@ -390,7 +392,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
             {visibleCombatants.length === 0 && (
               <div className="text-center py-16" style={{ color: 'var(--text-dim)' }}>
                 <div className="text-4xl mb-3">⚔️</div>
-                <p style={{ fontFamily: "'Cinzel', serif" }}>No combatants yet…</p>
+                <p style={{ fontFamily: "'Cinzel', serif" }}>No combatants yet...</p>
               </div>
             )}
           </div>
@@ -399,7 +401,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     </div>
   )
 }
- 
+
 // ── LanternColumnWrapper ──
 // Measures card positions after render and passes the active card's midpoint
 // to LanternColumn so the lantern centres on it.
@@ -438,8 +440,7 @@ function LanternColumnWrapper({ activeId }: { activeId: string | null }) {
       cancelAnimationFrame(raf)
       ro.disconnect()
     }
-  }, []) // intentionally empty — activeId read via ref, combatants not needed for positioning
- 
+  }, []) // intentionally empty - activeId read via ref, combatants not needed for positioning
+
   return <LanternColumn activeMidY={activeMidY} />
 }
- 
