@@ -1,6 +1,6 @@
 export type SessionStatus = 'lobby' | 'active' | 'ended'
 export type ParticipantRole = 'dm' | 'player'
-export type CombatPhase = 'initiative' | 'active'
+export type CombatPhase = 'initiative' | 'order_review' | 'active'
 export type CombatantKind = 'player' | 'monster'
 export type ConditionCategory = 'standard' | 'weapon_mastery' | 'spell'
 

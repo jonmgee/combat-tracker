@@ -5,6 +5,7 @@ import InitiativeEntry from './combat/InitiativeEntry'
 import CombatantCard from './combat/CombatantCard'
 import LanternColumn from './combat/LanternColumn'
 import GroupCombatantCard from './combat/GroupCombatantCard'
+import OrderReviewScreen from './combat/OrderReviewScreen'
 import type { Session, Participant, Combatant, CombatState, Condition } from '../types'
 
 interface Props {
@@ -24,13 +25,6 @@ export default function CombatScreen({ session, me, initialState }: Props) {
 
   const isDM = me.role === 'dm'
   const subPaused = useRef(false)
-
-  // Live participant data from DB — captures toggles set in lobby (alert_feat etc.)
-  // Must be useMemo so it re-evaluates when participants loads asynchronously
-  const meRefreshed = useMemo(
-    () => participants.find(p => p.id === me.id) ?? me,
-    [participants, me]
-  )
 
   // ── Load everything (combatants + conditions + participants) in one shot ──
   const loadAll = useCallback(async () => {
@@ -247,50 +241,6 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const isMyTurn = !!combatants.find(c => c.id === combatState.current_combatant_id && c.participant_id === me.id)
   const myCombatantNoInit = !isDM && !!combatants.find(c => c.participant_id === me.id && c.initiative === null && c.kind === 'player')
 
-  // Other PCs with Alert that I can swap with (haven't used it yet)
-  // Uses meRefreshed so lobby toggle (alert_feat) is honoured
-  const myAlertSwapTargets: string[] = (() => {
-    if (!isMyTurn || !meRefreshed.alert_feat || meRefreshed.alert_used) return []
-    const myCombatant = combatants.find(c => c.participant_id === me.id)
-    if (!myCombatant) return []
-    // Filter to target combatants whose participant has alert_feat AND hasn't used it
-    const eligibleParticipantIds = new Set(
-      participants.filter(p => p.alert_feat && !p.alert_used && p.id !== me.id).map(p => p.id)
-    )
-    return combatants
-      .filter(c =>
-        c.kind === 'player' &&
-        c.id !== myCombatant.id &&
-        c.participant_id !== null &&
-        eligibleParticipantIds.has(c.participant_id)
-      )
-      .map(c => c.id)
-  })()
-
-  async function handleAlertSwap(targetId: string) {
-    const myCombatant = combatants.find(c => c.participant_id === me.id)
-    const targetCombatant = combatants.find(c => c.id === targetId)
-    if (!myCombatant || !targetCombatant) return
-
-    const myOrder = myCombatant.initiative_order
-    const targetOrder = targetCombatant.initiative_order
-    if (myOrder === null || targetOrder === null) return
-
-    subPaused.current = true
-    try {
-      await supabase.from('combatants').update({ initiative_order: targetOrder }).eq('id', myCombatant.id)
-      await supabase.from('combatants').update({ initiative_order: myOrder }).eq('id', targetCombatant.id)
-      // Mark both participants as having used Alert this encounter
-      await supabase.from('participants').update({ alert_used: true }).eq('id', me.id)
-      if (targetCombatant.participant_id) {
-        await supabase.from('participants').update({ alert_used: true }).eq('id', targetCombatant.participant_id)
-      }
-      await loadAll()
-    } finally {
-      subPaused.current = false
-    }
-  }
-
   // ── Tie-breaking reorder (DM only) ──
   function getGroupInitiative(entry: typeof groupedCombatants[0]): number | null {
     return entry.type === 'single'
@@ -330,6 +280,55 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     }
   }
 
+  // ── Begin combat from order review ──
+  async function handleBeginCombat() {
+    // Reload combatants sorted by initiative_order (nudges + swaps may have happened)
+    const { data: ordered } = await supabase.from('combatants')
+      .select('*').eq('session_id', session.id).order('initiative', { ascending: false })
+    const orderedList = (ordered ?? []) as Combatant[]
+
+    // Re-assign grouped orders after any Alert swaps / tie nudges
+    await assignGroupedInitiativeOrders(orderedList)
+
+    // Re-fetch with updated orders
+    const { data: fresh } = await supabase.from('combatants')
+      .select('*').eq('session_id', session.id).order('initiative_order', { ascending: true })
+    const freshList = (fresh ?? []) as Combatant[]
+    setCombatants(freshList)
+
+    if (freshList.length > 0) {
+      const first = freshList[0]
+      // Reveal the first combatant (and its group if it's a monster)
+      if (first.kind === 'monster') {
+        await supabase.from('combatants')
+          .update({ is_hidden: false, has_taken_turn: true })
+          .eq('session_id', session.id)
+          .eq('name', first.name)
+          .eq('initiative', first.initiative)
+      } else {
+        await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', first.id)
+      }
+
+      await supabase.from('combat_state').update({
+        phase: 'active',
+        current_combatant_id: first.id,
+        updated_at: new Date().toISOString(),
+      }).eq('session_id', session.id)
+    }
+  }
+
+  // ── Order review phase ──
+  if (combatState.phase === 'order_review') {
+    return (
+      <OrderReviewScreen
+        combatants={combatants}
+        participants={participants}
+        me={me}
+        onBeginCombat={handleBeginCombat}
+      />
+    )
+  }
+
   // ── Initiative entry phase ──
   if (combatState.phase === 'initiative') {
     return (
@@ -365,28 +364,12 @@ export default function CombatScreen({ session, me, initialState }: Props) {
             const orderedList = (freshSorted ?? []) as Combatant[]
             setCombatants(orderedList)
 
-            if (orderedList.length > 0) {
-              const first = orderedList[0]
-              // If the first combatant is a hidden monster (or part of a monster group),
-              // reveal the entire group so players can see all sub-cards
-              if (first.is_hidden || (first.kind === 'monster' && !first.has_taken_turn)) {
-                if (first.kind === 'monster') {
-                  // Reveal all same-name same-initiative monsters together
-                  await supabase.from('combatants')
-                    .update({ is_hidden: false, has_taken_turn: true })
-                    .eq('session_id', session.id)
-                    .eq('name', first.name)
-                    .eq('initiative', first.initiative)
-                } else {
-                  await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', first.id)
-                }
-              }
-              await supabase.from('combat_state').update({
-                phase: 'active',
-                current_combatant_id: first.id,
-                updated_at: new Date().toISOString(),
-              }).eq('session_id', session.id)
-            }
+            // Transition to order_review phase — DM reviews, nudges ties, Alert swaps happen here
+            await supabase.from('combat_state').update({
+              phase: 'order_review',
+              current_combatant_id: null,
+              updated_at: new Date().toISOString(),
+            }).eq('session_id', session.id)
           } finally {
             // Re-enable subscriptions
             subPaused.current = false
@@ -529,8 +512,8 @@ export default function CombatScreen({ session, me, initialState }: Props) {
                       canMoveDown={tiedBelow}
                       onMoveUp={() => swapBlocks(groupIndex, groupIndex - 1)}
                       onMoveDown={() => swapBlocks(groupIndex, groupIndex + 1)}
-                      canSwapTarget={!isDM && isMyTurn && meRefreshed.alert_feat && myAlertSwapTargets.includes(g.combatant.id)}
-                      onSwapTarget={() => handleAlertSwap(g.combatant.id)}
+                      canSwapTarget={false}
+                      onSwapTarget={undefined}
                     />
                   )
                 }
