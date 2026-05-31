@@ -208,11 +208,6 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const isMyTurn = !!combatants.find(c => c.id === combatState.current_combatant_id && c.participant_id === me.id)
   const myCombatantNoInit = !isDM && !!combatants.find(c => c.participant_id === me.id && c.initiative === null && c.kind === 'player')
 
-  // Build participant_id → alert_feat map
-  const alertParticipants = new Set(
-    participants.filter(p => p.alert_feat).map(p => p.id)
-  )
-
   // Other PCs with Alert that I can swap with (haven't used it yet)
   const myAlertSwapTargets: string[] = (() => {
     if (!isMyTurn || !me.alert_feat || me.alert_used) return []
