@@ -10,6 +10,10 @@ interface Props {
   onBeginCombat: () => void
 }
 
+type GroupedEntry =
+  | { type: 'player'; combatant: Combatant }
+  | { type: 'monster'; combatants: Combatant[]; name: string; count: number; initiative: number; isHidden: boolean }
+
 export default function OrderReviewScreen({ combatants, participants: initialParticipants, me, sessionId, onBeginCombat }: Props) {
   const isDM = me.role === 'dm'
 
@@ -28,56 +32,84 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
     [participants, me]
   )
 
-  // DM sees everything (including hidden monsters); players only see non-hidden + themselves
-  const visible = isDM
-    ? combatants
-    : combatants.filter(c => !c.is_hidden || c.participant_id === me.id)
-  const players = visible.filter(c => c.kind === 'player')
+  // ── Grouped rows: players individually, same-name same-initiative monsters as one entry ──
+  const groupedVisible = useMemo(() => {
+    const raw = isDM ? combatants : combatants.filter(c => !c.is_hidden || c.participant_id === me.id)
+    const groups: GroupedEntry[] = []
+    let i = 0
+    while (i < raw.length) {
+      const c = raw[i]
+      if (c.kind === 'player') {
+        groups.push({ type: 'player', combatant: c })
+        i++
+      } else {
+        let j = i + 1
+        while (
+          j < raw.length &&
+          raw[j].kind === 'monster' &&
+          raw[j].name === c.name &&
+          raw[j].initiative === c.initiative
+        ) { j++ }
+        groups.push({
+          type: 'monster',
+          combatants: raw.slice(i, j),
+          name: c.name,
+          count: j - i,
+          initiative: c.initiative ?? 0,
+          isHidden: c.is_hidden,
+        })
+        i = j
+      }
+    }
+    return groups
+  }, [combatants, isDM, me.id])
 
-  // ── Tie detection for DM nudges ──
-  function getInit(combatant: Combatant): number | null {
-    return combatant.initiative ?? null
+  // Players as individual combatants (for Alert swap logic)
+  const players = combatants.filter(c => c.kind === 'player')
+
+  function getGroupInit(entry: GroupedEntry): number | null {
+    if (entry.type === 'player') return entry.combatant.initiative ?? null
+    return entry.initiative
   }
 
-  function tiedAbove(combatant: Combatant, list: Combatant[]): boolean {
-    const idx = list.indexOf(combatant)
+  function tiedAbove(idx: number): boolean {
     if (idx <= 0) return false
-    return getInit(list[idx - 1]) !== null && getInit(list[idx - 1]) === getInit(combatant)
+    const a = getGroupInit(groupedVisible[idx])
+    const b = getGroupInit(groupedVisible[idx - 1])
+    return a !== null && a === b
   }
 
-  function tiedBelow(combatant: Combatant, list: Combatant[]): boolean {
-    const idx = list.indexOf(combatant)
-    if (idx < 0 || idx >= list.length - 1) return false
-    return getInit(list[idx + 1]) !== null && getInit(list[idx + 1]) === getInit(combatant)
+  function tiedBelow(idx: number): boolean {
+    if (idx >= groupedVisible.length - 1) return false
+    const a = getGroupInit(groupedVisible[idx])
+    const b = getGroupInit(groupedVisible[idx + 1])
+    return a !== null && a === b
   }
 
   async function swapBlock(listIdx: number, swapIdx: number) {
-    // Swap the initiative values of two combatants (not initiative_order — those get reassigned)
-    const c1 = visible[listIdx]
-    const c2 = visible[swapIdx]
-    if (!c1 || !c2) return
+    const entry1 = groupedVisible[listIdx]
+    const entry2 = groupedVisible[swapIdx]
+    if (!entry1 || !entry2) return
 
-    const i1 = c1.initiative
-    const i2 = c2.initiative
+    const init1 = entry1.type === 'player' ? entry1.combatant.initiative : entry1.initiative
+    const init2 = entry2.type === 'player' ? entry2.combatant.initiative : entry2.initiative
+    if (init1 === null || init2 === null) return
 
-    await supabase.from('combatants').update({ initiative: i2 }).eq('id', c1.id)
-    await supabase.from('combatants').update({ initiative: i1 }).eq('id', c2.id)
+    const ids1 = entry1.type === 'player' ? [entry1.combatant.id] : entry1.combatants.map(c => c.id)
+    const ids2 = entry2.type === 'player' ? [entry2.combatant.id] : entry2.combatants.map(c => c.id)
 
-    // Trigger reload via parent subscription
+    for (const id of ids1) await supabase.from('combatants').update({ initiative: init2 }).eq('id', id)
+    for (const id of ids2) await supabase.from('combatants').update({ initiative: init1 }).eq('id', id)
   }
 
   // ── Alert swap ──
-  // Participant IDs that have Alert and haven't used it yet
   const alertEnabledParticipantIds = useMemo(
     () => new Set(
-      participants
-        .filter(p => p.alert_feat && !p.alert_used)
-        .map(p => p.id)
+      participants.filter(p => p.alert_feat && !p.alert_used).map(p => p.id)
     ),
     [participants]
   )
 
-  // My combatant — only if I have Alert and haven't used it
   const myAlertCombatant = useMemo(
     () => players.find(c =>
       c.participant_id !== null &&
@@ -87,12 +119,10 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
     [players, alertEnabledParticipantIds, me.id]
   )
 
-  // Swap targets: any PC who is NOT me (they don't need Alert — I'm the one swapping)
   const alertSwapTargets = useMemo(() => {
     if (!myAlertCombatant) return []
     return players.filter(c =>
-      c.id !== myAlertCombatant.id &&
-      c.participant_id !== null
+      c.id !== myAlertCombatant.id && c.participant_id !== null
     )
   }, [players, myAlertCombatant])
 
@@ -100,38 +130,33 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
     if (!myAlertCombatant) return
     const target = players.find(c => c.id === targetId)
     if (!target) return
-
     const myInit = myAlertCombatant.initiative
     const targetInit = target.initiative
     if (myInit === null || targetInit === null) return
 
-    // Swap initiative values in DB
     await supabase.from('combatants').update({ initiative: targetInit }).eq('id', myAlertCombatant.id)
     await supabase.from('combatants').update({ initiative: myInit }).eq('id', target.id)
-
-    // Mark me as used (target doesn't need Alert — they just let me swap)
     await supabase.from('participants').update({ alert_used: true }).eq('id', meRefreshed.id)
   }
 
-  // ── Render a single combatant row ──
-  function renderRow(c: Combatant, idx: number, list: Combatant[]) {
-    const isPlayer = c.kind === 'player'
-    const isMonster = c.kind === 'monster'
-    const initStr = c.initiative !== null ? c.initiative.toString() : '—'
-    const tUp = isDM && tiedAbove(c, list)
-    const tDown = isDM && tiedBelow(c, list)
+  // ── Render a grouped entry row ──
+  function renderEntry(entry: GroupedEntry, idx: number) {
+    const isPlayerEntry = entry.type === 'player'
+    const combatant = isPlayerEntry ? entry.combatant : entry.combatants[0]
+    const initStr = getGroupInit(entry)?.toString() ?? '—'
+    const tUp = isDM && tiedAbove(idx)
+    const tDown = isDM && tiedBelow(idx)
 
-    // Alert: does this combatant have Alert, haven't used it, and is me?
-    const thisHasAlert = alertEnabledParticipantIds.has(c.participant_id ?? '')
-    const isAlertSwapTarget = alertSwapTargets.some(t => t.id === c.id)
+    const thisHasAlert = isPlayerEntry && alertEnabledParticipantIds.has(combatant.participant_id ?? '')
+    const isAlertSwapTarget = isPlayerEntry && alertSwapTargets.some(t => t.id === combatant.id)
 
     return (
       <div
-        key={c.id}
+        key={combatant.id}
         className="flex items-center gap-3 px-5 py-3 border-t transition-all"
         style={{
           borderColor: 'var(--border)',
-          background: isActiveCard(idx, list) ? 'rgba(201,168,76,0.04)' : 'transparent',
+          background: idx === 0 || idx === 1 ? 'rgba(201,168,76,0.04)' : 'transparent',
         }}
       >
         {/* Tie nudge arrows (DM only) */}
@@ -156,43 +181,48 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
         <div
           className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
           style={{
-            background: isPlayer ? 'var(--bg-raised)' : 'rgba(0,0,0,0.3)',
-            color: isPlayer ? 'var(--gold)' : 'var(--text-dim)',
-            border: `1px solid ${isPlayer ? 'var(--gold-dark)' : 'var(--border)'}`,
+            background: isPlayerEntry ? 'var(--bg-raised)' : 'rgba(0,0,0,0.3)',
+            color: isPlayerEntry ? 'var(--gold)' : 'var(--text-dim)',
+            border: `1px solid ${isPlayerEntry ? 'var(--gold-dark)' : 'var(--border)'}`,
             fontFamily: "'Cinzel', serif",
           }}
         >
           {idx + 1}
         </div>
 
-        {/* Name */}
+        {/* Name + count badge for monsters */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span
               className="font-medium truncate"
               style={{
-                color: isPlayer ? 'var(--text-primary)' : 'var(--text-secondary)',
+                color: isPlayerEntry ? 'var(--text-primary)' : 'var(--text-secondary)',
                 fontFamily: "'Cinzel', serif",
                 fontSize: '0.9rem',
               }}
             >
-              {c.name}
+              {isPlayerEntry ? combatant.name : entry.name}
             </span>
-            {isMonster && <span className="text-xs" style={{ color: 'var(--text-dim)' }}>👹</span>}
-            {isMonster && c.is_hidden && isDM && (
-              <span className="text-xs px-1 py-0.5 rounded" style={{
-                background: 'rgba(255,255,255,0.04)',
-                color: 'var(--text-dim)',
-                border: '1px solid var(--border)',
-                fontSize: '0.5rem',
-                letterSpacing: '0.08em',
-              }}>HIDDEN</span>
+            {!isPlayerEntry && (
+              <>
+                <span className="text-xs" style={{ color: 'var(--text-dim)' }}>👹</span>
+                <span className="text-xs font-mono" style={{ color: 'var(--text-dim)' }}>×{entry.count}</span>
+                {entry.isHidden && isDM && (
+                  <span className="text-xs px-1 py-0.5 rounded" style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    color: 'var(--text-dim)',
+                    border: '1px solid var(--border)',
+                    fontSize: '0.5rem',
+                    letterSpacing: '0.08em',
+                  }}>HIDDEN</span>
+                )}
+              </>
             )}
           </div>
         </div>
 
         {/* Alert eligible indicator (DM) — player has Alert toggled */}
-        {isDM && isPlayer && thisHasAlert && (
+        {isDM && isPlayerEntry && thisHasAlert && (
           <span className="text-xs px-1.5 py-0.5 rounded"
             style={{
               background: 'rgba(201,168,76,0.1)',
@@ -209,7 +239,7 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
         {/* Alert swap button (player, not DM) */}
         {!isDM && isAlertSwapTarget && (
           <button
-            onClick={() => handleAlertSwap(c.id)}
+            onClick={() => handleAlertSwap(combatant.id)}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-all active:scale-95"
             style={{
               background: 'rgba(201,168,76,0.12)',
@@ -227,7 +257,7 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
         {/* Initiative value */}
         <div className="shrink-0 text-right min-w-[36px]">
           <div className="text-sm font-bold" style={{
-            color: isPlayer ? 'var(--gold)' : 'var(--text-secondary)',
+            color: isPlayerEntry ? 'var(--gold)' : 'var(--text-secondary)',
             fontFamily: "'Cinzel', serif",
             fontSize: '0.95rem',
           }}>
@@ -236,11 +266,6 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
         </div>
       </div>
     )
-  }
-
-  // Simple alternating active-card shading for review (highest init first)
-  function isActiveCard(idx: number, _list: Combatant[]) {
-    return idx === 0 || idx === 1
   }
 
   return (
@@ -272,7 +297,6 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
       {/* ── Order display ── */}
       <div className="flex-1 overflow-auto py-4">
         <div className="max-w-md mx-auto px-4">
-
           <div className="rounded-xl parchment" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>
             {/* Header */}
             <div className="px-5 pt-5 pb-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
@@ -283,17 +307,17 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
                 </span>
               </div>
               <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'var(--bg-raised)', color: 'var(--gold)', border: '1px solid var(--border)' }}>
-                {visible.length}
+                {groupedVisible.length}
               </span>
             </div>
 
-            {/* Combatant rows */}
-            {visible.length === 0 && (
+            {/* Entry rows */}
+            {groupedVisible.length === 0 && (
               <div className="px-5 py-8 text-center" style={{ color: 'var(--text-dim)' }}>
                 <p style={{ fontFamily: "'Cinzel', serif" }}>No combatants yet</p>
               </div>
             )}
-            {visible.map((c, idx) => renderRow(c, idx, visible))}
+            {groupedVisible.map((entry, idx) => renderEntry(entry, idx))}
           </div>
 
           {/* ── Alert swap info (players only) ── */}
