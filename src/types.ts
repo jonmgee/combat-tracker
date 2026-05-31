@@ -17,6 +17,9 @@ export interface Participant {
   name: string
   role: ParticipantRole
   hp_opt_in: boolean
+  notifications_enabled: boolean
+  alert_feat: boolean
+  alert_used: boolean
   joined_at: string
 }
 

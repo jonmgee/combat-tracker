@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { supabase } from '../../lib/supabase'
 import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR, BloodiedIcon } from './ConditionIcons'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
@@ -14,6 +15,10 @@ interface Props {
   position: number            // position of the first member (lowest slot)
   sharedName: string          // e.g. "Skeletons"
   sharedInitiative: number
+  canMoveUp?: boolean
+  canMoveDown?: boolean
+  onMoveUp?: () => void
+  onMoveDown?: () => void
 }
 
 export default function GroupCombatantCard({
@@ -25,9 +30,31 @@ export default function GroupCombatantCard({
   position,
   sharedName,
   sharedInitiative,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
 }: Props) {
   const isDM = me.role === 'dm'
   const [showConditionsFor, setShowConditionsFor] = useState<string | null>(null)
+
+  async function toggleConcentration(c: Combatant) {
+    const existing = conditions.find(co => co.combatant_id === c.id && co.condition === 'Concentrating')
+    if (existing) {
+      await supabase.from('conditions').delete().eq('id', existing.id)
+    } else {
+      await supabase.from('conditions').insert({ combatant_id: c.id, condition: 'Concentrating', category: 'spell' })
+    }
+  }
+
+  async function toggleBloodied(c: Combatant) {
+    const existing = conditions.find(co => co.combatant_id === c.id && co.condition === 'Bloodied')
+    if (existing) {
+      await supabase.from('conditions').delete().eq('id', existing.id)
+    } else {
+      await supabase.from('conditions').insert({ combatant_id: c.id, condition: 'Bloodied', category: 'spell' })
+    }
+  }
 
   // Any bloodied in the group? (for card-level tint)
   const anyBloodied = combatants.some(c => {
@@ -114,16 +141,36 @@ export default function GroupCombatantCard({
       {/* ── Header row ── */}
       <div className="p-4 pb-2" style={{ position: 'relative', zIndex: 2 }}>
         <div className="flex items-center gap-3">
-          <div
-            className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-            style={{
-              background: isActive ? (anyConcentrating ? 'rgba(140,90,220,0.8)' : 'var(--gold)') : 'var(--bg-void)',
-              color: isActive ? (anyConcentrating ? '#e8d8ff' : '#1a1410') : 'var(--text-dim)',
-              border: isActive ? 'none' : '1px solid var(--border)',
-              fontFamily: "'Cinzel', serif",
-            }}
-          >
-            {position}
+          <div className="shrink-0 flex flex-col items-center">
+            {canMoveUp && (
+              <button
+                onClick={onMoveUp}
+                className="cursor-pointer transition-colors hover:opacity-70"
+                style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}
+              >
+                ▲
+              </button>
+            )}
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+              style={{
+                background: isActive ? (anyConcentrating ? 'rgba(140,90,220,0.8)' : 'var(--gold)') : 'var(--bg-void)',
+                color: isActive ? (anyConcentrating ? '#e8d8ff' : '#1a1410') : 'var(--text-dim)',
+                border: isActive ? 'none' : '1px solid var(--border)',
+                fontFamily: "'Cinzel', serif",
+              }}
+            >
+              {position}
+            </div>
+            {canMoveDown && (
+              <button
+                onClick={onMoveDown}
+                className="cursor-pointer transition-colors hover:opacity-70"
+                style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}
+              >
+                ▼
+              </button>
+            )}
           </div>
 
           <div className="flex-1 min-w-0">
@@ -292,13 +339,53 @@ export default function GroupCombatantCard({
                   </div>
                 )}
 
-                {/* Actions */}
+                {/* Actions — DM only */}
                 {isDM && (
-                  <div className="flex gap-1 mt-1.5">
+                  <div className="flex gap-1 mt-1">
+                    {/* Concentration toggle */}
+                    <button
+                      onClick={() => toggleConcentration(c)}
+                      className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
+                      style={{
+                        background: cConcentrating ? 'rgba(140,90,220,0.25)' : 'var(--bg-void)',
+                        border: `0.5px solid ${cConcentrating ? 'rgba(140,90,220,0.5)' : 'var(--border)'}`,
+                        color: cConcentrating ? '#c0a0f0' : 'var(--text-dim)',
+                        cursor: 'pointer',
+                        lineHeight: 1,
+                      }}
+                    >
+                      <svg viewBox="0 0 14 14" fill="none" style={{ width: 9, height: 9, flexShrink: 0 }}>
+                        <ellipse cx="7" cy="7" rx="5.5" ry="4" stroke="currentColor" strokeWidth="1"/>
+                        <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="0.8"/>
+                        <circle cx="7" cy="7" r="0.7" fill="currentColor"/>
+                      </svg>
+                      {cConcentrating ? '⚡' : 'Conc'}
+                    </button>
+
+                    {/* Bloodied toggle */}
+                    <button
+                      onClick={() => toggleBloodied(c)}
+                      className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
+                      style={{
+                        background: cBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
+                        border: `0.5px solid ${cBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
+                        color: cBloodied ? '#c07070' : 'var(--text-dim)',
+                        cursor: 'pointer',
+                        lineHeight: 1,
+                      }}
+                    >
+                      <svg viewBox="0 0 11 11" fill="none" style={{ width: 9, height: 9, flexShrink: 0 }}>
+                        <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
+                          stroke="currentColor" strokeWidth="0.9" fill={cBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
+                      </svg>
+                      {cBloodied ? '🩸' : 'Bloody'}
+                    </button>
+
+                    {/* Condition picker */}
                     <button
                       onClick={() => setShowConditionsFor(c.id)}
-                      className="flex-1 py-1 rounded text-xs transition-all active:scale-95"
-                      style={{ background: 'var(--bg-void)', border: '0.5px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', fontSize: '0.6rem' }}>
+                      className="flex-1 py-1 rounded text-[0.55rem] transition-all active:scale-95"
+                      style={{ background: 'var(--bg-void)', border: '0.5px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
                       + Cond
                     </button>
                   </div>

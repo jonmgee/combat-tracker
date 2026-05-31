@@ -17,6 +17,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const [combatState, setCombatState]   = useState<CombatState>(initialState)
   const [combatants, setCombatants]     = useState<Combatant[]>([])
   const [conditions, setConditions]     = useState<Condition[]>([])
+  const [participants, setParticipants] = useState<Participant[]>([])
   const [advancing, setAdvancing]       = useState(false)
   const [lateInit, setLateInit]         = useState('')
   const [lateInitSaving, setLateInitSaving] = useState(false)
@@ -24,7 +25,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const isDM = me.role === 'dm'
   const subPaused = useRef(false)
 
-  // ── Load everything (combatants + conditions) in one shot ──
+  // ── Load everything (combatants + conditions + participants) in one shot ──
   const loadAll = useCallback(async () => {
     const { data: combatantsData } = await supabase
       .from('combatants')
@@ -46,6 +47,13 @@ export default function CombatScreen({ session, me, initialState }: Props) {
         .in('combatant_id', combatantIds.map(c => c.id))
       if (conditionsData) setConditions(conditionsData as Condition[])
     }
+
+    // Load participants (for Alert feat detection)
+    const { data: participantsData } = await supabase
+      .from('participants')
+      .select('*')
+      .eq('session_id', session.id)
+    if (participantsData) setParticipants(participantsData as Participant[])
   }, [session.id])
 
   // Load once on mount
@@ -61,7 +69,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
         const next = payload.new as CombatState
         setCombatState(next)
         // Notify player if it's now their turn - use ref to avoid dep on combatants
-        if (!isDM && next.current_combatant_id) {
+        if (!isDM && next.current_combatant_id && me.notifications_enabled) {
           const currentCombatants = combatantsRef.current
           const myCombatant = currentCombatants.find(c => c.participant_id === me.id)
           if (myCombatant && next.current_combatant_id === myCombatant.id) {
@@ -199,6 +207,93 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const currentCombatant = combatants.find(c => c.id === combatState.current_combatant_id)
   const isMyTurn = !!combatants.find(c => c.id === combatState.current_combatant_id && c.participant_id === me.id)
   const myCombatantNoInit = !isDM && !!combatants.find(c => c.participant_id === me.id && c.initiative === null && c.kind === 'player')
+
+  // Build participant_id → alert_feat map
+  const alertParticipants = new Set(
+    participants.filter(p => p.alert_feat).map(p => p.id)
+  )
+
+  // Other PCs with Alert that I can swap with (haven't used it yet)
+  const myAlertSwapTargets: string[] = (() => {
+    if (!isMyTurn || !me.alert_feat || me.alert_used) return []
+    const myCombatant = combatants.find(c => c.participant_id === me.id)
+    if (!myCombatant) return []
+    // Filter to target combatants whose participant has alert_feat AND hasn't used it
+    const eligibleParticipantIds = new Set(
+      participants.filter(p => p.alert_feat && !p.alert_used && p.id !== me.id).map(p => p.id)
+    )
+    return combatants
+      .filter(c =>
+        c.kind === 'player' &&
+        c.id !== myCombatant.id &&
+        c.participant_id !== null &&
+        eligibleParticipantIds.has(c.participant_id)
+      )
+      .map(c => c.id)
+  })()
+
+  async function handleAlertSwap(targetId: string) {
+    const myCombatant = combatants.find(c => c.participant_id === me.id)
+    const targetCombatant = combatants.find(c => c.id === targetId)
+    if (!myCombatant || !targetCombatant) return
+
+    const myOrder = myCombatant.initiative_order
+    const targetOrder = targetCombatant.initiative_order
+    if (myOrder === null || targetOrder === null) return
+
+    subPaused.current = true
+    try {
+      await supabase.from('combatants').update({ initiative_order: targetOrder }).eq('id', myCombatant.id)
+      await supabase.from('combatants').update({ initiative_order: myOrder }).eq('id', targetCombatant.id)
+      // Mark both participants as having used Alert this encounter
+      await supabase.from('participants').update({ alert_used: true }).eq('id', me.id)
+      if (targetCombatant.participant_id) {
+        await supabase.from('participants').update({ alert_used: true }).eq('id', targetCombatant.participant_id)
+      }
+      await loadAll()
+    } finally {
+      subPaused.current = false
+    }
+  }
+
+  // ── Tie-breaking reorder (DM only) ──
+  function getGroupInitiative(entry: typeof groupedCombatants[0]): number | null {
+    return entry.type === 'single'
+      ? (entry.combatant.initiative ?? null)
+      : (entry.initiative ?? null)
+  }
+
+  async function swapBlocks(idx: number, swapIdx: number) {
+    // idx is the card being moved, swapIdx is the one it's swapping with
+    subPaused.current = true
+    try {
+      const block = groupedCombatants[idx]
+      const swapBlock = groupedCombatants[swapIdx]
+
+      const combatantsInBlock = block.type === 'group' ? block.combatants : [block.combatant]
+      const combatantsInSwap = swapBlock.type === 'group' ? swapBlock.combatants : [swapBlock.combatant]
+
+      const baseOrder = combatantsInSwap[0].initiative_order ?? 1
+
+      // Move swap block down by the size of the moving block
+      for (let i = 0; i < combatantsInSwap.length; i++) {
+        await supabase.from('combatants').update({
+          initiative_order: baseOrder + combatantsInBlock.length + i
+        }).eq('id', combatantsInSwap[i].id)
+      }
+
+      // Move current block up to where swap block was
+      for (let i = 0; i < combatantsInBlock.length; i++) {
+        await supabase.from('combatants').update({
+          initiative_order: baseOrder + i
+        }).eq('id', combatantsInBlock[i].id)
+      }
+
+      await loadAll()
+    } finally {
+      subPaused.current = false
+    }
+  }
 
   // ── Initiative entry phase ──
   if (combatState.phase === 'initiative') {
@@ -355,7 +450,13 @@ export default function CombatScreen({ session, me, initialState }: Props) {
           <div className="flex flex-col gap-3">
             {(() => {
               let idx = 0
-              return groupedCombatants.map((g) => {
+              return groupedCombatants.map((g, groupIndex) => {
+                const thisInit = getGroupInitiative(g)
+                const prevInit = groupIndex > 0 ? getGroupInitiative(groupedCombatants[groupIndex - 1]) : null
+                const nextInit = groupIndex < groupedCombatants.length - 1 ? getGroupInitiative(groupedCombatants[groupIndex + 1]) : null
+                const tiedAbove = isDM && thisInit !== null && thisInit === prevInit
+                const tiedBelow = isDM && thisInit !== null && thisInit === nextInit
+
                 if (g.type === 'group') {
                   const pos = g.combatants[0].initiative_order ?? idx + 1
                   idx += g.combatants.length
@@ -370,6 +471,10 @@ export default function CombatScreen({ session, me, initialState }: Props) {
                       position={pos}
                       sharedName={g.name}
                       sharedInitiative={g.initiative}
+                      canMoveUp={tiedAbove}
+                      canMoveDown={tiedBelow}
+                      onMoveUp={() => swapBlocks(groupIndex, groupIndex - 1)}
+                      onMoveDown={() => swapBlocks(groupIndex, groupIndex + 1)}
                     />
                   )
                 } else {
@@ -383,6 +488,12 @@ export default function CombatScreen({ session, me, initialState }: Props) {
                       isActive={g.combatant.id === combatState.current_combatant_id}
                       me={me}
                       position={pos}
+                      canMoveUp={tiedAbove}
+                      canMoveDown={tiedBelow}
+                      onMoveUp={() => swapBlocks(groupIndex, groupIndex - 1)}
+                      onMoveDown={() => swapBlocks(groupIndex, groupIndex + 1)}
+                      canSwapTarget={!isDM && isMyTurn && me.alert_feat && myAlertSwapTargets.includes(g.combatant.id)}
+                      onSwapTarget={() => handleAlertSwap(g.combatant.id)}
                     />
                   )
                 }

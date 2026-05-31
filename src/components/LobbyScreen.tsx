@@ -14,6 +14,8 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
   const [loading, setLoading]           = useState(false)
   const [copied, setCopied]             = useState(false)
   const [hpOptIn, setHpOptIn]           = useState(me.hp_opt_in)
+  const [notifEnabled, setNotifEnabled] = useState(me.notifications_enabled)
+  const [alertFeat, setAlertFeat]       = useState(me.alert_feat)
 
   const isDM      = me.role === 'dm'
   const players   = participants.filter(p => p.role === 'player')
@@ -61,6 +63,22 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
     await supabase.from('participants').update({ hp_opt_in: next }).eq('id', me.id)
   }
 
+  async function toggleNotifications() {
+    const next = !notifEnabled
+    setNotifEnabled(next)
+    await supabase.from('participants').update({ notifications_enabled: next }).eq('id', me.id)
+    if (next) {
+      const granted = await requestNotificationPermission()
+      if (!granted) alert('Notifications blocked. You can enable them in your browser settings.')
+    }
+  }
+
+  async function toggleAlertFeat() {
+    const next = !alertFeat
+    setAlertFeat(next)
+    await supabase.from('participants').update({ alert_feat: next }).eq('id', me.id)
+  }
+
   async function handleStartCombat() {
     if (!canStart) return
     setLoading(true)
@@ -98,11 +116,6 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
-  }
-
-  async function handleRequestNotifications() {
-    const granted = await requestNotificationPermission()
-    if (!granted) alert("Notifications blocked. You can enable them in your browser settings.")
   }
 
   return (
@@ -192,14 +205,39 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
             </div>
           </button>
 
-          {/* Notification opt-in */}
-          <button onClick={handleRequestNotifications}
-            className="w-full flex items-center gap-3 px-5 py-3.5 rounded-xl transition-all duration-150 active:scale-95"
-            style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>
-            <span className="text-xl">🔔</span>
-            <div className="text-left">
-              <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Enable turn notifications</div>
-              <div className="text-xs" style={{ color: 'var(--text-dim)' }}>Get an alert when it's your turn</div>
+          {/* Notification toggle */}
+          <button onClick={toggleNotifications}
+            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl transition-all duration-150 active:scale-95"
+            style={{ background: 'var(--bg-panel)', border: `1px solid ${notifEnabled ? 'var(--gold-dark)' : 'var(--border)'}` }}>
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🔔</span>
+              <div className="text-left">
+                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Turn notifications</div>
+                <div className="text-xs" style={{ color: 'var(--text-dim)' }}>Get an alert when it's your turn</div>
+              </div>
+            </div>
+            <div className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5"
+              style={{ background: notifEnabled ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)' }}>
+              <div className="w-5 h-5 rounded-full transition-all duration-200"
+                style={{ background: notifEnabled ? 'var(--gold)' : 'var(--text-dim)', transform: notifEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
+            </div>
+          </button>
+
+          {/* Alert Feat toggle */}
+          <button onClick={toggleAlertFeat}
+            className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl transition-all duration-150 active:scale-95"
+            style={{ background: 'var(--bg-panel)', border: `1px solid ${alertFeat ? 'var(--gold-dark)' : 'var(--border)'}` }}>
+            <div className="flex items-center gap-3">
+              <span className="text-xl" style={{ filter: alertFeat ? 'none' : 'grayscale(0.6)' }}>⚡</span>
+              <div className="text-left">
+                <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Alert Feat</div>
+                <div className="text-xs" style={{ color: 'var(--text-dim)' }}>Swap initiative with an ally once per encounter</div>
+              </div>
+            </div>
+            <div className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5"
+              style={{ background: alertFeat ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)' }}>
+              <div className="w-5 h-5 rounded-full transition-all duration-200"
+                style={{ background: alertFeat ? 'var(--gold)' : 'var(--text-dim)', transform: alertFeat ? 'translateX(20px)' : 'translateX(0)' }} />
             </div>
           </button>
         </div>

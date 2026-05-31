@@ -13,9 +13,15 @@ interface Props {
   isActive: boolean
   me: Participant
   position: number
+  canMoveUp?: boolean
+  canMoveDown?: boolean
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  canSwapTarget?: boolean
+  onSwapTarget?: () => void
 }
 
-export default function CombatantCard({ combatant, conditions, isActive, me, position }: Props) {
+export default function CombatantCard({ combatant, conditions, isActive, me, position, canMoveUp, canMoveDown, onMoveUp, onMoveDown, canSwapTarget, onSwapTarget }: Props) {
   const [showConditions, setShowConditions] = useState(false)
   const [showCondTooltip, setShowCondTooltip] = useState<string | null>(null)
 
@@ -177,16 +183,38 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
           {/* ── Top row ── */}
           <div className="flex items-center gap-3">
             {/* Position badge */}
-            <div
-              className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{
-                background: isActive ? (isConcentrating ? 'rgba(140,90,220,0.8)' : 'var(--gold)') : 'var(--bg-void)',
-                color: isActive ? (isConcentrating ? '#e8d8ff' : '#1a1410') : 'var(--text-dim)',
-                border: isActive ? 'none' : '1px solid var(--border)',
-                fontFamily: "'Cinzel', serif",
-              }}
-            >
-              {position}
+            <div className="shrink-0 flex flex-col items-center">
+              {/* Move up */}
+              {canMoveUp && (
+                <button
+                  onClick={onMoveUp}
+                  className="cursor-pointer transition-colors hover:opacity-70"
+                  style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}
+                >
+                  ▲
+                </button>
+              )}
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                style={{
+                  background: isActive ? (isConcentrating ? 'rgba(140,90,220,0.8)' : 'var(--gold)') : 'var(--bg-void)',
+                  color: isActive ? (isConcentrating ? '#e8d8ff' : '#1a1410') : 'var(--text-dim)',
+                  border: isActive ? 'none' : '1px solid var(--border)',
+                  fontFamily: "'Cinzel', serif",
+                }}
+              >
+                {position}
+              </div>
+              {/* Move down */}
+              {canMoveDown && (
+                <button
+                  onClick={onMoveDown}
+                  className="cursor-pointer transition-colors hover:opacity-70"
+                  style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}
+                >
+                  ▼
+                </button>
+              )}
             </div>
 
             {/* Name + badges */}
@@ -420,9 +448,17 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
 
           {/* ── Actions row ── */}
           <div className="flex gap-2 mt-2">
+            {canSwapTarget && (
+              <button
+                onClick={onSwapTarget}
+                className="flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs transition-all active:scale-95"
+                style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid var(--gold-dark)', color: 'var(--gold)', cursor: 'pointer', fontWeight: 600 }}>
+                ↔ Alert Swap
+              </button>
+            )}
             <button
               onClick={() => setShowConditions(true)}
-              className="flex-1 py-1.5 rounded-lg text-xs transition-all active:scale-95"
+              className={`py-1.5 rounded-lg text-xs transition-all active:scale-95 ${canSwapTarget ? '' : 'flex-1'}`}
               style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
               + Condition
             </button>
