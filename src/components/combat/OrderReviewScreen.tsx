@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Combatant, Participant } from '../../types'
 
@@ -9,8 +9,16 @@ interface Props {
   onBeginCombat: () => void
 }
 
-export default function OrderReviewScreen({ combatants, participants, me, onBeginCombat }: Props) {
+export default function OrderReviewScreen({ combatants, participants: initialParticipants, me, onBeginCombat }: Props) {
   const isDM = me.role === 'dm'
+
+  // ── Fresh participant data — fetch directly so lobby toggles are always current ──
+  const [participants, setParticipants] = useState<Participant[]>(initialParticipants)
+  useEffect(() => {
+    supabase.from('participants')
+      .select('*')
+      .then(({ data }) => { if (data) setParticipants(data as Participant[]) })
+  }, [])
 
   // ── Live participant data for this user (captures lobby toggles) ──
   const meRefreshed = useMemo(

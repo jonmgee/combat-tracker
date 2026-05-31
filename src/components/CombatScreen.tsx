@@ -364,6 +364,13 @@ export default function CombatScreen({ session, me, initialState }: Props) {
             const orderedList = (freshSorted ?? []) as Combatant[]
             setCombatants(orderedList)
 
+            // Reload participants fresh (captures lobby toggles like alert_feat)
+            const { data: freshParticipants } = await supabase
+              .from('participants')
+              .select('*')
+              .eq('session_id', session.id)
+            if (freshParticipants) setParticipants(freshParticipants as Participant[])
+
             // Transition to order_review phase — DM reviews, nudges ties, Alert swaps happen here
             await supabase.from('combat_state').update({
               phase: 'order_review',
