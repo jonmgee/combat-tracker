@@ -25,6 +25,9 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const isDM = me.role === 'dm'
   const subPaused = useRef(false)
 
+  // Live participant data from DB — captures toggles set in lobby (alert_feat etc.)
+  const meRefreshed = participants.find(p => p.id === me.id) ?? me
+
   // ── Load everything (combatants + conditions + participants) in one shot ──
   const loadAll = useCallback(async () => {
     const { data: combatantsData } = await supabase
@@ -232,8 +235,9 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const myCombatantNoInit = !isDM && !!combatants.find(c => c.participant_id === me.id && c.initiative === null && c.kind === 'player')
 
   // Other PCs with Alert that I can swap with (haven't used it yet)
+  // Uses meRefreshed so lobby toggle (alert_feat) is honoured
   const myAlertSwapTargets: string[] = (() => {
-    if (!isMyTurn || !me.alert_feat || me.alert_used) return []
+    if (!isMyTurn || !meRefreshed.alert_feat || meRefreshed.alert_used) return []
     const myCombatant = combatants.find(c => c.participant_id === me.id)
     if (!myCombatant) return []
     // Filter to target combatants whose participant has alert_feat AND hasn't used it
@@ -341,10 +345,15 @@ export default function CombatScreen({ session, me, initialState }: Props) {
             const freshList = (fresh ?? []) as Combatant[]
 
             await assignGroupedInitiativeOrders(freshList)
-            setCombatants(freshList)
 
-            if (freshList.length > 0) {
-              const first = freshList[0]
+            // Re-fetch sorted by initiative_order so first combatant is correct
+            const { data: freshSorted } = await supabase.from('combatants')
+              .select('*').eq('session_id', session.id).order('initiative_order', { ascending: true })
+            const orderedList = (freshSorted ?? []) as Combatant[]
+            setCombatants(orderedList)
+
+            if (orderedList.length > 0) {
+              const first = orderedList[0]
               // If the first combatant is a hidden monster, reveal it immediately
               if (first.is_hidden || (first.kind === 'monster' && !first.has_taken_turn)) {
                 await supabase.from('combatants').update({ is_hidden: false, has_taken_turn: true }).eq('id', first.id)
@@ -497,7 +506,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
                       canMoveDown={tiedBelow}
                       onMoveUp={() => swapBlocks(groupIndex, groupIndex - 1)}
                       onMoveDown={() => swapBlocks(groupIndex, groupIndex + 1)}
-                      canSwapTarget={!isDM && isMyTurn && me.alert_feat && myAlertSwapTargets.includes(g.combatant.id)}
+                      canSwapTarget={!isDM && isMyTurn && meRefreshed.alert_feat && myAlertSwapTargets.includes(g.combatant.id)}
                       onSwapTarget={() => handleAlertSwap(g.combatant.id)}
                     />
                   )
