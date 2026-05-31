@@ -294,8 +294,8 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
             </div>
           </div>
 
-          {/* ── Card-level toggles row ── */}
-          {!isDead && (
+          {/* ── Card-level toggles row (DM can toggle anyone; players only themselves) ── */}
+          {!isDead && (isDM || isMe) && (
             <div className="flex gap-2 mt-3">
               {/* Concentration toggle */}
               <button

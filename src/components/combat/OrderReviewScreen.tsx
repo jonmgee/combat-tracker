@@ -26,7 +26,18 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
       .select('*')
       .eq('session_id', sessionId)
       .order('initiative_order', { ascending: true })
-      .then(({ data }) => { if (data) setCombatants(data as Combatant[]) })
+      .then(({ data }) => {
+        if (data) {
+          // Client-side sort: initiative desc, then initiative_order as tiebreaker
+          const sorted = [...(data as Combatant[])].sort((a, b) => {
+            const ia = a.initiative ?? -1
+            const ib = b.initiative ?? -1
+            if (ib !== ia) return ib - ia
+            return (a.initiative_order ?? 0) - (b.initiative_order ?? 0)
+          })
+          setCombatants(sorted)
+        }
+      })
   }, [sessionId, revision])
 
   function reloadCombatants() {
