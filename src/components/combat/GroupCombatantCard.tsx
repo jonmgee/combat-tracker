@@ -11,7 +11,7 @@ interface Props {
   isActive: boolean           // is any of them the active combatant?
   activeId: string | null     // which specific one is active
   me: Participant
-  position: number            // position of the first member (lowest slot)
+  position: number            // shared initiative order number (e.g. 1)
   sharedName: string          // e.g. "Skeletons"
   sharedInitiative: number
   canMoveUp?: boolean
@@ -55,31 +55,11 @@ export default function GroupCombatantCard({
     }
   }
 
-  // Any concentrating? (group-level; bloodied is per-sub-card only)
-  const anyConcentrating = combatants.some(c =>
-    conditions.some(cond => cond.combatant_id === c.id && cond.condition === 'Concentrating')
-  )
-
-  // Group-level styling — bloodied no longer tints the whole card
-  const cardBg = anyConcentrating
-    ? (isActive ? '#221a2e' : '#1c1626')
-    : isActive
-    ? 'var(--bg-raised)'
-    : 'var(--bg-panel)'
-
-  const cardBorder = isActive
-    ? (anyConcentrating ? 'rgba(140,90,220,0.7)' : '1px solid var(--gold)')
-    : anyConcentrating
-    ? 'rgba(110,70,180,0.5)'
-    : 'var(--border)'
-
-  const cardShadow = isActive
-    ? anyConcentrating
-      ? '0 0 20px rgba(140,90,220,0.35), 0 0 40px rgba(120,70,200,0.15)'
-      : '0 0 20px rgba(201,168,76,0.35), 0 0 40px rgba(201,168,76,0.1)'
-    : 'none'
-
-  const concAnimation = anyConcentrating ? 'conc-shift' : isActive ? 'flicker' : 'none'
+  // Group card styling — neutral, no concentration/bloodied tinting at group level
+  const cardBg = isActive ? 'var(--bg-raised)' : 'var(--bg-panel)'
+  const cardBorder = isActive ? '1px solid var(--gold)' : 'var(--border)'
+  const cardShadow = isActive ? '0 0 20px rgba(201,168,76,0.35), 0 0 40px rgba(201,168,76,0.1)' : 'none'
+  const cardAnimation = isActive ? 'flicker 3s ease-in-out infinite' : 'none'
 
   return (
     <div
@@ -88,23 +68,16 @@ export default function GroupCombatantCard({
         background: cardBg,
         border: `1px solid ${cardBorder}`,
         boxShadow: cardShadow,
-        animation: `${concAnimation} ${anyConcentrating ? '6s' : '3s'} ease-in-out infinite`,
+        animation: cardAnimation,
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      {/* ── No group-level bloodied effects; each sub-card handles its own ── */}
-
-      {isActive && !anyConcentrating && (
+      {/* ── All effects per-sub-card; group just gets the active gold edge ── */}
+      {isActive && (
         <div style={{
           position: 'absolute', left: 0, top: '10%', bottom: '10%', width: 3,
           background: 'linear-gradient(to bottom, transparent, var(--gold), transparent)',
-          borderRadius: '0 2px 2px 0', zIndex: 3,
-        }}/>
-      )}
-      {isActive && anyConcentrating && (
-        <div className="conc-edge-bar" style={{
-          position: 'absolute', left: 0, top: '10%', bottom: '10%', width: 3,
           borderRadius: '0 2px 2px 0', zIndex: 3,
         }}/>
       )}
@@ -125,8 +98,8 @@ export default function GroupCombatantCard({
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
               style={{
-                background: isActive ? (anyConcentrating ? 'rgba(140,90,220,0.8)' : 'var(--gold)') : 'var(--bg-void)',
-                color: isActive ? (anyConcentrating ? '#e8d8ff' : '#1a1410') : 'var(--text-dim)',
+                background: isActive ? 'var(--gold)' : 'var(--bg-void)',
+                color: isActive ? '#1a1410' : 'var(--text-dim)',
                 border: isActive ? 'none' : '1px solid var(--border)',
                 fontFamily: "'Cinzel', serif",
               }}
@@ -149,11 +122,7 @@ export default function GroupCombatantCard({
               <span
                 className="font-semibold truncate"
                 style={{
-                  color: anyConcentrating
-                    ? (isActive ? '#ddd0ff' : '#c8b8f0')
-                    : isActive
-                    ? 'var(--gold-light)'
-                    : 'var(--text-primary)',
+                  color: isActive ? 'var(--gold-light)' : 'var(--text-primary)',
                   fontFamily: "'Cinzel', serif",
                   fontSize: '0.95rem',
                 }}
@@ -169,9 +138,9 @@ export default function GroupCombatantCard({
               {isActive && (
                 <span className="text-xs px-2 py-0.5 rounded"
                   style={{
-                    background: anyConcentrating ? 'rgba(140,90,220,0.2)' : 'rgba(201,168,76,0.2)',
-                    color: anyConcentrating ? '#c0a0f0' : 'var(--gold)',
-                    border: `1px solid ${anyConcentrating ? 'rgba(140,90,220,0.4)' : 'var(--gold-dark)'}`,
+                    background: 'rgba(201,168,76,0.2)',
+                    color: 'var(--gold)',
+                    border: '1px solid var(--gold-dark)',
                     fontSize: '0.65rem', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif",
                   }}>
                   ACTIVE
@@ -189,10 +158,12 @@ export default function GroupCombatantCard({
         </div>
       </div>
 
-      {/* ── Sub-cards grid — wider min so action buttons don't clip ── */}
-      <div className="px-3 pb-3 grid gap-2" style={{
-        gridTemplateColumns: `repeat(auto-fill, minmax(140px, 1fr))`,
-      }}>
+      {/* ── Sub-cards grid ── */}
+      <div className="px-3 pb-3 grid gap-2"
+        style={{
+          gridTemplateColumns: `repeat(auto-fill, minmax(160px, 1fr))`,
+        }}
+      >
         {combatants.map((c, idx) => {
           const cConditions = conditions.filter(cond => cond.combatant_id === c.id)
           const cHpBloodied = c.hp_enabled && c.max_hp !== null && c.current_hp !== null &&
@@ -227,21 +198,34 @@ export default function GroupCombatantCard({
                 }}/>
               )}
 
+              {/* Sub-card concentration effects */}
+              {cConcentrating && (
+                <>
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none', zIndex: 0,
+                    background: 'linear-gradient(135deg, rgba(120,70,200,0.12) 0%, transparent 60%)',
+                  }}/>
+                  <div style={{
+                    position: 'absolute', left: 0, top: '10%', bottom: '10%', width: 2,
+                    background: 'linear-gradient(to bottom, transparent, rgba(140,90,220,0.6), transparent)',
+                    borderRadius: '0 2px 2px 0', zIndex: 3,
+                  }}/>
+                </>
+              )}
+
               <div className="p-2" style={{ position: 'relative', zIndex: 1 }}>
-                {/* Letter label (A, B, C...) instead of #1, #2, #3... */}
+                {/* Letter label (A, B, C...) */}
                 <div className="flex items-center justify-between mb-1">
                   <span style={{
                     fontFamily: "'Cinzel', serif",
                     fontSize: '0.65rem',
-                    color: cBloodied ? '#c07070' : isSubActive ? 'var(--gold)' : 'var(--text-dim)',
+                    color: cBloodied ? '#c07070' : cConcentrating ? '#b090f0' : isSubActive ? 'var(--gold)' : 'var(--text-dim)',
                     fontWeight: 600,
                   }}>
                     {String.fromCharCode(65 + idx)}
                   </span>
                   {cConcentrating && (
-                    <span style={{ color: '#b090f0', fontSize: '0.55rem' }}>
-                      ✦ Conc
-                    </span>
+                    <span style={{ color: '#b090f0', fontSize: '0.55rem' }}>✦ Conc</span>
                   )}
                 </div>
 
@@ -285,8 +269,8 @@ export default function GroupCombatantCard({
                   </div>
                 )}
 
-                {/* Bloodied badge (no other conditions) */}
-                {cBloodied && cConditions.filter(co => co.condition !== 'Concentrating' && co.condition !== 'Bloodied').length === 0 && (
+                {/* Bloodied badge (no other non-tier conditions) */}
+                {cBloodied && (
                   <div className="flex items-center gap-1 mt-1">
                     <span style={{
                       padding: '1px 4px 1px 3px',

@@ -205,10 +205,12 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
                     )}
                   </div>
                   <div className="flex items-center gap-3">
+                    <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Track HP</span>
                     <button onClick={() => setMonsters(ms => ms.map((x, j) => j === i ? { ...x, hpEnabled: !x.hpEnabled } : x))}
-                      className="flex items-center gap-2 text-xs transition-all"
-                      style={{ color: m.hpEnabled ? 'var(--gold)' : 'var(--text-dim)', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
-                      <span>{m.hpEnabled ? '❤️' : '🩶'}</span> Track HP
+                      className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5 shrink-0"
+                      style={{ background: m.hpEnabled ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)', cursor: 'pointer' }}>
+                      <div className="w-5 h-5 rounded-full transition-all duration-200"
+                        style={{ background: m.hpEnabled ? 'var(--gold)' : 'var(--text-dim)', transform: m.hpEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
                     </button>
                     {m.hpEnabled && (
                       <input
