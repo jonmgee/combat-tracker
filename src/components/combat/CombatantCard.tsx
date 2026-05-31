@@ -471,6 +471,25 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   ↔ Alert Swap
                 </button>
               )}
+
+              {isDM && (
+                <button
+                  onClick={async () => {
+                    const next = !combatant.dead
+                    await supabase.from('combatants').update({ dead: next }).eq('id', combatant.id)
+                  }}
+                  className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                  style={{
+                    background: isDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
+                    border: `1px solid ${isDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
+                    color: isDead ? '#c06060' : 'var(--text-dim)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {isDead ? '💀 Dead' : '💀 Kill'}
+                </button>
+              )}
+
               <button
                 onClick={() => setShowConditions(true)}
                 className={`py-1.5 rounded-lg text-xs transition-all active:scale-95 ${canSwapTarget ? '' : 'flex-1'}`}

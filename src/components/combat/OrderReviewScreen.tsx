@@ -25,7 +25,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     supabase.from('combatants')
       .select('*')
       .eq('session_id', sessionId)
-      .order('initiative', { ascending: false })
+      .order('initiative_order', { ascending: true })
       .then(({ data }) => { if (data) setCombatants(data as Combatant[]) })
   }, [sessionId, revision])
 
@@ -107,15 +107,16 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     const entry2 = groupedVisible[swapIdx]
     if (!entry1 || !entry2) return
 
-    const init1 = entry1.type === 'player' ? entry1.combatant.initiative : entry1.initiative
-    const init2 = entry2.type === 'player' ? entry2.combatant.initiative : entry2.initiative
-    if (init1 === null || init2 === null) return
+    // Swap initiative_order values (effectively trading places in turn order)
+    const order1 = entry1.type === 'player' ? entry1.combatant.initiative_order : entry1.combatants[0].initiative_order
+    const order2 = entry2.type === 'player' ? entry2.combatant.initiative_order : entry2.combatants[0].initiative_order
+    if (order1 === null || order2 === null) return
 
     const ids1 = entry1.type === 'player' ? [entry1.combatant.id] : entry1.combatants.map(c => c.id)
     const ids2 = entry2.type === 'player' ? [entry2.combatant.id] : entry2.combatants.map(c => c.id)
 
-    for (const id of ids1) await supabase.from('combatants').update({ initiative: init2 }).eq('id', id)
-    for (const id of ids2) await supabase.from('combatants').update({ initiative: init1 }).eq('id', id)
+    for (const id of ids1) await supabase.from('combatants').update({ initiative_order: order2 }).eq('id', id)
+    for (const id of ids2) await supabase.from('combatants').update({ initiative_order: order1 }).eq('id', id)
     reloadCombatants()
   }
 

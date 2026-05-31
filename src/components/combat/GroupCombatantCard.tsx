@@ -344,6 +344,24 @@ export default function GroupCombatantCard({
                       {cBloodied ? '🩸' : 'Bloody'}
                     </button>
 
+                    {/* Dead toggle (DM only, independent of HP) */}
+                    <button
+                      onClick={async () => {
+                        const next = !c.dead
+                        await supabase.from('combatants').update({ dead: next }).eq('id', c.id)
+                      }}
+                      className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
+                      style={{
+                        background: cDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
+                        border: `0.5px solid ${cDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
+                        color: cDead ? '#c06060' : 'var(--text-dim)',
+                        cursor: 'pointer',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {cDead ? '💀' : '💀 Kill'}
+                    </button>
+
                     {/* Condition picker */}
                     <button
                       onClick={() => setShowConditionsFor(c.id)}
