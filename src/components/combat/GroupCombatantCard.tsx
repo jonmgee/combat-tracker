@@ -161,7 +161,9 @@ export default function GroupCombatantCard({
       {/* ── Sub-cards grid ── */}
       <div className="px-3 pb-3 grid gap-2"
         style={{
-          gridTemplateColumns: `repeat(auto-fill, minmax(160px, 1fr))`,
+          gridTemplateColumns: combatants.length <= 3
+            ? `repeat(${combatants.length}, 1fr)`
+            : `repeat(3, 1fr)`,
         }}
       >
         {combatants.map((c, idx) => {
