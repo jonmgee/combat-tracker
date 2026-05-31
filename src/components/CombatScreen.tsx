@@ -324,6 +324,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
         combatants={combatants}
         participants={participants}
         me={me}
+        sessionId={session.id}
         onBeginCombat={handleBeginCombat}
       />
     )

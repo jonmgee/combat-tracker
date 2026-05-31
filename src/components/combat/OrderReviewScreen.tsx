@@ -6,10 +6,11 @@ interface Props {
   combatants: Combatant[]
   participants: Participant[]
   me: Participant
+  sessionId: string
   onBeginCombat: () => void
 }
 
-export default function OrderReviewScreen({ combatants, participants: initialParticipants, me, onBeginCombat }: Props) {
+export default function OrderReviewScreen({ combatants, participants: initialParticipants, me, sessionId, onBeginCombat }: Props) {
   const isDM = me.role === 'dm'
 
   // ── Fresh participant data — fetch directly so lobby toggles are always current ──
@@ -17,8 +18,9 @@ export default function OrderReviewScreen({ combatants, participants: initialPar
   useEffect(() => {
     supabase.from('participants')
       .select('*')
+      .eq('session_id', sessionId)
       .then(({ data }) => { if (data) setParticipants(data as Participant[]) })
-  }, [])
+  }, [sessionId])
 
   // ── Live participant data for this user (captures lobby toggles) ──
   const meRefreshed = useMemo(
