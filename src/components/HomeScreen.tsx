@@ -127,6 +127,8 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
           alt=""
           className="mb-4"
           style={{
+            display: 'block',
+            margin: '0 auto',
             width: 150,
             height: 150,
             objectFit: 'contain',
