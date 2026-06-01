@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { generateRoomCode } from '../lib/utils'
+import lanternLogo from '../assets/lantern-logo.jpg'
+
 import type { Session, Participant, CombatState } from '../types'
 
 interface Props {
@@ -119,8 +121,18 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
     >
       {/* ── Title ── */}
       <div className="text-center mb-10 fade-in">
-        {/* Candle glyph */}
-        <div className="text-5xl mb-3" style={{ filter: 'drop-shadow(0 0 12px #C9A84C)' }}>🕯️</div>
+        {/* Lantern logo */}
+        <img
+          src={lanternLogo}
+          alt=""
+          className="mb-4"
+          style={{
+            width: 100,
+            height: 100,
+            objectFit: 'contain',
+            filter: 'drop-shadow(0 0 20px rgba(201,168,76,0.5))',
+          }}
+        />
         <h1
           className="text-4xl font-bold tracking-wider mb-2"
           style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 20px rgba(201,168,76,0.4)' }}
