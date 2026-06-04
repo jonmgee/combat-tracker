@@ -182,9 +182,44 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     const targetInit = target.initiative
     if (myInit === null || targetInit === null) return
 
+    // Swap initiative values
     await supabase.from('combatants').update({ initiative: targetInit }).eq('id', myAlertCombatant.id)
     await supabase.from('combatants').update({ initiative: myInit }).eq('id', target.id)
+    // Mark alert used for this participant
     await supabase.from('participants').update({ alert_used: true }).eq('id', meRefreshed.id)
+
+    // Recalculate grouped initiative_order immediately so the pre-combat order reflects the swap
+    const { data: allCombatants } = await supabase.from('combatants')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('initiative', { ascending: false })
+
+    if (allCombatants && allCombatants.length > 0) {
+      // Compute grouped orders: same-name monsters with same initiative share an order
+      const fresh = [...(allCombatants as Combatant[])]
+      let order = 0
+      for (let i = 0; i < fresh.length; i++) {
+        const c = fresh[i]
+        const prev = fresh[i - 1]
+        const sameGroup = prev &&
+          c.kind === 'monster' &&
+          prev.kind === 'monster' &&
+          c.name === prev.name &&
+          c.initiative === prev.initiative
+        if (!sameGroup) order++
+
+        // Update this combatant's initiative_order if it differs
+        const newOrder = order
+        if ((c.initiative_order ?? 0) !== newOrder) {
+          // best-effort update per-row
+          // don't await inside loop sequentially if you want speed, but keep it serial for simplicity/safety
+          // small per-encounter counts make this fine
+          await supabase.from('combatants').update({ initiative_order: newOrder }).eq('id', c.id)
+        }
+      }
+    }
+
+    // Reload client state
     reloadCombatants()
     // Refresh participants so alert_used state updates immediately
     supabase.from('participants').select('*').eq('session_id', sessionId)
