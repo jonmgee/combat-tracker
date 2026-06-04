@@ -70,9 +70,18 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
       })
       .subscribe()
 
+    // Defensive: also subscribe to combat_state changes directly so this view refreshes when others touch combat_state
+    const cs = supabase.channel(`combat_state:session:${sessionId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'combat_state', filter: `session_id=eq.${sessionId}` }, (payload) => {
+        console.debug('[OrderReview][realtime][combat_state] payload', payload)
+        reloadCombatants()
+      })
+      .subscribe()
+
     return () => {
       mounted = false
       try { supabase.removeChannel(channel) } catch (e) { /* ignore on cleanup */ }
+      try { supabase.removeChannel(cs) } catch (e) { /* ignore */ }
     }
   }, [sessionId])
 

@@ -30,40 +30,57 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   const loadAll = useCallback(async () => {
     console.debug('[loadAll] start', { sessionId: session.id })
 
-    const { data: combatantsData } = await supabase
-      .from('combatants')
-      .select('*')
-      .eq('session_id', session.id)
-      .order('initiative_order', { ascending: true })
-    if (combatantsData) setCombatants(combatantsData as Combatant[])
-
-    const { data: combatantIds } = await supabase
-      .from('combatants')
-      .select('id')
-      .eq('session_id', session.id)
-
-    let conditionsCount = 0
-    if (!combatantIds || combatantIds.length === 0) {
-      setConditions([])
-    } else {
-      const { data: conditionsData } = await supabase
-        .from('conditions')
+    async function runOnce() {
+      const { data: combatantsData } = await supabase
+        .from('combatants')
         .select('*')
-        .in('combatant_id', combatantIds.map(c => c.id))
-      if (conditionsData) {
-        setConditions(conditionsData as Condition[])
-        conditionsCount = (conditionsData as Condition[]).length
+        .eq('session_id', session.id)
+        .order('initiative_order', { ascending: true })
+      if (combatantsData) setCombatants(combatantsData as Combatant[])
+
+      const { data: combatantIds } = await supabase
+        .from('combatants')
+        .select('id')
+        .eq('session_id', session.id)
+
+      let conditionsCount = 0
+      if (!combatantIds || combatantIds.length === 0) {
+        setConditions([])
+      } else {
+        const { data: conditionsData } = await supabase
+          .from('conditions')
+          .select('*')
+          .in('combatant_id', combatantIds.map(c => c.id))
+        if (conditionsData) {
+          setConditions(conditionsData as Condition[])
+          conditionsCount = (conditionsData as Condition[]).length
+        }
       }
+
+      // Load participants (for Alert feat detection)
+      const { data: participantsData } = await supabase
+        .from('participants')
+        .select('*')
+        .eq('session_id', session.id)
+      if (participantsData) setParticipants(participantsData as Participant[])
+
+      return { combatantsData, conditionsCount, participantsData }
     }
 
-    // Load participants (for Alert feat detection)
-    const { data: participantsData } = await supabase
-      .from('participants')
-      .select('*')
-      .eq('session_id', session.id)
-    if (participantsData) setParticipants(participantsData as Participant[])
-
-    console.debug('[loadAll] complete', { sessionId: session.id, combatants: combatantsData?.length ?? 0, conditions: conditionsCount, participants: participantsData?.length ?? 0 })
+    try {
+      const res = await runOnce()
+      console.debug('[loadAll] complete', { sessionId: session.id, combatants: res.combatantsData?.length ?? 0, conditions: res.conditionsCount, participants: res.participantsData?.length ?? 0 })
+    } catch (err) {
+      console.warn('[loadAll] failed, retrying once', err)
+      // One gentle retry — some realtime errors (406) appear transient
+      try {
+        await new Promise(r => setTimeout(r, 200))
+        const res = await runOnce()
+        console.debug('[loadAll] complete after retry', { sessionId: session.id, combatants: res.combatantsData?.length ?? 0, conditions: res.conditionsCount, participants: res.participantsData?.length ?? 0 })
+      } catch (err2) {
+        console.error('[loadAll] failed after retry', err2)
+      }
+    }
   }, [session.id])
 
   // Load once on mount
