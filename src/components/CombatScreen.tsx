@@ -28,7 +28,6 @@ export default function CombatScreen({ session, me, initialState }: Props) {
 
   // ── Load everything (combatants + conditions + participants) in one shot ──
   const loadAll = useCallback(async () => {
-    console.debug('[loadAll] start', { sessionId: session.id })
 
     async function runOnce() {
       const { data: combatantsData } = await supabase
@@ -68,15 +67,12 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     }
 
     try {
-      const res = await runOnce()
-      console.debug('[loadAll] complete', { sessionId: session.id, combatants: res.combatantsData?.length ?? 0, conditions: res.conditionsCount, participants: res.participantsData?.length ?? 0 })
+      await runOnce()
     } catch (err) {
-      console.warn('[loadAll] failed, retrying once', err)
       // One gentle retry — some realtime errors (406) appear transient
       try {
         await new Promise(r => setTimeout(r, 200))
-        const res = await runOnce()
-        console.debug('[loadAll] complete after retry', { sessionId: session.id, combatants: res.combatantsData?.length ?? 0, conditions: res.conditionsCount, participants: res.participantsData?.length ?? 0 })
+        await runOnce()
       } catch (err2) {
         console.error('[loadAll] failed after retry', err2)
       }
@@ -93,17 +89,13 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   useEffect(() => {
     const channel = supabase.channel(`combat_state:${session.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'combat_state', filter: `session_id=eq.${session.id}` }, (payload) => {
-        console.debug('[realtime][combat_state] payload', payload)
-        const next = payload.new as CombatState
+          const next = payload.new as CombatState
         setCombatState(next)
 
         // Reload combatants/participants when combat_state changes so UI stays in sync across clients
         // (guard with subPaused to avoid stepping on local multi-row updates)
         if (!subPaused.current) {
-          console.debug('[realtime][combat_state] calling loadAll')
           loadAll()
-        } else {
-          console.debug('[realtime][combat_state] skipped loadAll due to subPaused')
         }
 
         // Notify player if it's now their turn - use ref to avoid dep on combatants
