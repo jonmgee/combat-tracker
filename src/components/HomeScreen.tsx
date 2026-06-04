@@ -75,7 +75,7 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
         .from('combat_state')
         .select()
         .eq('session_id', session.id)
-        .single()
+        .maybeSingle()
 
       if (combatState) {
         // Combat has started — insert combatant at the end of the order
