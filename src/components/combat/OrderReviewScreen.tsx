@@ -47,10 +47,29 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   // ── Fresh participant data — fetch directly so lobby toggles are always current ──
   const [participants, setParticipants] = useState<Participant[]>(initialParticipants)
   useEffect(() => {
-    supabase.from('participants')
-      .select('*')
-      .eq('session_id', sessionId)
-      .then(({ data }) => { if (data) setParticipants(data as Participant[]) })
+    let mounted = true
+
+    // Fetch once up-front
+    const fetchParticipants = () => {
+      supabase.from('participants')
+        .select('*')
+        .eq('session_id', sessionId)
+        .then(({ data }) => { if (data && mounted) setParticipants(data as Participant[]) })
+    }
+
+    fetchParticipants()
+
+    // Subscribe to participant changes for this session so lobby toggles (Alert, etc.) show up live
+    const channel = supabase.channel(`participants:session:${sessionId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'participants', filter: `session_id=eq.${sessionId}` }, () => {
+        fetchParticipants()
+      })
+      .subscribe()
+
+    return () => {
+      mounted = false
+      try { supabase.removeChannel(channel) } catch (e) { /* ignore on cleanup */ }
+    }
   }, [sessionId])
 
   // ── Live participant data for this user (captures lobby toggles) ──
