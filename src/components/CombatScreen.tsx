@@ -69,6 +69,11 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'combat_state', filter: `session_id=eq.${session.id}` }, (payload) => {
         const next = payload.new as CombatState
         setCombatState(next)
+
+        // Reload combatants/participants when combat_state changes so UI stays in sync across clients
+        // (guard with subPaused to avoid stepping on local multi-row updates)
+        if (!subPaused.current) loadAll()
+
         // Notify player if it's now their turn - use ref to avoid dep on combatants
         if (!isDM && next.current_combatant_id && me.notifications_enabled) {
           const currentCombatants = combatantsRef.current
@@ -80,7 +85,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [session.id, isDM, me.id])
+  }, [session.id, isDM, me.id, loadAll])
 
   // ── Real-time: combatants ──
   useEffect(() => {

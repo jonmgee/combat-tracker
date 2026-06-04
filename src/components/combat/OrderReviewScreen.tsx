@@ -224,6 +224,10 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     // Refresh participants so alert_used state updates immediately
     supabase.from('participants').select('*').eq('session_id', sessionId)
       .then(({ data }) => { if (data) setParticipants(data as Participant[]) })
+
+    // Touch combat_state.updated_at so all other clients (DM / other PCs) reload their local state
+    // CombatScreen listens for combat_state changes and will call loadAll() when it updates.
+    await supabase.from('combat_state').update({ updated_at: new Date().toISOString() }).eq('session_id', sessionId)
   }
 
   // ── Render a grouped entry row ──
