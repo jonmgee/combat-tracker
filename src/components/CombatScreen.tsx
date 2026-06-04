@@ -28,6 +28,8 @@ export default function CombatScreen({ session, me, initialState }: Props) {
 
   // ── Load everything (combatants + conditions + participants) in one shot ──
   const loadAll = useCallback(async () => {
+    console.debug('[loadAll] start', { sessionId: session.id })
+
     const { data: combatantsData } = await supabase
       .from('combatants')
       .select('*')
@@ -39,6 +41,8 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       .from('combatants')
       .select('id')
       .eq('session_id', session.id)
+
+    let conditionsCount = 0
     if (!combatantIds || combatantIds.length === 0) {
       setConditions([])
     } else {
@@ -46,7 +50,10 @@ export default function CombatScreen({ session, me, initialState }: Props) {
         .from('conditions')
         .select('*')
         .in('combatant_id', combatantIds.map(c => c.id))
-      if (conditionsData) setConditions(conditionsData as Condition[])
+      if (conditionsData) {
+        setConditions(conditionsData as Condition[])
+        conditionsCount = (conditionsData as Condition[]).length
+      }
     }
 
     // Load participants (for Alert feat detection)
@@ -55,6 +62,8 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       .select('*')
       .eq('session_id', session.id)
     if (participantsData) setParticipants(participantsData as Participant[])
+
+    console.debug('[loadAll] complete', { sessionId: session.id, combatants: combatantsData?.length ?? 0, conditions: conditionsCount, participants: participantsData?.length ?? 0 })
   }, [session.id])
 
   // Load once on mount
@@ -67,12 +76,18 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   useEffect(() => {
     const channel = supabase.channel(`combat_state:${session.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'combat_state', filter: `session_id=eq.${session.id}` }, (payload) => {
+        console.debug('[realtime][combat_state] payload', payload)
         const next = payload.new as CombatState
         setCombatState(next)
 
         // Reload combatants/participants when combat_state changes so UI stays in sync across clients
         // (guard with subPaused to avoid stepping on local multi-row updates)
-        if (!subPaused.current) loadAll()
+        if (!subPaused.current) {
+          console.debug('[realtime][combat_state] calling loadAll')
+          loadAll()
+        } else {
+          console.debug('[realtime][combat_state] skipped loadAll due to subPaused')
+        }
 
         // Notify player if it's now their turn - use ref to avoid dep on combatants
         if (!isDM && next.current_combatant_id && me.notifications_enabled) {

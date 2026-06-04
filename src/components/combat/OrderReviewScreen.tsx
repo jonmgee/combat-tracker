@@ -20,6 +20,11 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   // ── Own combatants state — re-fetched after every swap/nudge so screen stays in sync ──
   const [combatants, setCombatants] = useState<Combatant[]>(initialCombatants)
   const [revision, setRevision] = useState(0)
+  const [participants, setParticipants] = useState<Participant[]>(initialParticipants)
+
+  // Sync parent-props -> local state so updates pushed from CombatScreen are reflected here
+  useEffect(() => { setCombatants(initialCombatants) }, [initialCombatants])
+  useEffect(() => { setParticipants(initialParticipants) }, [initialParticipants])
 
   useEffect(() => {
     supabase.from('combatants')
@@ -45,7 +50,6 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   }
 
   // ── Fresh participant data — fetch directly so lobby toggles are always current ──
-  const [participants, setParticipants] = useState<Participant[]>(initialParticipants)
   useEffect(() => {
     let mounted = true
 
@@ -175,6 +179,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   }, [players, myAlertCombatant])
 
   async function handleAlertSwap(targetId: string) {
+    console.debug('[OrderReview] handleAlertSwap start', { targetId })
     if (!myAlertCombatant) return
     const target = players.find(c => c.id === targetId)
     if (!target) return
@@ -188,6 +193,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     // Mark alert used for this participant
     await supabase.from('participants').update({ alert_used: true }).eq('id', meRefreshed.id)
 
+    console.debug('[OrderReview] swapped initiatives, recalculating orders')
     // Recalculate grouped initiative_order immediately so the pre-combat order reflects the swap
     const { data: allCombatants } = await supabase.from('combatants')
       .select('*')
@@ -225,9 +231,11 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     supabase.from('participants').select('*').eq('session_id', sessionId)
       .then(({ data }) => { if (data) setParticipants(data as Participant[]) })
 
+    console.debug('[OrderReview] touching combat_state.updated_at to trigger reloads')
     // Touch combat_state.updated_at so all other clients (DM / other PCs) reload their local state
     // CombatScreen listens for combat_state changes and will call loadAll() when it updates.
     await supabase.from('combat_state').update({ updated_at: new Date().toISOString() }).eq('session_id', sessionId)
+    console.debug('[OrderReview] handleAlertSwap complete')
   }
 
   // ── Render a grouped entry row ──
