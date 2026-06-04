@@ -1,33 +1,30 @@
-# ~~Handoff~~ — Resolved: React Error #310
+# ~~Handoff~~ — Night of 2026-06-04 / 2026-06-05 — Post-test notes
 
-**Resolved:** 2026-05-31
-**Fix commit:** `d9f01cd`
+Status: working — confirmed on Vercel after rollback to known-good state.
 
-## What was wrong
+Current working commit: e42176f ("Fix: tolerate missing combat_state rows with maybeSingle(); defensive reloads & retries; remove verbose debug logs").
 
-React Error #310 was **not** an infinite re-render loop. It was a **Rules of Hooks violation**.
+What I did tonight
+- Diagnosed and fixed a live issue where Alert swap updates did not always reflect in other clients.
+  - OrderReview now recalculates grouped initiative_order after Alert swaps and reloads participants so the player sees the swap immediately.
+  - Added defensive realtime reloads so clients will refresh when combat_state changes.
+  - Replaced a few .single() reads that could throw when no row exists with .maybeSingle() to avoid PGRST116 (zero-row) errors.
+- Added temporary debug logging to trace realtime payloads and load/reload behavior while debugging. These logs were removed during cleanup.
 
-The `CombatScreen` component had a conditional early `return`:
+Lessons and decisions
+- The 406 / PGRST116 error on combat_state was caused by a .single() read hitting zero rows. This is harmless in practice and is handled by using .maybeSingle() where appropriate. No further action required.
+- I briefly tried proactively creating a combat_state row at session creation to close the race window, but that produced duplicate-key (23505) errors in some flows and caused regressions. That change was reverted. Do not re-attempt that approach for now — maybeSingle() + careful handling is sufficient.
 
-```tsx
-if (combatState.phase === 'initiative') {
-    return <InitiativeEntry ... />
-}
-```
+Current status / verification
+- The app is back to the known-good commit (e42176f) and is building and running. I confirmed origin/main matches the local HEAD and matches the Vercel project bindings in .vercel/repo.json.
+- Critical flows verified manually after rollback by the team (Jon):
+  - Roll for Initiative / Start Combat
+  - Player HP-tracking and Alert-feat UI
+  - Live Alert swap behaviour
 
-Everything below that early return (including a `useMemo` call at what became hook #14) only executed when `phase === 'active'`. When the DM clicked "Lock In & Begin Combat", the app would:
+Notes for next session
+- If we want to eliminate the zero-row edge case safely, implement an idempotent server-side initialization for combat_state (server function or transactional migration) rather than client-side upserts. Avoid blind client-side upserts without an explicit conflict target.
+- If you see intermittent PGRST116 again, capture the full failing request (Network tab) so we can see the exact query parameters.
+- Cosmetic: the debug logs were removed; if any sneak back in during future debugging, strip them before merging to main.
 
-1. Mount with `phase='initiative'` → 13 hooks registered (early return after #13)
-2. `setCombatants(sorted)` triggers a re-render → phase still `'initiative'` → 13 hooks ✓
-3. WebSocket delivers `phase='active'` → React re-renders → no early return → **14 hooks** 
-4. React: "Last time you had 13 hooks, now you have 14. Error #310."
-
-## The fix
-
-Moved the `useMemo` and all derived values (`visibleCombatants`, `groupedCombatants`, `currentCombatant`, `isMyTurn`, `myCombatantNoInit`) to **above** the early return. All hooks now register consistently on every render regardless of phase.
-
-## Lessons learned
-
-- React error #310 can be either "maximum update depth" OR "rendered more hooks than previous render" — the minified error code is the same for both
-- Dev build gives the real error message immediately
-- Four previous data-layer fixes were all chasing the wrong symptom
+Logged: geordi (assistant)
