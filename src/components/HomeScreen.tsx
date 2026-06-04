@@ -40,9 +40,9 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
       if (partErr || !participant) throw new Error(partErr?.message ?? 'Failed to register DM')
 
       // Create an initial combat_state row for this session so clients won't race on reads.
-      // Use upsert with explicit conflict target so this never errors if the row already exists.
+      // Use upsert so this is safe if the row already exists.
       await supabase.from('combat_state')
-        .upsert({ session_id: session.id, phase: 'initiative', round_number: 1 }, { onConflict: 'session_id' })
+        .upsert({ session_id: session.id, phase: 'initiative', round_number: 1 })
         .select()
         .maybeSingle()
 
