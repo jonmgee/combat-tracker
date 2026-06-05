@@ -139,7 +139,7 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
           className="text-4xl font-bold tracking-wider mb-2"
           style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 20px rgba(201,168,76,0.4)' }}
         >
-          Combat Tracker
+          Torch & Turn
         </h1>
         <p style={{ color: 'var(--text-dim)', fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', letterSpacing: '0.1em' }}>
           TABLETOP RPG · INITIATIVE & COMBAT
@@ -291,9 +291,6 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
         )}
       </div>
 
-      <p className="mt-8 text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>
-        Phase 1 · Session Management
-      </p>
     </div>
   )
 }
