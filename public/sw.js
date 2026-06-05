@@ -1,11 +1,11 @@
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {}
   event.waitUntil(
-    self.registration.showNotification(data.title ?? 'Combat Tracker', {
+    self.registration.showNotification(data.title ?? 'Torch & Turn', {
       body: data.body ?? "It's your turn!",
       icon: '/favicon.svg',
       badge: '/favicon.svg',
-      tag: 'combat-turn',
+      tag: 'torch-and-turn',
       renotify: true,
     })
   )
