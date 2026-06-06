@@ -366,6 +366,9 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
       // Update session status back to lobby
       await supabase.from('sessions').update({ status: 'lobby' }).eq('id', session.id)
 
+      // Reset per-encounter participant flags (Alert feat resets each combat)
+      await supabase.from('participants').update({ alert_used: false }).eq('session_id', session.id)
+
       // Bounce DM back to lobby directly (in case DELETE event doesn't fire for the caller)
       onReturnToLobby()
     } catch (e) {
