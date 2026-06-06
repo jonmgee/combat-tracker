@@ -159,7 +159,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
       {/* ── Header ── */}
       <div className="text-center mb-8 fade-in">
         <div className="mb-2 flex justify-center">
-          <img src={lanternLogo} alt="Lantern" className="h-16" style={{ filter: 'drop-shadow(0 0 12px #C9A84C)' }} />
+          <img src={lanternLogo} alt="Lantern" className="h-28" style={{ filter: 'drop-shadow(0 0 20px #C9A84C)' }} />
         </div>
         <h1 className="text-3xl font-bold tracking-wider" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 16px rgba(201,168,76,0.4)' }}>
           {isDM ? 'Your War Room' : 'The Lobby'}
