@@ -140,6 +140,19 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
     return () => { supabase.removeChannel(channel) }
   }, [session.id, loadAll])
 
+  // ── Fallback: detect session going back to lobby (covers any missed DELETE event) ──
+  useEffect(() => {
+    const channel = supabase.channel(`session_reset:${session.id}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `id=eq.${session.id}` }, (payload) => {
+        const next = payload.new as { status: string }
+        if (next.status === 'lobby') {
+          onReturnToLobby()
+        }
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [session.id, onReturnToLobby])
+
   // ── Assign grouped initiative_order to combatants ──
   // Same-name monsters with the same initiative share an order number,
   // so the whole group acts as one turn slot
@@ -342,18 +355,23 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
     setResetting(true)
     try {
       // Delete combatants first (cascade deletes conditions)
-      await supabase.from('combatants').delete().eq('session_id', session.id)
+      const { error: combatantsErr } = await supabase.from('combatants').delete().eq('session_id', session.id)
+      if (combatantsErr) console.error('[newCombat] combatants delete err:', combatantsErr)
+
       // Delete combat_state — subscription will fire DELETE and bounce everyone to lobby
-      await supabase.from('combat_state').delete().eq('session_id', session.id)
+      const { error: stateErr } = await supabase.from('combat_state').delete().eq('session_id', session.id)
+      if (stateErr) console.error('[newCombat] combat_state delete err:', stateErr)
+
       // Update session status back to lobby
       await supabase.from('sessions').update({ status: 'lobby' }).eq('id', session.id)
+
+      // Bounce DM back to lobby directly (in case DELETE event doesn't fire for the caller)
+      onReturnToLobby()
     } catch (e) {
       console.error('[newCombat]', e)
     } finally {
       setResetting(false)
       setShowResetConfirm(false)
-      // DM returns to lobby manually (DELETE event also triggers, but local state:
-      // DM's own subscription fired the DELETE which calls onReturnToLobby already)
     }
   }
 
