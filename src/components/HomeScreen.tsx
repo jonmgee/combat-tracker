@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { generateUniqueCode } from '../lib/roomCodes'
-import lanternLogo from '../assets/Lantern2.jpg'
+import lanternLogo from '../assets/lantern-logo.png'
 
 import type { Session, Participant, CombatState } from '../types'
 
@@ -174,7 +174,6 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
             width: 150,
             height: 150,
             objectFit: 'contain',
-            mixBlendMode: 'screen',
             filter: 'drop-shadow(0 0 24px rgba(201,168,76,0.6))',
           }}
         />

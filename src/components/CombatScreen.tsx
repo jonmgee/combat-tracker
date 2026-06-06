@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import lanternLogo from '../assets/Lantern2.jpg'
+import lanternLogo from '../assets/lantern-logo.png'
 import { fireLocalNotification } from '../lib/notifications'
 import InitiativeEntry from './combat/InitiativeEntry'
 import CombatantCard from './combat/CombatantCard'
@@ -711,7 +711,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
             style={{ background: 'var(--bg-panel)', border: '1px solid var(--gold-dark)', boxShadow: '0 8px 40px rgba(0,0,0,0.8)' }}
           >
             <div className="mb-4 flex justify-center">
-              <img src={lanternLogo} alt="" className="h-16" style={{ mixBlendMode: 'screen', filter: 'drop-shadow(0 0 16px rgba(201,168,76,0.6))' }} />
+              <img src={lanternLogo} alt="" className="h-16" style={{ filter: 'drop-shadow(0 0 16px rgba(201,168,76,0.6))' }} />
             </div>
             <h3
               className="text-xl font-bold mb-2"
