@@ -4,7 +4,7 @@ import HomeScreen from './components/HomeScreen'
 import LobbyScreen from './components/LobbyScreen'
 import CombatScreen from './components/CombatScreen'
 import ErrorBoundary from './components/ErrorBoundary'
-import lanternLogo from './assets/lantern-logo.png'
+import lanternLogo from './assets/Lantern2.jpg'
 import type { Session, Participant, CombatState } from './types'
 
 type Screen = 'home' | 'lobby' | 'combat'
