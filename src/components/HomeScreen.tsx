@@ -82,13 +82,26 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
 
       if (findErr || !session) throw new Error('Room not found. Check the code and try again.')
 
-      const { data: participant, error: partErr } = await supabase
+      // ── Part A: find-or-create participant (prevents dupes on rejoin) ──
+      const { data: existingParticipant } = await supabase
         .from('participants')
-        .insert({ session_id: session.id, name: playerName.trim(), role: 'player' })
         .select()
-        .single()
+        .eq('session_id', session.id)
+        .eq('name', playerName.trim())
+        .maybeSingle()
 
-      if (partErr || !participant) throw new Error(partErr?.message ?? 'Failed to join session')
+      let participant: Participant
+      if (existingParticipant) {
+        participant = existingParticipant as Participant
+      } else {
+        const { data: newPart, error: partErr } = await supabase
+          .from('participants')
+          .insert({ session_id: session.id, name: playerName.trim(), role: 'player' })
+          .select()
+          .single()
+        if (partErr || !newPart) throw new Error(partErr?.message ?? 'Failed to join session')
+        participant = newPart as Participant
+      }
 
       // Check if combat has already started
       const { data: combatState } = await supabase
@@ -98,29 +111,38 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
         .maybeSingle()
 
       if (combatState) {
-        // Combat has started — insert combatant at the end of the order
-        // Find the highest initiative_order currently assigned
-        const { data: orderMax } = await supabase
+        // Combat has started — only insert combatant if one doesn't already exist for this participant
+        const { data: existingCombatant } = await supabase
           .from('combatants')
-          .select('initiative_order')
+          .select('id')
           .eq('session_id', session.id)
-          .order('initiative_order', { ascending: false })
-          .limit(1)
+          .eq('participant_id', participant.id)
+          .maybeSingle()
 
-        const nextOrder = orderMax && orderMax.length > 0
-          ? (orderMax[0].initiative_order ?? 0) + 1
-          : 1
+        if (!existingCombatant) {
+          // Find the highest initiative_order currently assigned
+          const { data: orderMax } = await supabase
+            .from('combatants')
+            .select('initiative_order')
+            .eq('session_id', session.id)
+            .order('initiative_order', { ascending: false })
+            .limit(1)
 
-        await supabase.from('combatants').insert({
-          session_id:       session.id,
-          participant_id:   participant.id,
-          name:             playerName.trim(),
-          kind:             'player',
-          initiative:       null,
-          initiative_order: nextOrder,
-          is_hidden:        false,
-          hp_enabled:       false,
-        })
+          const nextOrder = orderMax && orderMax.length > 0
+            ? (orderMax[0].initiative_order ?? 0) + 1
+            : 1
+
+          await supabase.from('combatants').insert({
+            session_id:       session.id,
+            participant_id:   participant.id,
+            name:             playerName.trim(),
+            kind:             'player',
+            initiative:       null,
+            initiative_order: nextOrder,
+            is_hidden:        false,
+            hp_enabled:       false,
+          })
+        }
 
         onEnterCombat(session, participant, combatState as CombatState)
       } else {
