@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { generateUniqueCode } from '../lib/roomCodes'
-import lanternLogo from '../assets/lantern-logo.png'
+import lanternLogo from '../assets/Lantern3.png'
 
 import type { Session, Participant, CombatState } from '../types'
 

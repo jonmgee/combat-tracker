@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import lanternLogo from '../assets/lantern-logo.png'
+import lanternLogo from '../assets/Lantern3.png'
 import { supabase } from '../lib/supabase'
 import { requestNotificationPermission, registerServiceWorker } from '../lib/notifications'
 import type { Session, Participant, CombatState } from '../types'
