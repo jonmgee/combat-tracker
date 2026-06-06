@@ -171,8 +171,8 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
           style={{
             display: 'block',
             margin: '0 auto',
-            width: 180,
-            height: 180,
+            width: 216,
+            height: 216,
             objectFit: 'contain',
             filter: 'drop-shadow(0 0 24px rgba(201,168,76,0.6))',
           }}

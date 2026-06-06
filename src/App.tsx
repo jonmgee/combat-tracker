@@ -173,7 +173,7 @@ export default function App() {
           style={{ background: 'var(--bg-panel)', border: '1px solid var(--gold-dark)', boxShadow: '0 8px 40px rgba(0,0,0,0.8)' }}
         >
           <div className="mb-4 flex justify-center">
-            <img src={lanternLogo} alt="" className="h-20" style={{ filter: 'drop-shadow(0 0 16px rgba(201,168,76,0.6))' }} />
+            <img src={lanternLogo} alt="" className="h-24" style={{ filter: 'drop-shadow(0 0 16px rgba(201,168,76,0.6))' }} />
           </div>
 
           <h3
