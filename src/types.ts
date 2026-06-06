@@ -40,6 +40,7 @@ export interface Combatant {
   hp_enabled: boolean
   max_hp: number | null
   current_hp: number | null
+  temp_hp: number
   created_at: string
 }
 

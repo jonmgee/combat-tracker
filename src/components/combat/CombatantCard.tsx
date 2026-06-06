@@ -455,9 +455,15 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               combatantId={combatant.id}
               currentHp={combatant.current_hp}
               maxHp={combatant.max_hp}
+              tempHp={combatant.temp_hp}
               isBloodied={isBloodied}
               isDead={isDead}
             />
+          )}
+
+          {/* ── Temp HP setter (PC's own card only) ── */}
+          {isMe && !isDead && canSeeHP && (
+            <TempHpSetter combatantId={combatant.id} currentTempHp={combatant.temp_hp} />
           )}
 
           {/* ── Actions row ── */}
@@ -509,5 +515,68 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         />
       )}
     </>
+  )
+}
+
+// ── Temp HP setter — inline control on PC's own card only ──
+function TempHpSetter({ combatantId, currentTempHp }: { combatantId: string; currentTempHp: number }) {
+  const [value, setValue] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function setTempHp() {
+    const val = parseInt(value)
+    if (isNaN(val) || val <= 0) return
+    setSaving(true)
+    // Temp HP doesn't stack — take the higher of current and new
+    const next = Math.max(currentTempHp, val)
+    await supabase.from('combatants').update({ temp_hp: next }).eq('id', combatantId)
+    setValue('')
+    setSaving(false)
+  }
+
+  async function clearTempHp() {
+    setSaving(true)
+    await supabase.from('combatants').update({ temp_hp: 0 }).eq('id', combatantId)
+    setSaving(false)
+  }
+
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <span className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.04em' }}>🛡️</span>
+      {currentTempHp > 0 ? (
+        <>
+          <span className="text-xs font-mono" style={{ color: '#c0b0e0' }}>
+            +{currentTempHp} temp
+          </span>
+          <button
+            onClick={clearTempHp}
+            disabled={saving}
+            className="text-xs px-2 py-0.5 rounded transition-all"
+            style={{ color: 'var(--text-dim)', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+        </>
+      ) : (
+        <>
+          <input
+            type="number"
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            placeholder="Add"
+            className="w-16 px-2 py-1 rounded text-sm text-center outline-none"
+            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+          />
+          <button
+            onClick={setTempHp}
+            disabled={saving || !value}
+            className="text-xs px-2 py-1 rounded transition-all active:scale-95 disabled:opacity-50"
+            style={{ background: 'rgba(180,140,220,0.15)', color: '#c0a0e0', border: '1px solid rgba(180,140,220,0.3)', cursor: 'pointer', fontWeight: 600 }}
+          >
+            Set
+          </button>
+        </>
+      )}
+    </div>
   )
 }

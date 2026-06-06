@@ -5,11 +5,12 @@ interface Props {
   combatantId: string
   currentHp: number
   maxHp: number
+  tempHp: number
   isBloodied?: boolean
   isDead?: boolean
 }
  
-export default function HPBar({ combatantId, currentHp, maxHp, isBloodied = false, isDead = false }: Props) {
+export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false }: Props) {
   const [editing, setEditing] = useState(false)
   const [delta, setDelta]     = useState('')
 
@@ -25,8 +26,12 @@ export default function HPBar({ combatantId, currentHp, maxHp, isBloodied = fals
       </div>
     )
   }
+
+  const effectiveHp = currentHp + tempHp
  
-  const pct = Math.max(0, Math.min(100, (currentHp / maxHp) * 100))
+  const pct = Math.max(0, Math.min(100, (effectiveHp / maxHp) * 100))
+  const tempPct = tempHp > 0 ? Math.max(0, Math.min(100, (tempHp / maxHp) * 100)) : 0
+  const realPct = Math.max(0, Math.min(100, (currentHp / maxHp) * 100))
  
   // Warm tavern palette instead of clinical greens
   const barColor = isBloodied
@@ -40,31 +45,76 @@ export default function HPBar({ combatantId, currentHp, maxHp, isBloodied = fals
   async function applyDelta(sign: 1 | -1) {
     const val = parseInt(delta)
     if (isNaN(val) || val <= 0) return
-    const next = Math.max(0, Math.min(maxHp, currentHp + sign * val))
-    if (next <= 0) {
-      await supabase.from('combatants').update({ current_hp: 0, dead: true }).eq('id', combatantId)
-    } else {
+
+    if (sign === 1) {
+      // Healing — only affects real HP, not temp HP (5e rule: temp HP can't be healed)
+      const next = Math.min(maxHp, currentHp + val)
       await supabase.from('combatants').update({ current_hp: next }).eq('id', combatantId)
+    } else {
+      // Damage — hits temp HP first
+      let remaining = val
+      let newTemp = tempHp
+      let newHp = currentHp
+
+      if (newTemp > 0) {
+        if (remaining >= newTemp) {
+          remaining -= newTemp
+          newTemp = 0
+        } else {
+          newTemp -= remaining
+          remaining = 0
+        }
+      }
+
+      if (remaining > 0) {
+        newHp = Math.max(0, newHp - remaining)
+      }
+
+      if (newHp <= 0) {
+        await supabase.from('combatants').update({ current_hp: 0, temp_hp: 0, dead: true }).eq('id', combatantId)
+      } else {
+        await supabase.from('combatants').update({ current_hp: newHp, temp_hp: newTemp }).eq('id', combatantId)
+      }
     }
+
     setDelta('')
     setEditing(false)
   }
+
+  // Display string: show "hp+temp/max" when temp HP present
+  const hpDisplay = tempHp > 0
+    ? `${currentHp}+${tempHp}/${maxHp}`
+    : `${currentHp}/${maxHp}`
  
   return (
     <div className="mt-2">
       <div className="flex items-center gap-2 mb-1">
-        <div className="flex-1 rounded-full overflow-hidden" style={{ height: '5px', background: 'rgba(255,255,255,0.06)' }}>
+        <div className="flex-1 rounded-full overflow-hidden relative" style={{ height: '5px', background: 'rgba(255,255,255,0.06)' }}>
+          {/* Base HP bar */}
           <div style={{
-            width: `${pct}%`,
+            width: `${realPct}%`,
             height: '100%',
             background: barColor,
             borderRadius: '9999px',
             transition: 'width 0.3s ease',
             boxShadow: isBloodied ? '0 0 6px rgba(160,30,20,0.5)' : pct <= 25 ? '0 0 5px rgba(176,48,48,0.4)' : 'none',
           }}/>
+          {/* Temp HP overlay — sits on top, lighter colour */}
+          {tempHp > 0 && (
+            <div style={{
+              position: 'absolute',
+              right: `${100 - Math.min(100, (effectiveHp / maxHp) * 100)}%`,
+              left: `${realPct}%`,
+              top: 0,
+              bottom: 0,
+              background: 'rgba(200,180,220,0.5)',
+              borderRadius: '0 9999px 9999px 0',
+              transition: 'left 0.3s ease, right 0.3s ease',
+            }}/>
+          )}
         </div>
-        <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)', minWidth: '48px', textAlign: 'right' }}>
-          {currentHp}/{maxHp}
+        <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)', minWidth: '60px', textAlign: 'right' }}>
+          {hpDisplay}
         </span>
         <button
           onClick={() => setEditing(e => !e)}
@@ -99,4 +149,3 @@ export default function HPBar({ combatantId, currentHp, maxHp, isBloodied = fals
     </div>
   )
 }
- 
