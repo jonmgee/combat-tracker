@@ -14,6 +14,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading]           = useState(false)
   const [copied, setCopied]             = useState(false)
+  const [showQr, setShowQr]             = useState(false)
   const [hpOptIn, setHpOptIn]           = useState(me.hp_opt_in)
   const [startingHp, setStartingHp]     = useState('')
   const [maxHpInput, setMaxHpInput]     = useState('')
@@ -177,11 +178,38 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
             style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', letterSpacing: '0.25em' }}>
             {session.room_code}
           </div>
-          <button onClick={copyCode}
-            className="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-150 active:scale-95"
-            style={{ background: copied ? 'var(--bg-raised)' : 'transparent', color: copied ? 'var(--gold-light)' : 'var(--text-dim)', border: '1px solid var(--border-light)', letterSpacing: '0.06em' }}>
-            {copied ? '✓ Copied' : 'Copy Code'}
-          </button>
+          <div className="flex justify-center gap-3 mt-3">
+            <button onClick={copyCode}
+              className="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-150 active:scale-95"
+              style={{ background: copied ? 'var(--bg-raised)' : 'transparent', color: copied ? 'var(--gold-light)' : 'var(--text-dim)', border: '1px solid var(--border-light)', letterSpacing: '0.06em' }}>
+              {copied ? '✓ Copied' : 'Copy Code'}
+            </button>
+            {showQr ? (
+              <button onClick={() => setShowQr(false)}
+                className="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-150 active:scale-95"
+                style={{ background: 'var(--bg-raised)', color: 'var(--gold)', border: '1px solid var(--gold-dark)', letterSpacing: '0.06em' }}>
+                ✕ Close QR
+              </button>
+            ) : isDM && (
+              <button onClick={() => setShowQr(true)}
+                className="px-5 py-2 rounded-lg text-sm font-medium transition-all duration-150 active:scale-95"
+                style={{ background: 'transparent', color: 'var(--text-dim)', border: '1px solid var(--border-light)', letterSpacing: '0.06em' }}>
+                QR Code
+              </button>
+            )}
+          </div>
+
+          {showQr && (
+            <div className="mt-4 fade-in">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('https://combat-tracker-one.vercel.app/?join=' + session.room_code)}`}
+                alt="QR code to join this room"
+                className="mx-auto"
+                style={{ borderRadius: '8px', border: '1px solid var(--border)', background: 'white' }}
+              />
+              <p className="text-xs mt-2" style={{ color: 'var(--text-dim)' }}>Scan with a phone camera to join</p>
+            </div>
+          )}
         </div>
       </div>
 

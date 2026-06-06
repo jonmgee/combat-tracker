@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { generateUniqueCode } from '../lib/roomCodes'
 import lanternLogo from '../assets/lantern-logo.png'
@@ -13,6 +13,18 @@ interface Props {
 export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
   const [mode, setMode] = useState<'idle' | 'join'>('idle')
   const [roomCode, setRoomCode] = useState('')
+
+  // Read ?join=CODE from URL params (e.g. QR scan) and pre-fill join screen
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const joinCode = params.get('join')
+    if (joinCode) {
+      setRoomCode(joinCode.toUpperCase())
+      setMode('join')
+      // Clean the URL so refresh doesn't re-trigger
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
   const [playerName, setPlayerName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
