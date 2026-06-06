@@ -25,10 +25,10 @@ export const ROOM_WORDS: readonly string[] = [
   // --- Monsters & Creatures (38) ---
   "DRAGON", "GOBLIN", "OGRE", "TROLL", "GHOST", "ORC", "GHOUL", "SPIRIT",
   "GOLEM", "HYDRA", "KRAKEN", "MEDUSA", "WITCH", "BEAST", "REAPER",
-  "BONES", "MONSTER", "BRUTE", "SKULL", "DEVIL", "HARPY", "BANSHEE",
-  "PHANTOM", "ZOMBIE", "SKELETON", "IMP", "DEMON", "FIEND", "BEHOLDER",
-  "SLIME", "OOZE", "MIMIC", "GIANT", "WEREWOLF", "VAMPIRE", "QUEEN",
-  "SERPENT", "SPIDER",
+  "BONES", "FANG", "BRUTE", "SKULL", "DEVIL", "HARPY", "GENIE",
+  "VENOM", "ZOMBIE", "CLAW", "IMP", "DEMON", "FIEND", "TITAN",
+  "SLIME", "OOZE", "MIMIC", "GIANT", "HORDE", "SNAKE", "QUEEN",
+  "ADDER", "SPIDER",
 
   // --- Beasts & Animals (20) ---
   "BEAR", "WOLF", "RAVEN", "HAWK", "FALCON", "EAGLE", "OWL", "FOX", "LYNX",
@@ -36,38 +36,38 @@ export const ROOM_WORDS: readonly string[] = [
   "OTTER", "HOUND", "RAM",
 
   // --- Classes & Heroes (22) ---
-  "WIZARD", "MAGE", "CLERIC", "PALADIN", "RANGER", "ROGUE", "BARD", "DRUID",
-  "MONK", "WARLOCK", "ORACLE", "FIGHTER", "KNIGHT", "SQUIRE", "ARCHER",
-  "HUNTER", "THIEF", "BARBARIAN", "SENTINEL", "HEALER", "SCOUT", "SHAMAN",
+  "WIZARD", "MAGE", "CLERIC", "WARDEN", "RANGER", "ROGUE", "BARD", "DRUID",
+  "MONK", "SEER", "ORACLE", "SLAYER", "KNIGHT", "SQUIRE", "ARCHER",
+  "HUNTER", "THIEF", "RAIDER", "NOMAD", "HEALER", "SCOUT", "SHAMAN",
 
   // --- Folk & Heroes (8) ---
   "ELF", "DWARF", "KING", "HERO", "JESTER", "PIXIE", "FAIRY", "SPRITE",
 
   // --- Weapons (20) ---
   "SWORD", "BLADE", "DAGGER", "AXE", "WHIP", "SPEAR", "LANCE", "BOW", "ARROW",
-  "FLAIL", "PIKE", "TRIDENT", "JAVELIN", "CUTLASS", "SABER", "CLEAVER",
-  "CROSSBOW", "QUIVER", "DART", "HAMMER",
+  "FLAIL", "PIKE", "CLUB", "MAUL", "KNIFE", "SABER", "DIRK",
+  "TALON", "QUIVER", "DART", "HAMMER",
 
   // --- Armor & Gear (10) ---
-  "SHIELD", "HELM", "GAUNTLET", "BOOTS", "BELT", "CLOAK", "MANTLE",
+  "SHIELD", "HELM", "GLOVE", "BOOTS", "BELT", "CLOAK", "MANTLE",
   "VISOR", "BANNER", "MASK",
 
   // --- Magic & Treasure (24) ---
-  "SCROLL", "POTION", "BREW", "AMULET", "TALISMAN", "RUNE", "CHARM", "WAND",
-  "STAFF", "CRYSTAL", "RELIC", "TOME", "FLASK", "COIN", "GOLD", "SILVER",
-  "COPPER", "TREASURE", "JEWEL", "RUBY", "EMERALD", "TOPAZ", "PEARL", "OPAL",
+  "SCROLL", "POTION", "BREW", "AMULET", "HEX", "RUNE", "CHARM", "WAND",
+  "STAFF", "GEM", "RELIC", "TOME", "FLASK", "COIN", "GOLD", "SILVER",
+  "COPPER", "JADE", "JEWEL", "RUBY", "ONYX", "TOPAZ", "PEARL", "OPAL",
 
   // --- Places & Tavern (28) ---
-  "TAVERN", "KEEP", "CASTLE", "TOWER", "DUNGEON", "CRYPT", "VAULT", "GROTTO",
-  "LAIR", "DEN", "FORGE", "CITADEL", "FORTRESS", "BARROW", "THICKET", "GROVE",
+  "TAVERN", "KEEP", "CASTLE", "TOWER", "CAVE", "CRYPT", "VAULT", "GROTTO",
+  "LAIR", "DEN", "FORGE", "SPIRE", "FORT", "BARROW", "WOODS", "GROVE",
   "MOOR", "MARSH", "BOG", "CHASM", "RAVINE", "SUMMIT", "HOLLOW", "MUG",
-  "LANTERN", "TORCH", "HEARTH", "CELLAR",
+  "CANDLE", "TORCH", "HEARTH", "CELLAR",
 
   // --- Concepts & Quest (30) ---
   "VALOR", "HONOR", "GLORY", "QUEST", "OATH", "DOOM", "FATE", "OMEN", "CURSE",
   "BANE", "BOON", "HAVOC", "FURY", "DREAD", "EMBER", "FLAME", "FROST", "STORM",
-  "THUNDER", "GALE", "CINDER", "ASH", "SHADOW", "MIST", "DUSK", "DAWN",
-  "TWILIGHT", "RIDDLE", "LEGEND", "MYTH",
+  "BOLT", "GALE", "CINDER", "ASH", "SHADOW", "MIST", "DUSK", "DAWN",
+  "STAR", "RIDDLE", "LEGEND", "MYTH",
 ];
 
 // Sanity check — fail loudly if the list is ever edited to the wrong length.
