@@ -381,15 +381,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
 
   // ── Begin combat from order review ──
   async function handleBeginCombat() {
-    // Reload combatants sorted by initiative_order (nudges + swaps may have happened)
-    const { data: ordered } = await supabase.from('combatants')
-      .select('*').eq('session_id', session.id).order('initiative', { ascending: false })
-    const orderedList = (ordered ?? []) as Combatant[]
-
-    // Re-assign grouped orders after any Alert swaps / tie nudges
-    await assignGroupedInitiativeOrders(orderedList)
-
-    // Re-fetch with updated orders
+    // Reload combatants sorted by existing initiative_order (nudges + swaps preserved)
     const { data: fresh } = await supabase.from('combatants')
       .select('*').eq('session_id', session.id).order('initiative_order', { ascending: true })
     const freshList = (fresh ?? []) as Combatant[]
