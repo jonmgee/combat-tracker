@@ -535,7 +535,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
           style={{ background: 'rgba(201,168,76,0.08)', borderBottom: '1px solid var(--gold-dark)' }}
         >
           <p style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', fontSize: '0.9rem', marginBottom: 8 }}>
-            ⚔️  Roll Initiative - you joined mid-combat!
+            ⚔️  Roll for Initiative — you joined mid-combat!
           </p>
           <div className="flex justify-center gap-2">
             <input
@@ -543,7 +543,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
               min={1} max={30}
               value={lateInit}
               onChange={e => setLateInit(e.target.value)}
-              placeholder="Roll"
+              placeholder="INIT"
               className="w-20 px-3 py-2 rounded text-center text-lg outline-none"
               style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
             />
