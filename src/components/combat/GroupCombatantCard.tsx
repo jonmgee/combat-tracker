@@ -239,6 +239,7 @@ export default function GroupCombatantCard({
                     combatantId={c.id}
                     currentHp={c.current_hp}
                     maxHp={c.max_hp}
+                    tempHp={c.temp_hp}
                     isBloodied={cBloodied}
                     isDead={cDead}
                   />

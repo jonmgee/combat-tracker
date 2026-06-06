@@ -30,7 +30,6 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
   const effectiveHp = currentHp + tempHp
  
   const pct = Math.max(0, Math.min(100, (effectiveHp / maxHp) * 100))
-  const tempPct = tempHp > 0 ? Math.max(0, Math.min(100, (tempHp / maxHp) * 100)) : 0
   const realPct = Math.max(0, Math.min(100, (currentHp / maxHp) * 100))
  
   // Warm tavern palette instead of clinical greens
