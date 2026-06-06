@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
+import lanternLogo from '../assets/lantern-logo.png'
 import { fireLocalNotification } from '../lib/notifications'
 import InitiativeEntry from './combat/InitiativeEntry'
 import CombatantCard from './combat/CombatantCard'
@@ -652,12 +653,14 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
             className="rounded-xl p-8 max-w-sm w-full mx-4 text-center"
             style={{ background: 'var(--bg-panel)', border: '1px solid var(--gold-dark)', boxShadow: '0 8px 40px rgba(0,0,0,0.8)' }}
           >
-            <div className="text-5xl mb-4">🏮</div>
+            <div className="mb-4 flex justify-center">
+              <img src={lanternLogo} alt="" className="h-16" style={{ filter: 'drop-shadow(0 0 16px rgba(201,168,76,0.6))' }} />
+            </div>
             <h3
               className="text-xl font-bold mb-2"
               style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', letterSpacing: '0.06em' }}
             >
-              End this combat?
+              Braced for a new battle?
             </h3>
             <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
               This will end the current combat and return everyone to the lobby for a new encounter.
@@ -676,7 +679,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                 className="flex-1 py-3 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
                 style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
               >
-                {resetting ? 'Resetting…' : 'Once more unto the breach'}
+                {resetting ? 'Resetting…' : '"Once more unto the breach…"'}
               </button>
             </div>
           </div>
