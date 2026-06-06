@@ -12,9 +12,10 @@ interface Props {
   session: Session
   me: Participant
   initialState: CombatState
+  onReturnToLobby: () => void
 }
 
-export default function CombatScreen({ session, me, initialState }: Props) {
+export default function CombatScreen({ session, me, initialState, onReturnToLobby }: Props) {
   const [combatState, setCombatState]   = useState<CombatState>(initialState)
   const [combatants, setCombatants]     = useState<Combatant[]>([])
   const [conditions, setConditions]     = useState<Condition[]>([])
@@ -89,7 +90,15 @@ export default function CombatScreen({ session, me, initialState }: Props) {
   useEffect(() => {
     const channel = supabase.channel(`combat_state:${session.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'combat_state', filter: `session_id=eq.${session.id}` }, (payload) => {
-          const next = payload.new as CombatState
+        const next = payload.new as CombatState | null
+
+        // Detect DELETE — DM reset combat, return to lobby
+        if (payload.eventType === 'DELETE') {
+          onReturnToLobby()
+          return
+        }
+
+        if (!next) return
         setCombatState(next)
 
         // Reload combatants/participants when combat_state changes so UI stays in sync across clients
@@ -109,7 +118,7 @@ export default function CombatScreen({ session, me, initialState }: Props) {
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [session.id, isDM, me.id, loadAll])
+  }, [session.id, isDM, me.id, loadAll, onReturnToLobby])
 
   // ── Real-time: combatants ──
   useEffect(() => {
@@ -324,6 +333,30 @@ export default function CombatScreen({ session, me, initialState }: Props) {
     }
   }
 
+  // ── New combat (DM only): reset session back to lobby ──
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [resetting, setResetting] = useState(false)
+
+  async function handleNewCombat() {
+    if (!isDM || resetting) return
+    setResetting(true)
+    try {
+      // Delete combatants first (cascade deletes conditions)
+      await supabase.from('combatants').delete().eq('session_id', session.id)
+      // Delete combat_state — subscription will fire DELETE and bounce everyone to lobby
+      await supabase.from('combat_state').delete().eq('session_id', session.id)
+      // Update session status back to lobby
+      await supabase.from('sessions').update({ status: 'lobby' }).eq('id', session.id)
+    } catch (e) {
+      console.error('[newCombat]', e)
+    } finally {
+      setResetting(false)
+      setShowResetConfirm(false)
+      // DM returns to lobby manually (DELETE event also triggers, but local state:
+      // DM's own subscription fired the DELETE which calls onReturnToLobby already)
+    }
+  }
+
   // ── Begin combat from order review ──
   async function handleBeginCombat() {
     // Reload combatants sorted by initiative_order (nudges + swaps may have happened)
@@ -460,14 +493,23 @@ export default function CombatScreen({ session, me, initialState }: Props) {
             {session.room_code}
           </div>
           {isDM && (
-            <button
-              onClick={advanceTurn}
-              disabled={advancing}
-              className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
-            >
-              {advancing ? '...' : 'Next ▶'}
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                onClick={advanceTurn}
+                disabled={advancing}
+                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+              >
+                {advancing ? '...' : 'Next ▶'}
+              </button>
+              <button
+                onClick={() => setShowResetConfirm(true)}
+                className="text-xs transition-all hover:opacity-70"
+                style={{ color: 'var(--text-dim)', fontFamily: "'Cinzel', serif", letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                Start New Combat
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -581,6 +623,47 @@ export default function CombatScreen({ session, me, initialState }: Props) {
           </div>
         </div>
       </div>
+
+      {/* ── Reset confirmation modal ── */}
+      {showResetConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+        >
+          <div
+            className="rounded-xl p-8 max-w-sm w-full mx-4 text-center"
+            style={{ background: 'var(--bg-panel)', border: '1px solid var(--gold-dark)', boxShadow: '0 8px 40px rgba(0,0,0,0.8)' }}
+          >
+            <div className="text-5xl mb-4">🏮</div>
+            <h3
+              className="text-xl font-bold mb-2"
+              style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', letterSpacing: '0.06em' }}
+            >
+              End this combat?
+            </h3>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+              This will end the current combat and return everyone to the lobby for a new encounter.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 py-3 rounded-lg font-semibold text-sm transition-all active:scale-95"
+                style={{ background: 'var(--bg-raised)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontFamily: "'Cinzel', serif" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleNewCombat}
+                disabled={resetting}
+                className="flex-1 py-3 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+              >
+                {resetting ? 'Resetting…' : 'Once more unto the breach'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

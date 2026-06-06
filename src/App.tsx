@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import HomeScreen from './components/HomeScreen'
 import LobbyScreen from './components/LobbyScreen'
 import CombatScreen from './components/CombatScreen'
@@ -31,8 +31,12 @@ export default function App() {
     setScreen('combat')
   }
 
+  const handleReturnToLobby = useCallback(() => {
+    setScreen('lobby')
+  }, [])
+
   if (screen === 'combat' && session && me && combatState) {
-    return <ErrorBoundary><CombatScreen session={session} me={me} initialState={combatState} /></ErrorBoundary>
+    return <ErrorBoundary><CombatScreen session={session} me={me} initialState={combatState} onReturnToLobby={handleReturnToLobby} /></ErrorBoundary>
   }
 
   if (screen === 'lobby' && session && me) {
