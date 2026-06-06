@@ -1,0 +1,13 @@
+{
+  "name": "Torch & Turn",
+  "short_name": "Torch & Turn",
+  "description": "Tabletop RPG initiative & combat tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1410",
+  "theme_color": "#1a1410",
+  "icons": [
+    { "src": "/icons/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icons/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}

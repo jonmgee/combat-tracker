@@ -18,7 +18,7 @@ export function fireLocalNotification(title: string, body: string) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return
   new Notification(title, {
     body,
-    icon: '/favicon.svg',
+    icon: '/icons/icon-192.png',
     tag: 'combat-turn',
     renotify: true,
   } as NotificationOptions)
