@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { generateRoomCode } from '../lib/utils'
+import { generateUniqueCode } from '../lib/roomCodes'
 import lanternLogo from '../assets/lantern-logo.png'
 
 import type { Session, Participant, CombatState } from '../types'
@@ -21,7 +21,15 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
     setLoading(true)
     setError(null)
     try {
-      const code = generateRoomCode()
+      const code = await generateUniqueCode(async (candidate: string) => {
+        const { data } = await supabase
+          .from('sessions')
+          .select('id')
+          .eq('room_code', candidate)
+          .neq('status', 'ended')
+          .maybeSingle()
+        return data !== null
+      })
 
       const { data: session, error: sessionErr } = await supabase
         .from('sessions')
@@ -231,10 +239,10 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
               </label>
               <input
                 type="text"
-                maxLength={6}
+                maxLength={13}
                 value={roomCode}
                 onChange={e => setRoomCode(e.target.value.toUpperCase())}
-                placeholder="e.g. KX7BQ2"
+                placeholder="e.g. GHOST-LANTERN"
                 className="w-full px-4 py-3 rounded-lg text-lg font-mono tracking-widest text-center outline-none transition-all"
                 style={{
                   background: 'var(--bg-input)',
