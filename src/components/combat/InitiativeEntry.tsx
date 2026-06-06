@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import rollIcon from '../../assets/rollforinitiative.png'
+import rollIcon from '../../assets/rollforinitiative2.png'
 import type { Combatant, Participant } from '../../types'
 
 interface Props {
