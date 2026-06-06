@@ -84,7 +84,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
     <div className="min-h-screen flex flex-col items-center px-5 py-10" style={{ background: 'var(--bg-void)' }}>
       <div className="text-center mb-8 fade-in">
         <div className="mb-4 flex justify-center">
-          <img src={rollIcon} alt="" className="h-24" style={{ filter: 'drop-shadow(0 0 12px rgba(201,168,76,0.5))' }} />
+          <img src={rollIcon} alt="" className="w-72" style={{ maxWidth: '90vw', filter: 'drop-shadow(0 0 12px rgba(201,168,76,0.5))' }} />
         </div>
         <h1 className="text-3xl font-bold tracking-wider" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 16px rgba(201,168,76,0.4)' }}>
           Roll for Initiative
