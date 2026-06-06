@@ -24,6 +24,10 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
   const [advancing, setAdvancing]       = useState(false)
   const [lateInit, setLateInit]         = useState('')
   const [lateInitSaving, setLateInitSaving] = useState(false)
+  const [lateHpOptIn, setLateHpOptIn]   = useState(false)
+  const [lateCurrentHp, setLateCurrentHp] = useState('')
+  const [lateMaxHp, setLateMaxHp]       = useState('')
+  const [lateIsMaxHp, setLateIsMaxHp]   = useState(true)
 
   const isDM = me.role === 'dm'
   const subPaused = useRef(false)
@@ -180,7 +184,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
     }
   }
 
-  // ── Late-joiner submits initiative ──
+  // ── Late-joiner submits initiative + HP ──
   async function handleLateInitiative() {
     const val = parseInt(lateInit)
     if (isNaN(val)) return
@@ -189,7 +193,19 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
     const myCombatant = combatants.find(c => c.participant_id === me.id && c.kind === 'player')
     if (!myCombatant) { setLateInitSaving(false); return }
 
-    await supabase.from('combatants').update({ initiative: val }).eq('id', myCombatant.id)
+    const updateFields: Record<string, unknown> = { initiative: val }
+
+    if (lateHpOptIn) {
+      const cur = parseInt(lateCurrentHp)
+      if (!isNaN(cur) && cur > 0) {
+        updateFields.hp_enabled = true
+        updateFields.current_hp = cur
+        updateFields.max_hp = lateIsMaxHp ? cur : Math.max(cur, parseInt(lateMaxHp) || 0)
+        updateFields.temp_hp = 0
+      }
+    }
+
+    await supabase.from('combatants').update(updateFields).eq('id', myCombatant.id)
 
     const { data: fresh } = await supabase.from('combatants')
       .select('*')
@@ -528,7 +544,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
         </div>
       </div>
 
-      {/* ── Late-joiner initiative prompt ── */}
+      {/* ── Late-joiner: initiative + HP setup ── */}
       {!isDM && myCombatantNoInit && (
         <div
           className="px-5 py-4 text-center"
@@ -537,6 +553,50 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
           <p style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', fontSize: '0.9rem', marginBottom: 8 }}>
             ⚔️  Roll for Initiative — you joined mid-combat!
           </p>
+
+          {/* HP toggle */}
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <span className="text-sm" style={{ color: 'var(--text-dim)' }}>❤️ Track HP</span>
+            <button
+              onClick={() => setLateHpOptIn(o => !o)}
+              className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5"
+              style={{ background: lateHpOptIn ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)' }}
+            >
+              <div className="w-5 h-5 rounded-full transition-all duration-200"
+                style={{ background: lateHpOptIn ? 'var(--gold)' : 'var(--text-dim)', transform: lateHpOptIn ? 'translateX(20px)' : 'translateX(0)' }} />
+            </button>
+          </div>
+
+          {/* HP inputs */}
+          {lateHpOptIn && (
+            <div className="flex flex-col items-center gap-2 mb-3 fade-in">
+              <div className="flex gap-2">
+                <div>
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Current HP</label>
+                  <input type="number" value={lateCurrentHp} onChange={e => setLateCurrentHp(e.target.value)}
+                    placeholder="e.g. 30"
+                    className="w-20 px-3 py-2 rounded text-center text-sm outline-none"
+                    style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }} />
+                </div>
+                {!lateIsMaxHp && (
+                  <div>
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Max HP</label>
+                    <input type="number" value={lateMaxHp} onChange={e => setLateMaxHp(e.target.value)}
+                      placeholder="e.g. 40"
+                      className="w-20 px-3 py-2 rounded text-center text-sm outline-none"
+                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }} />
+                  </div>
+                )}
+              </div>
+              <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-dim)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={lateIsMaxHp} onChange={e => setLateIsMaxHp(e.target.checked)}
+                  style={{ accentColor: 'var(--gold)' }} />
+                Current HP is my max HP
+              </label>
+            </div>
+          )}
+
+          {/* Initiative input */}
           <div className="flex justify-center gap-2">
             <input
               type="number"
