@@ -187,7 +187,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
   // ── Late-joiner submits initiative + HP ──
   async function handleLateInitiative() {
     const val = parseInt(lateInit)
-    if (isNaN(val)) return
+    if (isNaN(val) || val < 1 || val > 30) return
     setLateInitSaving(true)
 
     const myCombatant = combatants.find(c => c.participant_id === me.id && c.kind === 'player')
@@ -574,6 +574,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                 <div>
                   <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Current HP</label>
                   <input type="number" value={lateCurrentHp} onChange={e => setLateCurrentHp(e.target.value)}
+                    min={0}
                     placeholder="e.g. 30"
                     className="w-20 px-3 py-2 rounded text-center text-sm outline-none"
                     style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }} />
@@ -582,6 +583,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                   <div>
                     <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Max HP</label>
                     <input type="number" value={lateMaxHp} onChange={e => setLateMaxHp(e.target.value)}
+                      min={0}
                       placeholder="e.g. 40"
                       className="w-20 px-3 py-2 rounded text-center text-sm outline-none"
                       style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }} />
