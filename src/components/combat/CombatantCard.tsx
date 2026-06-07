@@ -184,8 +184,8 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         {/* ── Card content - above all layers ── */}
         <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1 }}>
 
-          {/* ── Top grid: [position] [name+pills] [icons] [initiative] ── */}
-          <div className="grid" style={{ gridTemplateColumns: 'auto 1fr auto auto', alignItems: 'stretch', gap: '8px' }}>
+          {/* ── Top grid: [position] [name] [INIT] ── */}
+          <div className="grid" style={{ gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: '8px' }}>
             <div style={{ gridColumn: '1', display: 'flex', gap: 8, alignItems: 'center' }}>
 <div className="shrink-0 flex flex-col items-center">
               {/* Move up */}
@@ -289,58 +289,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               </div>
 
             </div>
-            {/* Icons column — own grid cell, stretches to full card row height, never displaces anything */}
-            <div style={{ gridColumn: '3', display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
-              {[...new Set(conditions.map(c => c.condition))].map(name => {
-                    const cond = conditions.find(c => c.condition === name)!
-                    const asset = CONDITION_ASSETS[name]
-                    async function removeCondition() {
-                      await supabase.from('conditions').delete().eq('id', cond.id)
-                    }
-                    return (
-                      <div
-                        key={name}
-                        title={name}
-                        style={{
-                          position: 'relative',
-                          width: 'var(--condition-icon-size)',
-                          height: 'var(--condition-icon-size)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                        className="group"
-                      >
-                        {asset
-                          ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} />
-                          : (() => { const Ic = CONDITION_ICON_MAP[name]; return Ic ? <Ic /> : <span>{name[0]}</span> })()
-                        }
-                        {/* × remove button — top-right corner, shows on hover/tap */}
-                        <button
-                          onClick={e => { e.stopPropagation(); removeCondition() }}
-                          className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
-                          style={{
-                            top: 0, right: 0,
-                            width: 16, height: 16,
-                            borderRadius: '50%',
-                            background: 'rgba(0,0,0,0.75)',
-                            border: '1px solid rgba(200,60,50,0.9)',
-                            color: '#e06050',
-                            cursor: 'pointer',
-                            fontSize: 10,
-                            lineHeight: 1,
-                            padding: 0,
-                            zIndex: 10,
-                          }}
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )
-              })}
-            </div>
-            <div style={{ gridColumn: '4' }}>
+            <div style={{ gridColumn: '3' }}>
 <div className="shrink-0 text-right">
               <div className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>INIT</div>
               <div className="text-lg font-bold" style={{ color: 'var(--gold)', fontFamily: "'Cinzel', serif", lineHeight: 1 }}>
@@ -387,6 +336,54 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 </svg>
                 {isBloodied ? 'Bloodied' : 'Bloody'}
               </button>
+
+              {/* ── Condition icons — inline on pills row, left-to-right after Bloody pill ── */}
+              {conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').map(c => {
+                const asset = CONDITION_ASSETS[c.condition]
+                async function removeCondition() {
+                  await supabase.from('conditions').delete().eq('id', c.id)
+                }
+                return (
+                  <div
+                    key={c.id}
+                    title={c.condition}
+                    className="group"
+                    style={{
+                      position: 'relative',
+                      width: 'var(--condition-icon-size)',
+                      height: 'var(--condition-icon-size)',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {asset
+                      ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={c.condition} />
+                      : (() => { const Ic = CONDITION_ICON_MAP[c.condition]; return Ic ? <Ic /> : <span style={{fontSize:'0.7rem'}}>{c.condition[0]}</span> })()
+                    }
+                    <button
+                      onClick={e => { e.stopPropagation(); removeCondition() }}
+                      className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
+                      style={{
+                        top: 0, right: 0,
+                        width: 16, height: 16,
+                        borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.75)',
+                        border: '1px solid rgba(200,60,50,0.9)',
+                        color: '#e06050',
+                        cursor: 'pointer',
+                        fontSize: 10,
+                        lineHeight: 1,
+                        padding: 0,
+                        zIndex: 10,
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           )}
 
