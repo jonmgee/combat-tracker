@@ -289,10 +289,10 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 )}
               </div>
 
-              {/* Condition icon row — left-to-right, only when conditions exist */}
-              {conditions.some(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied') && (
+              {/* Condition icon row — includes Concentrating/Bloodied when active */}
+              {(conditions.length > 0 || isConcentrating || isBloodied) && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                  {[...new Set(conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').map(c => c.condition))].map(name => {
+                  {[...new Set(conditions.map(c => c.condition))].map(name => {
                     const cond = conditions.find(c => c.condition === name)!
                     const asset = CONDITION_ASSETS[name]
                     async function removeCondition() {
