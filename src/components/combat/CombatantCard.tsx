@@ -293,9 +293,9 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 )}
               </div>
 
-              {/* Right side: condition icons — stretch to full height of left column, flow left-to-right */}
+              {/* Right side: condition icons — fixed 56px square, flow left-to-right */}
               {conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'stretch', gap: 4, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                   {conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').map(c => {
                     const asset = CONDITION_ASSETS[c.condition]
                     async function removeCondition() {
@@ -303,7 +303,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                     }
                     return (
                       <div key={c.id} title={c.condition} className="group"
-                        style={{ position: 'relative', flexShrink: 0, aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        style={{ position: 'relative', flexShrink: 0, width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {asset
                           ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={c.condition} />
                           : (() => { const Ic = CONDITION_ICON_MAP[c.condition]; return Ic ? <Ic /> : <span style={{ fontSize: '0.7rem' }}>{c.condition[0]}</span> })()
