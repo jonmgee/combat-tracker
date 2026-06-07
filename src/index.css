@@ -2,7 +2,7 @@
 @import "tailwindcss";
  
 :root {
-  --condition-icon-size: clamp(100px, 8vw, 128px);
+  --condition-icon-size: 32px;
   --gold: #C9A84C;
   --gold-light: #E2C97E;
   --gold-dark: #9C7A2E;

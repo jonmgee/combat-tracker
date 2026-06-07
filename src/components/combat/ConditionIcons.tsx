@@ -2,15 +2,16 @@
 // Usage: <BlindedIcon /> inside a sized wrapper div.
  
 import React from 'react'
+import { getConditionImageUrls } from '../../lib/conditionImageUrls'
 
-// Helper to prefer WebP with PNG fallback for condition images stored in src/assets/Condition Icons
+// Helper to prefer WebP with PNG fallback — uses Vite-resolved asset URLs so it works in production.
 export function ConditionImage({ folder, filename, alt }: { folder: string, filename: string, alt?: string }) {
-  const base = `/src/assets/Condition Icons/${folder}/${filename}`
-  const webp = `${base.replace(/\.(png|jpg|jpeg)$/i, '')}.webp`
+  const { webp, png } = getConditionImageUrls(folder, filename)
+  if (!png && !webp) return <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>?</span>
   return (
     <picture>
-      <source srcSet={webp} type="image/webp" />
-      <img src={base} alt={alt ?? filename} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+      {webp && <source srcSet={webp} type="image/webp" />}
+      <img src={png ?? webp} alt={alt ?? filename} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
     </picture>
   )
 }

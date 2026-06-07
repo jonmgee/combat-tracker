@@ -225,10 +225,10 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
 
             {/* Initiative */}
             </div>
-            {/* Middle column: name+badges stacked above icon row */}
-            <div style={{ gridColumn: '2', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {/* Name + badges row */}
-              <div className="flex items-center gap-2 flex-wrap">
+            {/* Middle column: name+badges on left, condition icons flowing right on same row */}
+            <div style={{ gridColumn: '2', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              {/* Name + badges */}
+              <div className="flex items-center gap-2 flex-wrap" style={{ flexShrink: 0 }}>
                 <span
                   className="font-semibold truncate"
                   style={{
