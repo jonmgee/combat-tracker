@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR, ConditionImage } from './ConditionIcons'
 import { TAB_CONDITIONS, TAB_BOONS, TAB_COMBAT, CONDITION_ASSETS } from '../../lib/conditionAssets'
+import { CONDITION_MAP } from '../../lib/conditions'
 import type { Condition } from '../../types'
 
 interface Props {
@@ -47,6 +48,12 @@ export default function ConditionPicker({ combatantId, activeConditions, onClose
   if (activeTab === 'conditions') items = TAB_CONDITIONS
   if (activeTab === 'boons') items = TAB_BOONS
   if (activeTab === 'combat') items = TAB_COMBAT
+
+  // Remove any weapon_mastery (Weapon Mastery) entries entirely — they should not appear in picker
+  items = items.filter(name => {
+    const def = CONDITION_MAP[name]
+    return !(def && def.category === 'weapon_mastery')
+  })
 
   return (
     <div
