@@ -183,7 +183,19 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         )}
 
         {/* ── Card content - above all layers ── */}
-        <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1 }}>
+        <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1, paddingLeft: 'calc(var(--condition-icon-size) + 24px)' }}>
+
+          {/* ── Icon column (left area) ── */}
+          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', width: 'var(--condition-icon-size)', pointerEvents: 'none', zIndex: 5 }}>
+            {[...new Set(conditions.map(c => c.condition))].filter(name => name !== 'Concentrating' && name !== 'Bloodied').map((name, idx) => {
+              const asset = CONDITION_ASSETS[name]
+              return (
+                <div key={name+idx} title={name} style={{ width: 'var(--condition-icon-size)', height: 'var(--condition-icon-size)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }}>
+                  {asset ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} /> : (() => { const Ic = CONDITION_ICON_MAP[name]; return Ic ? <Ic /> : <span>{name[0]}</span> })()}
+                </div>
+              )
+            })}
+          </div>
 
           {/* ── Top row ── */}
           <div className="flex items-center gap-3">
