@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { CONDITION_ICON_MAP, ConditionImage } from './ConditionIcons'
+import { CONDITION_ICON_MAP, ConditionImage, ConditionIconWrapper } from './ConditionIcons'
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
@@ -255,21 +255,23 @@ export default function GroupCombatantCard({
                         await supabase.from('conditions').delete().eq('id', co.id)
                       }
                       return (
-                        <div key={co.id} title={co.condition} className="group"
-                          style={{ position: 'relative', width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {asset
-                            ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={co.condition} />
-                            : (() => { const Ic = CONDITION_ICON_MAP[co.condition]; return Ic ? <Ic /> : <span style={{ fontSize: '0.6rem' }}>{co.condition[0]}</span> })()
-                          }
-                          <button
-                            onClick={e => { e.stopPropagation(); removeCondition() }}
-                            className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
-                            style={{
-                              top: 0, right: 0, width: 14, height: 14, borderRadius: '50%',
-                              background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(200,60,50,0.9)',
-                              color: '#e06050', cursor: 'pointer', fontSize: 9, lineHeight: 1, padding: 0, zIndex: 10,
-                            }}>✕</button>
-                        </div>
+                        <ConditionIconWrapper conditionName={co.condition}>
+                          <div key={co.id} className="group"
+                            style={{ position: 'relative', width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {asset
+                              ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={co.condition} />
+                              : (() => { const Ic = CONDITION_ICON_MAP[co.condition]; return Ic ? <Ic /> : <span style={{ fontSize: '0.6rem' }}>{co.condition[0]}</span> })()
+                            }
+                            <button
+                              onClick={e => { e.stopPropagation(); removeCondition() }}
+                              className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
+                              style={{
+                                top: 0, right: 0, width: 14, height: 14, borderRadius: '50%',
+                                background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(200,60,50,0.9)',
+                                color: '#e06050', cursor: 'pointer', fontSize: 9, lineHeight: 1, padding: 0, zIndex: 10,
+                              }}>✕</button>
+                          </div>
+                        </ConditionIconWrapper>
                       )
                     })}
                   </div>

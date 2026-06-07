@@ -3,6 +3,7 @@
  
 import React from 'react'
 import { getConditionImageUrls } from '../../lib/conditionImageUrls'
+import { CONDITION_MAP } from '../../lib/conditions'
 
 // Helper to prefer WebP with PNG fallback — uses Vite-resolved asset URLs so it works in production.
 export function ConditionImage({ folder, filename, alt }: { folder: string, filename: string, alt?: string }) {
@@ -347,6 +348,85 @@ export function PolymorphedIcon() {
   )
 }
  
+// ── Condition icon wrapper with info tooltip + x remove ──
+
+const TOOLTIP_STYLE: React.CSSProperties = {
+  position: 'absolute',
+  bottom: 'calc(100% + 6px)',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  background: '#1a1410',
+  border: '1px solid rgba(180,140,100,0.3)',
+  borderRadius: 8,
+  padding: '6px 10px',
+  fontSize: '0.65rem',
+  color: '#e0d8c8',
+  lineHeight: 1.4,
+  zIndex: 100,
+  pointerEvents: 'none',
+  maxWidth: 260,
+  overflowWrap: 'break-word',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+} as const
+
+export function ConditionIconWrapper({
+  conditionName,
+  children,
+}: {
+  conditionName: string
+  children: React.ReactNode
+}) {
+  const [showTooltip, setShowTooltip] = React.useState(false)
+  const def = CONDITION_MAP[conditionName]
+
+  return (
+    <div className="condition-icon-wrapper" style={{ position: 'relative' }}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+      onClick={() => setShowTooltip(s => !s)}
+    >
+      {children}
+
+      {/* Info badge — top-left */}
+      <div
+        style={{
+          position: 'absolute',
+          top: -4,
+          left: -4,
+          width: 14,
+          height: 14,
+          borderRadius: '50%',
+          background: 'rgba(100,80,60,0.85)',
+          border: '1px solid rgba(180,140,100,0.5)',
+          color: '#d0c0a0',
+          fontSize: 9,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          lineHeight: 1,
+          zIndex: 10,
+          fontFamily: "'Inter', sans-serif",
+          fontStyle: 'italic',
+          fontWeight: 700,
+        }}
+      >
+        i
+      </div>
+
+      {/* Tooltip */}
+      {showTooltip && def?.desc && (
+        <div style={TOOLTIP_STYLE}>
+          <div style={{ fontWeight: 600, marginBottom: 2, color: '#c0a080' }}>
+            {conditionName}
+          </div>
+          {def.desc}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Icon lookup map ──
 export const CONDITION_ICON_MAP: Record<string, React.FC> = {
   'Blinded':            BlindedIcon,
