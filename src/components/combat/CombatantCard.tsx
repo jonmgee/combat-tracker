@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { CONDITION_MAP } from '../../lib/conditions'
-import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR, BloodiedIcon, ConditionImage } from './ConditionIcons'
+import { CONDITION_ICON_MAP, ConditionImage } from './ConditionIcons'
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
@@ -24,7 +23,7 @@ interface Props {
 
 export default function CombatantCard({ combatant, conditions, isActive, me, position, canMoveUp, canMoveDown, onMoveUp, onMoveDown, canSwapTarget, onSwapTarget }: Props) {
   const [showConditions, setShowConditions] = useState(false)
-  const [showCondTooltip, setShowCondTooltip] = useState<string | null>(null)
+
 
   const isDM      = me.role === 'dm'
   const isMe      = combatant.participant_id === me.id
@@ -183,10 +182,10 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         )}
 
         {/* ── Card content - above all layers ── */}
-        <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1, paddingLeft: 'calc(var(--condition-icon-size) + 24px)' }}>
+        <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1 }}>
 
-          {/* ── Top grid: name (left), icons (center), initiative (right) ── */}
-          <div className="grid" style={{ gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: '8px' }}>
+          {/* ── Top grid: [position] [name+badges | icons] [initiative] ── */}
+          <div className="grid" style={{ gridTemplateColumns: 'auto 1fr auto', alignItems: 'start', gap: '8px' }}>
             <div style={{ gridColumn: '1', display: 'flex', gap: 8, alignItems: 'center' }}>
 <div className="shrink-0 flex flex-col items-center">
               {/* Move up */}
@@ -222,8 +221,13 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               )}
             </div>
 
-            {/* Name + badges */}
-            <div className="flex-1 min-w-0">
+
+
+            {/* Initiative */}
+            </div>
+            {/* Middle column: name+badges stacked above icon row */}
+            <div style={{ gridColumn: '2', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {/* Name + badges row */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className="font-semibold truncate"
@@ -284,20 +288,60 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   </span>
                 )}
               </div>
-            </div>
 
-            {/* Initiative */}
-                        </div>
-            <div style={{ gridColumn: '2', display: 'flex', gap: 8, alignItems: 'center' }}>
-              {/* Icons row — render conditions to the right of the name */}
-              {conditions.map(c=>c.condition).filter(name=>name!=='Concentrating'&&name!=='Bloodied').map((name,idx)=>{
-                const asset = CONDITION_ASSETS[name]
-                return (
-                  <div key={name+idx} title={name} style={{ width: 'var(--condition-icon-size)', height: 'var(--condition-icon-size)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {asset ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} /> : (()=>{ const Ic = CONDITION_ICON_MAP[name]; return Ic ? <Ic /> : <span>{name[0]}</span> })()}
-                  </div>
-                )
-              })}
+              {/* Condition icon row — left-to-right, only when conditions exist */}
+              {conditions.some(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied') && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  {[...new Set(conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').map(c => c.condition))].map(name => {
+                    const cond = conditions.find(c => c.condition === name)!
+                    const asset = CONDITION_ASSETS[name]
+                    async function removeCondition() {
+                      await supabase.from('conditions').delete().eq('id', cond.id)
+                    }
+                    return (
+                      <div
+                        key={name}
+                        title={name}
+                        style={{
+                          position: 'relative',
+                          width: 'var(--condition-icon-size)',
+                          height: 'var(--condition-icon-size)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                        className="group"
+                      >
+                        {asset
+                          ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} />
+                          : (() => { const Ic = CONDITION_ICON_MAP[name]; return Ic ? <Ic /> : <span>{name[0]}</span> })()
+                        }
+                        {/* × remove button — top-right corner, shows on hover/tap */}
+                        <button
+                          onClick={e => { e.stopPropagation(); removeCondition() }}
+                          className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
+                          style={{
+                            top: 0, right: 0,
+                            width: 16, height: 16,
+                            borderRadius: '50%',
+                            background: 'rgba(0,0,0,0.75)',
+                            border: '1px solid rgba(200,60,50,0.9)',
+                            color: '#e06050',
+                            cursor: 'pointer',
+                            fontSize: 10,
+                            lineHeight: 1,
+                            padding: 0,
+                            zIndex: 10,
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
             <div style={{ gridColumn: '3' }}>
 <div className="shrink-0 text-right">
@@ -306,20 +350,6 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 {combatant.initiative ?? '-'}
               </div>
             </div>            </div>
-          </div>
-
-          {/* ── Card-level toggles row (DM can toggle anyone; players only themselves) ── */}
-          {/* ── Card-level toggles row (DM can toggle anyone; players only themselves) ── */}
-          {/* ── Icon row (upper-left of card) ── */}
-          <div style={{ position: 'absolute', left: 8, top: 8, display: 'flex', gap: 6, zIndex: 5 }}>
-            {[...new Set(conditions.map(c => c.condition))].filter(name => name !== 'Concentrating' && name !== 'Bloodied').slice(0,8).map((name, idx) => {
-              const asset = CONDITION_ASSETS[name]
-              return (
-                <div key={name+idx} title={name} style={{ width: 'var(--condition-icon-size)', height: 'var(--condition-icon-size)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {asset ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} /> : (() => { const Ic = CONDITION_ICON_MAP[name]; return Ic ? <Ic /> : <span>{name[0]}</span> })()}
-                </div>
-              )
-            })}
           </div>
 
           {!isDead && (isDM || isMe) && (
@@ -363,118 +393,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
             </div>
           )}
 
-          {/* ── Normal conditions row (card-level ones excluded) ── */}
-          {conditions.some(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied') && (
-            <div className="flex flex-wrap gap-1.5 mt-3 relative">
-              {conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').map(c => {
-                const def = CONDITION_MAP[c.condition]
-                const IconComp = CONDITION_ICON_MAP[c.condition]
-                const colours = CONDITION_COLOURS[c.condition] ?? DEFAULT_CONDITION_COLOUR
-                const isTooltipVisible = showCondTooltip === c.id
 
-                async function removeCondition() {
-                  await supabase.from('conditions').delete().eq('id', c.id)
-                }
-
-                return (
-                  <span key={c.id} className="relative group">
-                    {/* Standard icon chip */}
-                    <span
-                      className="cursor-default flex items-center justify-center relative"
-                      style={{
-                        width: 24, height: 24,
-                        borderRadius: 4,
-                        background: colours.bg,
-                        border: `0.5px solid ${colours.border}`,
-                        color: colours.color,
-                      }}
-                      onMouseEnter={() => setShowCondTooltip(c.id)}
-                      onMouseLeave={() => setShowCondTooltip(null)}
-                      onClick={() => setShowCondTooltip(isTooltipVisible ? null : c.id)}
-                    >
-                      <span style={{ width: 14, height: 14, display: 'block' }}>
-                        {IconComp
-                          ? <IconComp />
-                          : <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>{def?.icon ?? '?'}</span>
-                        }
-                      </span>
-
-                      {/* X remove button — shows on hover/tap */}
-                      <button
-                        onClick={e => { e.stopPropagation(); removeCondition() }}
-                        className="absolute -top-1.5 -right-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
-                        style={{
-                          width: 14, height: 14,
-                          borderRadius: '50%',
-                          background: 'rgba(0,0,0,0.7)',
-                          border: '1px solid rgba(180,60,50,0.8)',
-                          color: '#e06050',
-                          cursor: 'pointer',
-                          fontSize: 10,
-                          lineHeight: 1,
-                          padding: 0,
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </span>
-
-                    {isTooltipVisible && (
-                      <span
-                        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded text-xs whitespace-nowrap z-20 pointer-events-none"
-                        style={{ background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border-light)' }}>
-                        {c.condition}
-                      </span>
-                    )}
-                  </span>
-                )
-              })}
-
-              {/* Bloodied badge — only when bloodied and only other card-level conditions exist */}
-              {isBloodied && !conditions.some(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied') && (
-                <span
-                  className="flex items-center gap-1"
-                  style={{
-                    padding: '2px 6px 2px 4px',
-                    borderRadius: 4,
-                    border: '0.5px solid rgba(180,50,40,0.55)',
-                    background: 'rgba(140,20,15,0.3)',
-                    color: '#c07070',
-                    fontFamily: "'Cinzel', serif",
-                    fontSize: '0.6rem',
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  <BloodiedIcon />
-                  Bloodied
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Bloodied badge when no conditions at all */}
-          {isBloodied && !conditions.some(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied') && conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').length === 0 && conditions.every(c => c.condition === 'Concentrating' || c.condition === 'Bloodied') && (
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              <span
-                className="flex items-center gap-1"
-                style={{
-                  padding: '2px 6px 2px 4px',
-                  borderRadius: 4,
-                  border: '0.5px solid rgba(180,50,40,0.55)',
-                  background: 'rgba(140,20,15,0.3)',
-                  color: '#c07070',
-                  fontFamily: "'Cinzel', serif",
-                  fontSize: '0.6rem',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                <BloodiedIcon />
-                Bloodied
-              </span>
-            </div>
-          )}
 
           {/* ── HP bar ── */}
           {canSeeHP && combatant.max_hp !== null && combatant.current_hp !== null && (

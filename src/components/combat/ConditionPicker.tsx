@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR, ConditionImage } from './ConditionIcons'
+import { CONDITION_ICON_MAP, ConditionImage } from './ConditionIcons'
 import { TAB_CONDITIONS, TAB_BOONS, TAB_COMBAT, CONDITION_ASSETS } from '../../lib/conditionAssets'
 import { CONDITION_MAP } from '../../lib/conditions'
 import type { Condition } from '../../types'
@@ -94,7 +94,6 @@ export default function ConditionPicker({ combatantId, activeConditions, onClose
             {items.map(name => {
               const active = activeNames.has(name)
               const asset = CONDITION_ASSETS[name]
-              const colours = CONDITION_COLOURS[name] ?? DEFAULT_CONDITION_COLOUR
               return (
                 <button key={name}
                   onClick={() => toggle(name)}

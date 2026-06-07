@@ -8,7 +8,6 @@ export const CONDITION_ASSETS: Record<string, ConditionAsset> = {
   'Bardic Inspiration': { folder: 'Buffs', filename: 'Bardic Inspiration.png' },
   'Blessed': { folder: 'Buffs', filename: 'Blessed.png' },
   'Baned': { folder: 'De-Buffs', filename: 'Baned.png' },
-  'Baned': { folder: 'De-Buffs', filename: 'Baned.png' },
   'Banished': { folder: 'De-Buffs', filename: 'Baned.png' },
   'Blinded': { folder: 'De-Buffs', filename: 'Blinded.png' },
   'Bloodied': { folder: 'Combat Status', filename: 'Bloodied.png' },
@@ -39,10 +38,8 @@ export const CONDITION_ASSETS: Record<string, ConditionAsset> = {
   'Stunned': { folder: 'De-Buffs', filename: 'Stunned.png' },
   'Surprised': { folder: 'Combat Status', filename: 'Surprised.png' },
   'Unconscious': { folder: 'De-Buffs', filename: 'Unconscious.png' },
-  'Hexed': { folder: 'De-Buffs', filename: 'Hexed.png' },
-  'Banished': { folder: 'De-Buffs', filename: 'Baned.png' },
 }
 
-export const TAB_CONDITIONS = ['Baned', 'Baned', 'Banished', 'Banished', 'Blinded', 'Charmed', 'Deafened', 'Difficult Terrain', 'Disadvantage', 'Dominated', 'Faerie Fire', 'Frightened', 'Grappled', 'Hexed', 'Hexed', 'Incapacitated', 'Invisible', 'Paralyzed', 'Petrified', 'Poisoned', 'Prone', 'Restrained', 'Restrained (Spell)', 'Slowed', 'Stunned', 'Unconscious']
+export const TAB_CONDITIONS = ['Baned', 'Banished', 'Blinded', 'Charmed', 'Deafened', 'Difficult Terrain', 'Disadvantage', 'Dominated', 'Faerie Fire', 'Frightened', 'Grappled', 'Hexed', 'Incapacitated', 'Invisible', 'Paralyzed', 'Petrified', 'Poisoned', 'Prone', 'Restrained', 'Restrained (Spell)', 'Slowed', 'Stunned', 'Unconscious']
 export const TAB_BOONS = ['Advantage', 'Bardic Inspiration', 'Blessed', 'Hunters Mark', 'Mirror Image', 'Raging', 'Sanctuary']
 export const TAB_COMBAT = ['Bloodied', 'Concentrating', 'Concentration', 'Surprised']
