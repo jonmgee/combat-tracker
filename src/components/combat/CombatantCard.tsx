@@ -406,6 +406,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
 
 // ── Temp HP setter — inline control on PC's own card only ──
 function TempHpSetter({ combatantId, currentTempHp }: { combatantId: string; currentTempHp: number }) {
+  const [showInput, setShowInput] = useState(false)
   const [value, setValue] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -413,11 +414,11 @@ function TempHpSetter({ combatantId, currentTempHp }: { combatantId: string; cur
     const val = parseInt(value)
     if (isNaN(val) || val <= 0) return
     setSaving(true)
-    // Temp HP doesn't stack — take the higher of current and new
     const next = Math.max(currentTempHp, val)
     await supabase.from('combatants').update({ temp_hp: next }).eq('id', combatantId)
     setValue('')
     setSaving(false)
+    setShowInput(false)
   }
 
   async function clearTempHp() {
@@ -427,12 +428,12 @@ function TempHpSetter({ combatantId, currentTempHp }: { combatantId: string; cur
   }
 
   return (
-    <div className="mt-2 flex items-center gap-2">
-      <span className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.04em' }}>🛡️</span>
+    <div className="mt-2">
       {currentTempHp > 0 ? (
-        <>
+        <div className="flex items-center gap-2">
+          <span style={{ color: '#c0b0e0', fontSize: '0.8rem' }}>🛡️</span>
           <span className="text-xs font-mono" style={{ color: '#c0b0e0' }}>
-            +{currentTempHp} temp
+            +{currentTempHp} temp HP
           </span>
           <button
             onClick={clearTempHp}
@@ -442,16 +443,18 @@ function TempHpSetter({ combatantId, currentTempHp }: { combatantId: string; cur
           >
             ✕
           </button>
-        </>
-      ) : (
-        <>
+        </div>
+      ) : showInput ? (
+        <div className="flex items-center gap-2">
+          <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>🛡️</span>
           <input
             type="number"
             value={value}
             onChange={e => setValue(e.target.value)}
-            placeholder="Add"
+            placeholder="Amount"
             className="w-16 px-2 py-1 rounded text-sm text-center outline-none"
             style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+            autoFocus
           />
           <button
             onClick={setTempHp}
@@ -461,7 +464,27 @@ function TempHpSetter({ combatantId, currentTempHp }: { combatantId: string; cur
           >
             Set
           </button>
-        </>
+          <button
+            onClick={() => setShowInput(false)}
+            className="text-xs px-1.5 py-1 rounded transition-all"
+            style={{ color: 'var(--text-dim)', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+        </div>
+      ) : (
+        <label
+          className="flex items-center gap-2 cursor-pointer select-none"
+          style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}
+        >
+          <input
+            type="checkbox"
+            checked={showInput}
+            onChange={() => setShowInput(true)}
+            style={{ accentColor: '#c0a0e0' }}
+          />
+          Add Temporary HP
+        </label>
       )}
     </div>
   )
