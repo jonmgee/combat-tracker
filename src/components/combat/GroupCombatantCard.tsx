@@ -71,7 +71,6 @@ export default function GroupCombatantCard({
         boxShadow: cardShadow,
         animation: cardAnimation,
         position: 'relative',
-        overflow: 'hidden',
       }}
     >
       {/* ── All effects per-sub-card; group just gets the active gold edge ── */}
@@ -191,7 +190,6 @@ export default function GroupCombatantCard({
                   : '0.5px solid rgba(255,255,255,0.04)',
                 boxShadow: isSubActive ? '0 0 12px rgba(201,168,76,0.3)' : 'none',
                 position: 'relative',
-                overflow: 'hidden',
                 opacity: cDead ? 0.5 : 1,
               }}
             >

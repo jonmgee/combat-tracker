@@ -120,7 +120,6 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
           boxShadow: cardShadow,
           animation: `${concAnimation} ${isConcentrating ? '6s' : '3s'} ease-in-out infinite`,
           position: 'relative',
-          overflow: 'hidden',
         }}
       >
         {/* ── Concentration aura layers ── */}
