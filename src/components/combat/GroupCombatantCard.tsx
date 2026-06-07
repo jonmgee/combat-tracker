@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR, BloodiedIcon } from './ConditionIcons'
+import { CONDITION_ICON_MAP, ConditionImage } from './ConditionIcons'
+import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
 import type { Combatant, Condition, Participant } from '../../types'
@@ -245,56 +246,32 @@ export default function GroupCombatantCard({
                   />
                 )}
 
-                {/* Conditions row */}
-                {cConditions.filter(co => co.condition !== 'Concentrating' && co.condition !== 'Bloodied').length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1.5">
-                    {cConditions
-                      .filter(co => co.condition !== 'Concentrating' && co.condition !== 'Bloodied')
-                      .map(co => {
-                        const colours = CONDITION_COLOURS[co.condition] ?? DEFAULT_CONDITION_COLOUR
-                        const Icon = CONDITION_ICON_MAP[co.condition]
-                        return (
-                          <div key={co.id}
+                {/* Condition icons — all conditions including Bloodied/Concentrating, 36px, with × remove */}
+                {cConditions.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6 }}>
+                    {cConditions.map(co => {
+                      const asset = CONDITION_ASSETS[co.condition]
+                      async function removeCondition() {
+                        await supabase.from('conditions').delete().eq('id', co.id)
+                      }
+                      return (
+                        <div key={co.id} title={co.condition} className="group"
+                          style={{ position: 'relative', width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {asset
+                            ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={co.condition} />
+                            : (() => { const Ic = CONDITION_ICON_MAP[co.condition]; return Ic ? <Ic /> : <span style={{ fontSize: '0.6rem' }}>{co.condition[0]}</span> })()
+                          }
+                          <button
+                            onClick={e => { e.stopPropagation(); removeCondition() }}
+                            className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
                             style={{
-                              padding: '1px 4px 1px 3px',
-                              borderRadius: 3,
-                              border: `0.5px solid ${colours.border}`,
-                              background: colours.bg,
-                              color: colours.color,
-                              fontSize: '0.5rem',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 2,
-                            }}
-                          >
-                            {Icon && <span style={{ width: 10, height: 10, display: 'flex' }}><Icon /></span>}
-                            <span>{co.condition}</span>
-                          </div>
-                        )
-                      })}
-                  </div>
-                )}
-
-                {/* Bloodied badge (no other non-tier conditions) */}
-                {cBloodied && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <span style={{
-                      padding: '1px 4px 1px 3px',
-                      borderRadius: 3,
-                      border: '0.5px solid rgba(180,50,40,0.55)',
-                      background: 'rgba(140,20,15,0.3)',
-                      color: '#c07070',
-                      fontFamily: "'Cinzel', serif",
-                      fontSize: '0.5rem',
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 2,
-                    }}>
-                      <BloodiedIcon />
-                      Bloodied
-                    </span>
+                              top: 0, right: 0, width: 14, height: 14, borderRadius: '50%',
+                              background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(200,60,50,0.9)',
+                              color: '#e06050', cursor: 'pointer', fontSize: 9, lineHeight: 1, padding: 0, zIndex: 10,
+                            }}>✕</button>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
 

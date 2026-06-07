@@ -293,10 +293,10 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 )}
               </div>
 
-              {/* Right side: condition icons — fixed 56px square, flow left-to-right */}
-              {conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').length > 0 && (
+              {/* Right side: condition icons — fixed 56px square, flow left-to-right; Conc/Bloodied show icon when active */}
+              {conditions.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                  {conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').map(c => {
+                  {conditions.map(c => {
                     const asset = CONDITION_ASSETS[c.condition]
                     async function removeCondition() {
                       await supabase.from('conditions').delete().eq('id', c.id)
