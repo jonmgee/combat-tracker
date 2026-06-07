@@ -420,3 +420,7 @@ export const CONDITION_COLOURS: Record<string, { bg: string; border: string; col
  
 export const DEFAULT_CONDITION_COLOUR = { bg: 'rgba(60,50,40,0.25)', border: 'rgba(120,100,80,0.45)', color: '#907060' }
  
+
+// CSS variable default for condition icon size
+// Consumers should set --condition-icon-size when needed; provide a sensible default here via exported constant
+export const CONDITION_ICON_SIZE_CSS = "--condition-icon-size: clamp(40px, 3.2vw, 48px);"
