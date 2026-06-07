@@ -184,8 +184,8 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         {/* ── Card content - above all layers ── */}
         <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1 }}>
 
-          {/* ── Top grid: [position] [name+badges | icons] [initiative] ── */}
-          <div className="grid" style={{ gridTemplateColumns: 'auto 1fr auto', alignItems: 'start', gap: '8px' }}>
+          {/* ── Top grid: [position] [name+pills] [icons] [initiative] ── */}
+          <div className="grid" style={{ gridTemplateColumns: 'auto 1fr auto auto', alignItems: 'stretch', gap: '8px' }}>
             <div style={{ gridColumn: '1', display: 'flex', gap: 8, alignItems: 'center' }}>
 <div className="shrink-0 flex flex-col items-center">
               {/* Move up */}
@@ -225,9 +225,8 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
 
             {/* Initiative */}
             </div>
-            {/* Middle column: name+badges on left, condition icons flowing right on same row */}
-            <div style={{ gridColumn: '2', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              {/* Name + badges */}
+            {/* Middle column: name + badges only — pills are rendered below the grid */}
+            <div style={{ gridColumn: '2', display: 'flex', alignItems: 'center', gap: 8 }}>
               <div className="flex items-center gap-2 flex-wrap" style={{ flexShrink: 0 }}>
                 <span
                   className="font-semibold truncate"
@@ -289,10 +288,10 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 )}
               </div>
 
-              {/* Condition icon row — right-aligned, never wraps, card height stays fixed */}
-              {(conditions.length > 0 || isConcentrating || isBloodied) && (
-                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, alignItems: 'center', overflow: 'hidden' }}>
-                  {[...new Set(conditions.map(c => c.condition))].map(name => {
+            </div>
+            {/* Icons column — own grid cell, stretches to full card row height, never displaces anything */}
+            <div style={{ gridColumn: '3', display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
+              {[...new Set(conditions.map(c => c.condition))].map(name => {
                     const cond = conditions.find(c => c.condition === name)!
                     const asset = CONDITION_ASSETS[name]
                     async function removeCondition() {
@@ -339,11 +338,9 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                         </button>
                       </div>
                     )
-                  })}
-                </div>
-              )}
+              })}
             </div>
-            <div style={{ gridColumn: '3' }}>
+            <div style={{ gridColumn: '4' }}>
 <div className="shrink-0 text-right">
               <div className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>INIT</div>
               <div className="text-lg font-bold" style={{ color: 'var(--gold)', fontFamily: "'Cinzel', serif", lineHeight: 1 }}>
