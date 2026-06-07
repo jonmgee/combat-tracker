@@ -352,7 +352,7 @@ export function PolymorphedIcon() {
 
 const TOOLTIP_STYLE: React.CSSProperties = {
   position: 'absolute',
-  bottom: 'calc(100% + 6px)',
+  top: 'calc(100% + 6px)',
   left: '50%',
   transform: 'translateX(-50%)',
   background: '#1a1410',
