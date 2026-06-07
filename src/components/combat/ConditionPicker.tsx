@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { CONDITIONS, CATEGORY_LABELS } from '../../lib/conditions'
-import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR } from './ConditionIcons'
-import type { Condition, ConditionCategory } from '../../types'
+import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR, ConditionImage } from './ConditionIcons'
+import { TAB_CONDITIONS, TAB_BOONS, TAB_COMBAT, CONDITION_ASSETS } from '../../lib/conditionAssets'
+import type { Condition } from '../../types'
 
 interface Props {
   combatantId: string
@@ -10,22 +10,28 @@ interface Props {
   onClose: () => void
 }
 
-const CATEGORIES: ConditionCategory[] = ['standard', 'weapon_mastery', 'spell']
+type NewTabs = 'conditions' | 'boons' | 'combat'
+const TABS: { key: NewTabs; label: string }[] = [
+  { key: 'conditions', label: 'Conditions' },
+  { key: 'boons', label: 'Boons' },
+  { key: 'combat', label: 'Combat' },
+]
 
 export default function ConditionPicker({ combatantId, activeConditions, onClose }: Props) {
-  const [activeTab, setActiveTab] = useState<ConditionCategory>('standard')
+  const [activeTab, setActiveTab] = useState<NewTabs>('conditions')
   const [toggling, setToggling] = useState<Set<string>>(new Set())
   const activeNames = new Set(activeConditions.map(c => c.condition))
 
-  async function toggle(name: string, category: ConditionCategory) {
+  async function toggle(name: string) {
     if (toggling.has(name)) return // already in flight — prevent duplicate
     setToggling(prev => new Set(prev).add(name))
     try {
-      if (activeNames.has(name)) {
-        const cond = activeConditions.find(c => c.condition === name)
-        if (cond) await supabase.from('conditions').delete().eq('id', cond.id)
+      const cond = activeConditions.find(c => c.condition === name)
+      if (cond) {
+        await supabase.from('conditions').delete().eq('id', cond.id)
       } else {
-        await supabase.from('conditions').insert({ combatant_id: combatantId, condition: name, category })
+        // Category field is required by schema; use 'standard' for these picks
+        await supabase.from('conditions').insert({ combatant_id: combatantId, condition: name, category: 'standard' })
       }
     } finally {
       setToggling(prev => {
@@ -36,7 +42,11 @@ export default function ConditionPicker({ combatantId, activeConditions, onClose
     }
   }
 
-  const filtered = CONDITIONS.filter(c => c.category === activeTab)
+  // Determine list of names for active tab
+  let items: string[] = []
+  if (activeTab === 'conditions') items = TAB_CONDITIONS
+  if (activeTab === 'boons') items = TAB_BOONS
+  if (activeTab === 'combat') items = TAB_COMBAT
 
   return (
     <div
@@ -56,40 +66,46 @@ export default function ConditionPicker({ combatantId, activeConditions, onClose
 
         {/* Tabs */}
         <div className="flex border-b" style={{ borderColor: 'var(--border)' }}>
-          {CATEGORIES.map(cat => (
-            <button key={cat}
-              onClick={() => setActiveTab(cat)}
+          {TABS.map(t => (
+            <button key={t.key}
+              onClick={() => setActiveTab(t.key)}
               className="flex-1 py-2.5 text-xs uppercase tracking-wider transition-all"
               style={{
                 background: 'transparent', border: 'none', cursor: 'pointer',
-                color: activeTab === cat ? 'var(--gold)' : 'var(--text-dim)',
-                borderBottom: activeTab === cat ? '2px solid var(--gold)' : '2px solid transparent',
+                color: activeTab === t.key ? 'var(--gold)' : 'var(--text-dim)',
+                borderBottom: activeTab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
                 letterSpacing: '0.08em',
               }}>
-              {CATEGORY_LABELS[cat]}
+              {t.label}
             </button>
           ))}
         </div>
 
-        {/* Conditions grid */}
+        {/* Grid */}
         <div className="overflow-y-auto p-4">
           <div className="grid grid-cols-3 gap-2">
-            {filtered.map(c => {
-              const active = activeNames.has(c.name)
+            {items.map(name => {
+              const active = activeNames.has(name)
+              const asset = CONDITION_ASSETS[name]
+              const colours = CONDITION_COLOURS[name] ?? DEFAULT_CONDITION_COLOUR
               return (
-                <button key={c.name}
-                  onClick={() => toggle(c.name, c.category)}
+                <button key={name}
+                  onClick={() => toggle(name)}
                   className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg text-center transition-all active:scale-95"
                   style={{
                     background: active ? 'rgba(201,168,76,0.15)' : 'var(--bg-raised)',
                     border: `1px solid ${active ? 'var(--gold-dark)' : 'var(--border)'}`,
                     cursor: 'pointer',
                   }}>
-                  <span className="condition-icon-picker" style={{ width: '1.6rem', height: '1.6rem', color: (CONDITION_COLOURS[c.name] ?? DEFAULT_CONDITION_COLOUR).color }}>
-                    {(() => { const Ic = CONDITION_ICON_MAP[c.name]; return Ic ? <Ic /> : <span style={{ fontSize: '1.2rem' }}>{c.icon}</span> })()}
+                  <span className="condition-icon-picker" style={{ width: '2.4rem', height: '2.4rem' }}>
+                    {asset ? (
+                      <div style={{ width: '100%', height: '100%' }}>
+                        <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} />
+                      </div>
+                    ) : (() => { const Ic = CONDITION_ICON_MAP[name]; return Ic ? <Ic /> : <span style={{ fontSize: '1.2rem' }}>{name[0]}</span> })()}
                   </span>
                   <span className="text-xs leading-tight" style={{ color: active ? 'var(--gold-light)' : 'var(--text-secondary)', fontSize: '0.65rem' }}>
-                    {c.name}
+                    {name}
                   </span>
                 </button>
               )
