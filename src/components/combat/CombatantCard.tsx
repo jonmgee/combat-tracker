@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { CONDITION_MAP } from '../../lib/conditions'
-import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR, BloodiedIcon } from './ConditionIcons'
+import { CONDITION_ICON_MAP, CONDITION_COLOURS, DEFAULT_CONDITION_COLOUR, BloodiedIcon, ConditionImage } from './ConditionIcons'
+import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
 import BloodDrips from './BloodDrips'
@@ -295,6 +296,18 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
           </div>
 
           {/* ── Card-level toggles row (DM can toggle anyone; players only themselves) ── */}
+          {/* ── Icon row (upper-left of card) ── */}
+          <div style={{ position: 'absolute', left: 8, top: 8, display: 'flex', gap: 6, zIndex: 5 }}>
+            {[...new Set(conditions.map(c => c.condition))].filter(name => name !== 'Concentrating' && name !== 'Bloodied').slice(0,8).map((name, idx) => {
+              const asset = CONDITION_ASSETS[name]
+              return (
+                <div key={name+idx} title={name} style={{ width: 'var(--condition-icon-size)', height: 'var(--condition-icon-size)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {asset ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} /> : (() => { const Ic = CONDITION_ICON_MAP[name]; return Ic ? <Ic /> : <span>{name[0]}</span> })()}
+                </div>
+              )
+            })}
+          </div>
+
           {!isDead && (isDM || isMe) && (
             <div className="flex gap-2 mt-3">
               {/* Concentration toggle */}
