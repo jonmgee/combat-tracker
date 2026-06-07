@@ -185,22 +185,10 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         {/* ── Card content - above all layers ── */}
         <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1, paddingLeft: 'calc(var(--condition-icon-size) + 24px)' }}>
 
-          {/* ── Icon column (left area) ── */}
-          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', width: 'var(--condition-icon-size)', pointerEvents: 'none', zIndex: 5 }}>
-            {[...new Set(conditions.map(c => c.condition))].filter(name => name !== 'Concentrating' && name !== 'Bloodied').map((name, idx) => {
-              const asset = CONDITION_ASSETS[name]
-              return (
-                <div key={name+idx} title={name} style={{ width: 'var(--condition-icon-size)', height: 'var(--condition-icon-size)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'auto' }}>
-                  {asset ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} /> : (() => { const Ic = CONDITION_ICON_MAP[name]; return Ic ? <Ic /> : <span>{name[0]}</span> })()}
-                </div>
-              )
-            })}
-          </div>
-
-          {/* ── Top row ── */}
-          <div className="flex items-center gap-3">
-            {/* Position badge */}
-            <div className="shrink-0 flex flex-col items-center">
+          {/* ── Top grid: name (left), icons (center), initiative (right) ── */}
+          <div className="grid" style={{ gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: '8px' }}>
+            <div style={{ gridColumn: '1', display: 'flex', gap: 8, alignItems: 'center' }}>
+<div className="shrink-0 flex flex-col items-center">
               {/* Move up */}
               {canMoveUp && (
                 <button
@@ -299,14 +287,28 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
             </div>
 
             {/* Initiative */}
-            <div className="shrink-0 text-right">
+                        </div>
+            <div style={{ gridColumn: '2', display: 'flex', gap: 8, alignItems: 'center' }}>
+              {/* Icons row — render conditions to the right of the name */}
+              {conditions.map(c=>c.condition).filter(name=>name!=='Concentrating'&&name!=='Bloodied').map((name,idx)=>{
+                const asset = CONDITION_ASSETS[name]
+                return (
+                  <div key={name+idx} title={name} style={{ width: 'var(--condition-icon-size)', height: 'var(--condition-icon-size)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {asset ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} /> : (()=>{ const Ic = CONDITION_ICON_MAP[name]; return Ic ? <Ic /> : <span>{name[0]}</span> })()}
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ gridColumn: '3' }}>
+<div className="shrink-0 text-right">
               <div className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>INIT</div>
               <div className="text-lg font-bold" style={{ color: 'var(--gold)', fontFamily: "'Cinzel', serif", lineHeight: 1 }}>
                 {combatant.initiative ?? '-'}
               </div>
-            </div>
+            </div>            </div>
           </div>
 
+          {/* ── Card-level toggles row (DM can toggle anyone; players only themselves) ── */}
           {/* ── Card-level toggles row (DM can toggle anyone; players only themselves) ── */}
           {/* ── Icon row (upper-left of card) ── */}
           <div style={{ position: 'absolute', left: 8, top: 8, display: 'flex', gap: 6, zIndex: 5 }}>
