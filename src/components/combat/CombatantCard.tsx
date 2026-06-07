@@ -184,208 +184,154 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         {/* ── Card content - above all layers ── */}
         <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1 }}>
 
-          {/* ── Top grid: [position] [name] [INIT] ── */}
-          <div className="grid" style={{ gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: '8px' }}>
-            <div style={{ gridColumn: '1', display: 'flex', gap: 8, alignItems: 'center' }}>
-<div className="shrink-0 flex flex-col items-center">
-              {/* Move up */}
+          {/* ── Outer row: [position] [name+pills | icons] [INIT] ── */}
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: 8 }}>
+
+            {/* Position bubble */}
+            <div className="shrink-0 flex flex-col items-center justify-center" style={{ gap: 2 }}>
               {canMoveUp && (
-                <button
-                  onClick={onMoveUp}
-                  className="cursor-pointer transition-colors hover:opacity-70"
-                  style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}
-                >
-                  ▲
-                </button>
+                <button onClick={onMoveUp} className="cursor-pointer transition-colors hover:opacity-70"
+                  style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▲</button>
               )}
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                 style={{
                   background: isActive ? (isConcentrating ? 'rgba(140,90,220,0.8)' : 'var(--gold)') : 'var(--bg-void)',
                   color: isActive ? (isConcentrating ? '#e8d8ff' : '#1a1410') : 'var(--text-dim)',
                   border: isActive ? 'none' : '1px solid var(--border)',
                   fontFamily: "'Cinzel', serif",
-                }}
-              >
+                }}>
                 {position}
               </div>
-              {/* Move down */}
               {canMoveDown && (
-                <button
-                  onClick={onMoveDown}
-                  className="cursor-pointer transition-colors hover:opacity-70"
-                  style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}
-                >
-                  ▼
-                </button>
+                <button onClick={onMoveDown} className="cursor-pointer transition-colors hover:opacity-70"
+                  style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▼</button>
               )}
             </div>
 
+            {/* Centre: name+pills on left, icons on right — stretch to same height */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', gap: 8, minWidth: 0 }}>
 
-
-            {/* Initiative */}
-            </div>
-            {/* Middle column: name + badges only — pills are rendered below the grid */}
-            <div style={{ gridColumn: '2', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div className="flex items-center gap-2 flex-wrap" style={{ flexShrink: 0 }}>
-                <span
-                  className="font-semibold truncate"
-                  style={{
-                    color: isConcentrating
-                      ? (isActive ? '#ddd0ff' : '#c8b8f0')
-                      : isBloodied
-                      ? (isActive ? '#e8c8c0' : '#c8a0a0')
-                      : isActive
-                      ? 'var(--gold-light)'
-                      : 'var(--text-primary)',
-                    fontFamily: "'Cinzel', serif",
-                    fontSize: '0.95rem',
-                  }}
-                >
-                  {combatant.name}
-                  {isDead && <span className="text-sm" style={{ marginLeft: 4 }}>💀</span>}
-                </span>
-
-                {isMonster && combatant.count > 1 && (
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded text-xs"
-                    style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}>
-                    ×{combatant.count}
-                    {isDM && (
-                      <button onClick={decrementCount}
-                        className="text-xs leading-none transition-colors hover:opacity-70"
-                        style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', lineHeight: 1 }}>
-                        -
-                      </button>
-                    )}
-                  </span>
-                )}
-
-                {isDead && (
-                  <span className="text-xs px-2 py-0.5 rounded"
-                    style={{ background: 'rgba(60,30,30,0.5)', color: '#c06060', border: '1px solid rgba(180,60,50,0.4)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
-                    💀 Dead
-                  </span>
-                )}
-                {isHidden && isDM && (
-                  <span className="text-xs px-1.5 py-0.5 rounded"
-                    style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
-                    HIDDEN
-                  </span>
-                )}
-                {isMonster && !isHidden && (
-                  <span className="text-xs" style={{ color: 'var(--text-dim)' }}>👹</span>
-                )}
-                {isActive && (
-                  <span className="text-xs px-2 py-0.5 rounded"
+              {/* Left side: name row + pills row stacked */}
+              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
+                {/* Name + badges */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold truncate"
                     style={{
-                      background: isConcentrating ? 'rgba(140,90,220,0.2)' : 'rgba(201,168,76,0.2)',
-                      color: isConcentrating ? '#c0a0f0' : 'var(--gold)',
-                      border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.4)' : 'var(--gold-dark)'}`,
-                      fontSize: '0.65rem', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif",
+                      color: isConcentrating ? (isActive ? '#ddd0ff' : '#c8b8f0')
+                        : isBloodied ? (isActive ? '#e8c8c0' : '#c8a0a0')
+                        : isActive ? 'var(--gold-light)' : 'var(--text-primary)',
+                      fontFamily: "'Cinzel', serif", fontSize: '0.95rem',
                     }}>
-                    ACTIVE
+                    {combatant.name}
+                    {isDead && <span className="text-sm" style={{ marginLeft: 4 }}>💀</span>}
                   </span>
+                  {isMonster && combatant.count > 1 && (
+                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-xs"
+                      style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}>
+                      ×{combatant.count}
+                      {isDM && (
+                        <button onClick={decrementCount} className="text-xs leading-none transition-colors hover:opacity-70"
+                          style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', lineHeight: 1 }}>-</button>
+                      )}
+                    </span>
+                  )}
+                  {isDead && (
+                    <span className="text-xs px-2 py-0.5 rounded"
+                      style={{ background: 'rgba(60,30,30,0.5)', color: '#c06060', border: '1px solid rgba(180,60,50,0.4)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
+                      💀 Dead
+                    </span>
+                  )}
+                  {isHidden && isDM && (
+                    <span className="text-xs px-1.5 py-0.5 rounded"
+                      style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
+                      HIDDEN
+                    </span>
+                  )}
+                  {isMonster && !isHidden && <span className="text-xs" style={{ color: 'var(--text-dim)' }}>👹</span>}
+                  {isActive && (
+                    <span className="text-xs px-2 py-0.5 rounded"
+                      style={{
+                        background: isConcentrating ? 'rgba(140,90,220,0.2)' : 'rgba(201,168,76,0.2)',
+                        color: isConcentrating ? '#c0a0f0' : 'var(--gold)',
+                        border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.4)' : 'var(--gold-dark)'}`,
+                        fontSize: '0.65rem', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif",
+                      }}>ACTIVE</span>
+                  )}
+                </div>
+
+                {/* Pills row */}
+                {!isDead && (isDM || isMe) && (
+                  <div className="flex gap-2 items-center">
+                    <button onClick={toggleConcentration}
+                      className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                      style={{
+                        background: isConcentrating ? 'rgba(140,90,220,0.25)' : 'var(--bg-void)',
+                        border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.5)' : 'var(--border)'}`,
+                        color: isConcentrating ? '#c0a0f0' : 'var(--text-dim)', cursor: 'pointer',
+                      }}>
+                      <svg viewBox="0 0 14 14" fill="none" style={{ width: 12, height: 12, flexShrink: 0 }}>
+                        <ellipse cx="7" cy="7" rx="5.5" ry="4" stroke="currentColor" strokeWidth="1"/>
+                        <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="0.8"/>
+                        <circle cx="7" cy="7" r="0.7" fill="currentColor"/>
+                      </svg>
+                      {isConcentrating ? 'Concentrating' : 'Concentrate'}
+                    </button>
+                    <button onClick={toggleBloodied}
+                      className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                      style={{
+                        background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
+                        border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
+                        color: isBloodied ? '#c07070' : 'var(--text-dim)', cursor: 'pointer',
+                      }}>
+                      <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
+                        <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
+                          stroke="currentColor" strokeWidth="0.9" fill={isBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
+                      </svg>
+                      {isBloodied ? 'Bloodied' : 'Bloody'}
+                    </button>
+                  </div>
                 )}
               </div>
 
+              {/* Right side: condition icons — stretch to full height of left column, flow left-to-right */}
+              {conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'stretch', gap: 4, flexShrink: 0 }}>
+                  {conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').map(c => {
+                    const asset = CONDITION_ASSETS[c.condition]
+                    async function removeCondition() {
+                      await supabase.from('conditions').delete().eq('id', c.id)
+                    }
+                    return (
+                      <div key={c.id} title={c.condition} className="group"
+                        style={{ position: 'relative', flexShrink: 0, aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {asset
+                          ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={c.condition} />
+                          : (() => { const Ic = CONDITION_ICON_MAP[c.condition]; return Ic ? <Ic /> : <span style={{ fontSize: '0.7rem' }}>{c.condition[0]}</span> })()
+                        }
+                        <button
+                          onClick={e => { e.stopPropagation(); removeCondition() }}
+                          className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
+                          style={{
+                            top: 0, right: 0, width: 16, height: 16, borderRadius: '50%',
+                            background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(200,60,50,0.9)',
+                            color: '#e06050', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0, zIndex: 10,
+                          }}>✕</button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
-            <div style={{ gridColumn: '3' }}>
-<div className="shrink-0 text-right">
+
+            {/* INIT */}
+            <div className="shrink-0 text-right flex flex-col justify-center">
               <div className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>INIT</div>
               <div className="text-lg font-bold" style={{ color: 'var(--gold)', fontFamily: "'Cinzel', serif", lineHeight: 1 }}>
                 {combatant.initiative ?? '-'}
               </div>
-            </div>            </div>
-          </div>
-
-          {!isDead && (isDM || isMe) && (
-            <div className="flex gap-2 mt-3">
-              {/* Concentration toggle */}
-              <button
-                onClick={toggleConcentration}
-                className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-                style={{
-                  background: isConcentrating ? 'rgba(140,90,220,0.25)' : 'var(--bg-void)',
-                  border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.5)' : 'var(--border)'}`,
-                  color: isConcentrating ? '#c0a0f0' : 'var(--text-dim)',
-                  cursor: 'pointer',
-                }}
-              >
-                <svg viewBox="0 0 14 14" fill="none" style={{ width: 12, height: 12, flexShrink: 0 }}>
-                  <ellipse cx="7" cy="7" rx="5.5" ry="4" stroke="currentColor" strokeWidth="1"/>
-                  <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="0.8"/>
-                  <circle cx="7" cy="7" r="0.7" fill="currentColor"/>
-                </svg>
-                {isConcentrating ? 'Concentrating' : 'Concentrate'}
-              </button>
-
-              {/* Bloodied toggle */}
-              <button
-                onClick={toggleBloodied}
-                className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-                style={{
-                  background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
-                  border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
-                  color: isBloodied ? '#c07070' : 'var(--text-dim)',
-                  cursor: 'pointer',
-                }}
-              >
-                <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
-                  <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
-                    stroke="currentColor" strokeWidth="0.9" fill={isBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
-                </svg>
-                {isBloodied ? 'Bloodied' : 'Bloody'}
-              </button>
-
-              {/* ── Condition icons — inline on pills row, left-to-right after Bloody pill ── */}
-              {conditions.filter(c => c.condition !== 'Concentrating' && c.condition !== 'Bloodied').map(c => {
-                const asset = CONDITION_ASSETS[c.condition]
-                async function removeCondition() {
-                  await supabase.from('conditions').delete().eq('id', c.id)
-                }
-                return (
-                  <div
-                    key={c.id}
-                    title={c.condition}
-                    className="group"
-                    style={{
-                      position: 'relative',
-                      width: 'var(--condition-icon-size)',
-                      height: 'var(--condition-icon-size)',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {asset
-                      ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={c.condition} />
-                      : (() => { const Ic = CONDITION_ICON_MAP[c.condition]; return Ic ? <Ic /> : <span style={{fontSize:'0.7rem'}}>{c.condition[0]}</span> })()
-                    }
-                    <button
-                      onClick={e => { e.stopPropagation(); removeCondition() }}
-                      className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
-                      style={{
-                        top: 0, right: 0,
-                        width: 16, height: 16,
-                        borderRadius: '50%',
-                        background: 'rgba(0,0,0,0.75)',
-                        border: '1px solid rgba(200,60,50,0.9)',
-                        color: '#e06050',
-                        cursor: 'pointer',
-                        fontSize: 10,
-                        lineHeight: 1,
-                        padding: 0,
-                        zIndex: 10,
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )
-              })}
             </div>
-          )}
+
+          </div>
 
 
 
