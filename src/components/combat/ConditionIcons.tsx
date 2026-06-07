@@ -1,6 +1,21 @@
 // SVG icon for every condition. Each returns a bare <svg> sized to fill its container.
 // Usage: <BlindedIcon /> inside a sized wrapper div.
  
+import React from 'react'
+
+// Helper to prefer WebP with PNG fallback for condition images stored in src/assets/Condition Icons
+export function ConditionImage({ folder, filename, alt }: { folder: string, filename: string, alt?: string }) {
+  const base = `/src/assets/Condition Icons/${folder}/${filename}`
+  const webp = `${base.replace(/\.(png|jpg|jpeg)$/i, '')}.webp`
+  return (
+    <picture>
+      <source srcSet={webp} type="image/webp" />
+      <img src={base} alt={alt ?? filename} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+    </picture>
+  )
+}
+
+
 export function BlindedIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
