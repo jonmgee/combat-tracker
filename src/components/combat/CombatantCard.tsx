@@ -289,9 +289,9 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 )}
               </div>
 
-              {/* Condition icon row — includes Concentrating/Bloodied when active */}
+              {/* Condition icon row — right-aligned, never wraps, card height stays fixed */}
               {(conditions.length > 0 || isConcentrating || isBloodied) && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 4, alignItems: 'center', marginLeft: 'auto', overflow: 'hidden' }}>
                   {[...new Set(conditions.map(c => c.condition))].map(name => {
                     const cond = conditions.find(c => c.condition === name)!
                     const asset = CONDITION_ASSETS[name]
