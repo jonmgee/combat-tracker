@@ -45,20 +45,7 @@ export function DeafenedIcon() {
     </svg>
   )
 }
- 
-export function ExhaustionIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.3"/>
-      <path d="M7 10 L6 16" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-      <path d="M13 10 L14 16" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-      <path d="M7 13 L13 13" stroke="currentColor" strokeWidth="1.2"/>
-      <path d="M6 10.5 L10 12 L14 10.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none"/>
-      <path d="M8 5.5 L8 4 M12 5.5 L12 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" opacity="0.5"/>
-    </svg>
-  )
-}
- 
+  
 export function FrightenedIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none">
@@ -414,7 +401,7 @@ export const CONDITION_ICON_MAP: Record<string, React.FC> = {
   'Blinded':            BlindedIcon,
   'Charmed':            CharmedIcon,
   'Deafened':           DeafenedIcon,
-  'Exhaustion':         ExhaustionIcon,
+
   'Frightened':         FrightenedIcon,
   'Grappled':           GrappledIcon,
   'Incapacitated':      IncapacitatedIcon,
@@ -449,7 +436,7 @@ export const CONDITION_COLOURS: Record<string, { bg: string; border: string; col
   'Blinded':            { bg: 'rgba(80,60,100,0.25)',  border: 'rgba(130,100,180,0.45)', color: '#a080d0' },
   'Charmed':            { bg: 'rgba(120,40,80,0.25)',  border: 'rgba(200,80,140,0.45)',  color: '#e060a0' },
   'Deafened':           { bg: 'rgba(60,60,80,0.25)',   border: 'rgba(120,120,160,0.45)', color: '#9090c0' },
-  'Exhaustion':         { bg: 'rgba(40,40,60,0.25)',   border: 'rgba(100,100,160,0.45)', color: '#8080c0' },
+
   'Frightened':         { bg: 'rgba(100,30,20,0.25)',  border: 'rgba(180,60,40,0.45)',   color: '#d05030' },
   'Grappled':           { bg: 'rgba(80,50,20,0.25)',   border: 'rgba(160,100,40,0.45)',  color: '#c08040' },
   'Incapacitated':      { bg: 'rgba(100,20,20,0.25)',  border: 'rgba(180,60,60,0.45)',   color: '#d05050' },
