@@ -41,7 +41,6 @@ export const CONDITIONS: ConditionDef[] = [
   { name: 'Hexed',                 category: 'spell', icon: '🔮', desc: 'You take extra necrotic damage from the caster and have Disadvantage on checks of a chosen ability.' },
   { name: 'Blessed',               category: 'spell', icon: '✨', desc: 'Add 1d4 to attack rolls and saving throws.' },
   { name: 'Cursed',                category: 'spell', icon: '💀', desc: 'A curse is upon you. Effects depend on the source.' },
-  { name: 'Restrained (Spell)',    category: 'spell', icon: '🕸️', desc: 'As Restrained — speed 0, Advantage on attacks against you, Disadvantage on your attacks/Dex saves.' },
   { name: 'Banished',              category: 'spell', icon: '🌌', desc: 'Sent to a harmless demiplane for the duration. Incapacitated and unaware.' },
   { name: 'Polymorphed',           category: 'spell', icon: '🐸', desc: 'Your stats (including mental ability scores) are replaced by the new form. Alignment/personality retained.' },
 

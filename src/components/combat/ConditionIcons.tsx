@@ -317,25 +317,7 @@ export function CursedIcon() {
     </svg>
   )
 }
- 
-export function RestrainedSpellIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none">
-      <path d="M5 5 Q10 2 15 5 Q18 10 15 15 Q10 18 5 15 Q2 10 5 5Z" stroke="currentColor" strokeWidth="1.2" strokeDasharray="2 1.5" fill="none"/>
-      <path d="M8 8 Q10 6 12 8 Q14 10 12 12 Q10 14 8 12 Q6 10 8 8Z" stroke="currentColor" strokeWidth="1" fill="none"/>
-    </svg>
-  )
-}
- 
-export function BanishedIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="7" stroke="currentColor" strokeWidth="1.3" strokeDasharray="2.5 1.5"/>
-      <path d="M7 10 L13 10 M10 7 L13 10 L10 13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-    </svg>
-  )
-}
- 
+  
 export function PolymorphedIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none">
@@ -457,8 +439,7 @@ export const CONDITION_ICON_MAP: Record<string, React.FC> = {
   'Hexed':              HexedIcon,
   'Blessed':            BlessedIcon,
   'Cursed':             CursedIcon,
-  'Restrained (Spell)': RestrainedSpellIcon,
-  'Banished':           BanishedIcon,
+
   'Polymorphed':        PolymorphedIcon,
   'Bloodied':           BloodiedIcon,
 }
@@ -493,8 +474,7 @@ export const CONDITION_COLOURS: Record<string, { bg: string; border: string; col
   'Hexed':              { bg: 'rgba(80,20,80,0.25)',   border: 'rgba(160,40,160,0.45)',  color: '#c040c0' },
   'Blessed':            { bg: 'rgba(100,80,20,0.25)',  border: 'rgba(200,170,40,0.45)',  color: '#d0c030' },
   'Cursed':             { bg: 'rgba(60,10,10,0.3)',    border: 'rgba(140,30,30,0.5)',    color: '#b02020' },
-  'Restrained (Spell)': { bg: 'rgba(30,60,80,0.25)',   border: 'rgba(60,120,160,0.45)',  color: '#5090c0' },
-  'Banished':           { bg: 'rgba(20,20,60,0.25)',   border: 'rgba(60,60,160,0.45)',   color: '#6060c0' },
+
   'Polymorphed':        { bg: 'rgba(20,70,40,0.25)',   border: 'rgba(40,140,80,0.45)',   color: '#40a060' },
   'Bloodied':           { bg: 'rgba(140,20,15,0.35)',  border: 'rgba(180,50,40,0.55)',   color: '#c07070' },
 }
