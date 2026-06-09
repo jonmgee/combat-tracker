@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import ReactDOM from 'react-dom'
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import { CONDITION_ICON_MAP, ConditionImage } from './ConditionIcons'
 import { CONDITION_MAP } from '../../lib/conditions'
@@ -38,46 +39,29 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
   // sort by applied_at ascending (order of application)
   const ordered = [...activeConditions].sort((a, b) => new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime())
 
-  return (
-    <div className="condition-summary" style={{ display: 'none', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto', minWidth: 48 }}>
-      <button
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-controls={`conditions-sheet-${combatantId}`}
-        className="cond-summary-btn"
-        onClick={e => { e.stopPropagation(); setOpen(s => !s) }}
-        style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+  const popoverRoot = (typeof document !== 'undefined' && document.getElementById('popover-root')) || null
+
+  const sheet = (
+    <div
+      id={`conditions-sheet-${combatantId}`}
+      role="dialog"
+      aria-modal="true"
+      onClick={() => setOpen(false)}
+      style={{ position: 'fixed', inset: 0, zIndex: 100000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', pointerEvents: 'none' }}
+    >
+      {/* Backdrop */}
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 100000, pointerEvents: 'auto' }} />
+
+      {/* Sheet panel */}
+      <div
+        onClick={e => { e.stopPropagation(); }}
+        style={{
+          zIndex: 100001,
+          width: '100%', maxWidth: 720, borderTopLeftRadius: 12, borderTopRightRadius: 12,
+          background: 'var(--bg-panel)', color: 'var(--text-primary)', padding: 16, boxShadow: '0 -20px 40px rgba(0,0,0,0.6)',
+          pointerEvents: 'auto'
+        }}
       >
-        <div style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {IconNode}
-        </div>
-        {extra > 0 && (
-          <div style={{ minWidth: 28, height: 28, borderRadius: 8, background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-            +{extra}
-          </div>
-        )}
-      </button>
-
-      {/* Bottom sheet */}
-      {open && (
-        <div
-          id={`conditions-sheet-${combatantId}`}
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-          {/* Backdrop */}
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
-
-          {/* Sheet panel */}
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              width: '100%', maxWidth: 720, borderTopLeftRadius: 12, borderTopRightRadius: 12,
-              background: 'var(--bg-panel)', color: 'var(--text-primary)', padding: 16, boxShadow: '0 -20px 40px rgba(0,0,0,0.6)',
-            }}
-          >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
