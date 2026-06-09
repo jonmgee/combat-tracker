@@ -261,47 +261,54 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
 
                 {/* Pills row: left = pills (flex:1, minWidth:0 so it can truncate), right = compact condition summary */}
                 {!isDead && (isDM || isMe) && (
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0, flex: 1 }}>
-                      <button onClick={toggleConcentration}
-                        className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-                        style={{
-                          background: isConcentrating ? 'rgba(140,90,220,0.25)' : 'var(--bg-void)',
-                          border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.5)' : 'var(--border)'}`,
-                          color: isConcentrating ? '#c0a0f0' : 'var(--text-dim)', cursor: 'pointer',
-                          flexShrink: 0
-                        }}>
-                        <svg viewBox="0 0 14 14" fill="none" style={{ width: 12, height: 12, flexShrink: 0 }}>
-                          <ellipse cx="7" cy="7" rx="5.5" ry="4" stroke="currentColor" strokeWidth="1"/>
-                          <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="0.8"/>
-                          <circle cx="7" cy="7" r="0.7" fill="currentColor"/>
-                        </svg>
-                        {isConcentrating ? 'Concentrating' : 'Concentrate'}
-                      </button>
-                      <button onClick={toggleBloodied}
-                        className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-                        style={{
-                          background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
-                          border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
-                          color: isBloodied ? '#c07070' : 'var(--text-dim)', cursor: 'pointer',
-                          flexShrink: 0
-                        }}>
-                        <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
-                          <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
-                            stroke="currentColor" strokeWidth="0.9" fill={isBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
-                        </svg>
-                        {isBloodied ? 'Bloodied' : 'Bloody'}
-                      </button>
+                  <>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0, flex: 1 }}>
+                        <button onClick={toggleConcentration}
+                          className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                          style={{
+                            background: isConcentrating ? 'rgba(140,90,220,0.25)' : 'var(--bg-void)',
+                            border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.5)' : 'var(--border)'}`,
+                            color: isConcentrating ? '#c0a0f0' : 'var(--text-dim)', cursor: 'pointer',
+                            flexShrink: 0
+                          }}>
+                          <svg viewBox="0 0 14 14" fill="none" style={{ width: 12, height: 12, flexShrink: 0 }}>
+                            <ellipse cx="7" cy="7" rx="5.5" ry="4" stroke="currentColor" strokeWidth="1"/>
+                            <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="0.8"/>
+                            <circle cx="7" cy="7" r="0.7" fill="currentColor"/>
+                          </svg>
+                          {isConcentrating ? 'Concentrating' : 'Concentrate'}
+                        </button>
+                        <button onClick={toggleBloodied}
+                          className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                          style={{
+                            background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
+                            border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
+                            color: isBloodied ? '#c07070' : 'var(--text-dim)', cursor: 'pointer',
+                            flexShrink: 0
+                          }}>
+                          <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
+                            <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
+                              stroke="currentColor" strokeWidth="0.9" fill={isBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
+                          </svg>
+                          {isBloodied ? 'Bloodied' : 'Bloody'}
+                        </button>
+                      </div>
+
+                      <div style={{ flexShrink: 0 }} data-cs-slot="moved-right">
+                        {/* Desktop placeholder for compact summary if we ever need inline placement */}
+                        <div style={{ display: 'none' }}>
+                          <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Compact summary moved out of contested row previously; now rendered below pills for mobile */}
+                    {/* Mobile-only: place compact condition summary on its own line below the pills to avoid overlap */}
+                    <div className="condition-summary-mobile" style={{ display: 'none' }}>
+                      <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
                     </div>
+                  </>
                 )}
-
-                {/* Mobile-only: place compact condition summary on its own line below the pills to avoid overlap */}
-                <div className="condition-summary-mobile" style={{ display: 'none' }}>
-                  <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
-                </div>
 
               </div>
 
