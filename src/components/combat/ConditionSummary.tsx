@@ -86,7 +86,7 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
                 <div style={{ fontWeight: 700 }}>Conditions</div>
               </div>
               <div>
-                <button aria-label="Close conditions" onClick={() => setOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '1.25rem', cursor: 'pointer' }}>✕</button>
+                <button type="button" aria-label="Close conditions" onClick={(e) => { e.stopPropagation(); console.log('ConditionSummary: close clicked'); setOpen(false) }} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '1.25rem', cursor: 'pointer' }}>✕</button>
               </div>
             </div>
 
@@ -105,7 +105,7 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
                       {Def?.desc && <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: 4 }}>{Def.desc}</div>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <button aria-label={`Remove ${cond.condition}`} onClick={(e) => { e.stopPropagation(); console.log('ConditionSummary: remove clicked', cond.id); removeCondition(cond.id).then(res => console.log('remove result', res)).catch(err => console.error('remove error', err)); }} style={{ background: 'transparent', border: '1px solid rgba(200,60,50,0.9)', color: '#e06050', padding: '6px 8px', borderRadius: 6, cursor: 'pointer' }}>✕</button>
+                      <button type="button" aria-label={`Remove ${cond.condition}`} onClick={(e) => { e.stopPropagation(); if (e.nativeEvent && typeof (e.nativeEvent as any).stopImmediatePropagation === 'function') try { (e.nativeEvent as any).stopImmediatePropagation() } catch (err) {} console.log('ConditionSummary: remove clicked', cond.id); removeCondition(cond.id).then(res => console.log('remove result', res)).catch(err => console.error('remove error', err)); }} style={{ background: 'transparent', border: '1px solid rgba(200,60,50,0.9)', color: '#e06050', padding: '6px 8px', borderRadius: 6, cursor: 'pointer' }}>✕</button>
                     </div>
                   </div>
                 )
