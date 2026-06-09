@@ -39,7 +39,7 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
   const ordered = [...activeConditions].sort((a, b) => new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime())
 
   return (
-    <div className="condition-summary" style={{ display: 'none', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+    <div className="condition-summary" style={{ display: 'none', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto', minWidth: 48 }}>
       <button
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -105,7 +105,7 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
                       {Def?.desc && <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: 4 }}>{Def.desc}</div>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <button aria-label={`Remove ${cond.condition}`} onClick={() => removeCondition(cond.id)} style={{ background: 'transparent', border: '1px solid rgba(200,60,50,0.9)', color: '#e06050', padding: '6px 8px', borderRadius: 6, cursor: 'pointer' }}>✕</button>
+                      <button aria-label={`Remove ${cond.condition}`} onClick={(e) => { e.stopPropagation(); console.log('ConditionSummary: remove clicked', cond.id); removeCondition(cond.id).then(res => console.log('remove result', res)).catch(err => console.error('remove error', err)); }} style={{ background: 'transparent', border: '1px solid rgba(200,60,50,0.9)', color: '#e06050', padding: '6px 8px', borderRadius: 6, cursor: 'pointer' }}>✕</button>
                     </div>
                   </div>
                 )
