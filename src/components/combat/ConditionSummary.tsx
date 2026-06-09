@@ -6,9 +6,17 @@ import { supabase } from '../../lib/supabase'
 import type { Condition } from '../../types'
 
 export default function ConditionSummary({ combatantId, activeConditions }: { combatantId: string; activeConditions: Condition[] }) {
+  const [open, setOpen] = useState(false)
+
+  // Handle escape to close when open
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    if (open) window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+
   const first = activeConditions[0]
   const extra = Math.max(0, activeConditions.length - 1)
-  const [open, setOpen] = useState(false)
 
   if (!first) return null
 
@@ -18,13 +26,6 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
   const IconNode = asset
     ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={first.condition} />
     : (() => { const Ic = CONDITION_ICON_MAP[first.condition]; return Ic ? <Ic /> : <span style={{ fontSize: '0.7rem' }}>{first.condition[0]}</span> })()
-
-  // Handle escape to close when open
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
-    if (open) window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open])
 
   async function removeCondition(id: string) {
     try {
