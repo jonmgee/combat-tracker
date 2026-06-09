@@ -175,10 +175,17 @@ body {
   display: none; /* default hidden; shown via media query on narrow screens */
 }
 
+/* New mobile-only wrapper (placed below the pillboxes) */
+.condition-summary-mobile {
+  display: none; /* stylesheet controls visibility at narrow widths */
+  width: 100%;
+}
+
 @media (max-width: 640px) {
   /* hide full icon row and show compact summary */
   .condition-icons-row { display: none !important; }
-  .condition-summary { display: flex !important; }
+  .condition-summary { display: none !important; } /* ensure old inline placement is hidden on mobile */
+  .condition-summary-mobile { display: flex !important; align-items: center; gap: 6px; justify-content: flex-start; }
 }
 
 /* ═══════════════════════════════════════════
