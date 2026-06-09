@@ -325,7 +325,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               )}
 
               {/* Mobile: compact condition summary on its own line below the pillboxes to avoid overlap with INIT */}
-              <div className="condition-summary-mobile" style={{ display: 'none', width: '100%' }}>
+              <div className="condition-summary-mobile">
                 <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
               </div>
             </div>
