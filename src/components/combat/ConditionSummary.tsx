@@ -1,4 +1,3 @@
-import React from 'react'
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import { CONDITION_ICON_MAP } from './ConditionIcons'
 
