@@ -3,7 +3,7 @@
  
 :root {
   --condition-icon-size: 28px; /* kept for reference but icons now size via flex stretch */
-  --condition-summary-breakpoint: 420px;
+  --condition-summary-breakpoint: 640px;
   --gold: #C9A84C;
   --gold-light: #E2C97E;
   --gold-dark: #9C7A2E;
@@ -175,7 +175,7 @@ body {
   display: none; /* default hidden; shown via media query on narrow screens */
 }
 
-@media (max-width: 420px) {
+@media (max-width: 640px) {
   /* hide full icon row and show compact summary */
   .condition-icons-row { display: none !important; }
   .condition-summary { display: flex !important; }
