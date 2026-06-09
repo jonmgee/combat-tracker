@@ -294,12 +294,15 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                       </button>
                     </div>
 
-                    {/* Compact summary moved out of contested row; data marker for deployed verification */}
-                    <div style={{ flexShrink: 0 }} data-cs-slot="moved-right">
-                      <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
+                    {/* Compact summary moved out of contested row previously; now rendered below pills for mobile */}
                     </div>
-                  </div>
                 )}
+
+                {/* Mobile-only: place compact condition summary on its own line below the pills to avoid overlap */}
+                <div className="condition-summary-mobile" style={{ display: 'none' }}>
+                  <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
+                </div>
+
               </div>
 
               {/* Right side: condition icons — fixed 56px square, flow left-to-right; Conc/Bloodied show icon when active */}

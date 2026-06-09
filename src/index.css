@@ -178,7 +178,8 @@ body {
 @media (max-width: 640px) {
   /* hide full icon row and show compact summary */
   .condition-icons-row { display: none !important; }
-  .condition-summary { display: flex !important; }
+  .condition-summary { display: none !important; }
+  .condition-summary-mobile { display: block !important; }
 }
 
 /* ═══════════════════════════════════════════
