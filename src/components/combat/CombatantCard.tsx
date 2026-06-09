@@ -4,6 +4,7 @@ import { CONDITION_ICON_MAP, ConditionImage, ConditionIconWrapper } from './Cond
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
+import ConditionSummary from './ConditionSummary'
 import BloodDrips from './BloodDrips'
 import type { Combatant, Condition, Participant } from '../../types'
 
@@ -294,7 +295,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
 
               {/* Right side: condition icons — fixed 56px square, flow left-to-right; Conc/Bloodied show icon when active */}
               {conditions.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <div className="condition-icons-row" style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
                   {conditions.map(c => {
                     const asset = CONDITION_ASSETS[c.condition]
                     async function removeCondition() {
@@ -322,6 +323,9 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   })}
                 </div>
               )}
+
+              {/* Mobile: compact condition summary (first icon + +N) rendered beside INIT — shown only at narrow widths */}
+              <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
             </div>
 
             {/* INIT */}

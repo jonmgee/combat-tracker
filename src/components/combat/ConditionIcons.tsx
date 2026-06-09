@@ -319,6 +319,7 @@ export function PolymorphedIcon() {
  
 // ── Condition icon wrapper with info tooltip + x remove ──
 
+// On touch devices tooltips should not float over neighbours. We'll hide hover tooltips on touch devices and rely on the bottom sheet UI instead.
 const TOOLTIP_STYLE: React.CSSProperties = {
   position: 'absolute',
   top: 'calc(100% + 6px)',
@@ -348,10 +349,13 @@ export function ConditionIconWrapper({
   const [showTooltip, setShowTooltip] = React.useState(false)
   const def = CONDITION_MAP[conditionName]
 
+  // Hide hover tooltips on touch devices: detect pointer capabilities
+  const isTouch = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches
+
   return (
     <div className="condition-icon-wrapper" style={{ position: 'relative' }}
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
+      onMouseEnter={() => { if (!isTouch) setShowTooltip(true) }}
+      onMouseLeave={() => { if (!isTouch) setShowTooltip(false) }}
       onClick={() => setShowTooltip(s => !s)}
     >
       {children}
