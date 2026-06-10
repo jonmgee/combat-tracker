@@ -21,12 +21,15 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
       try { inputRef.current?.scrollIntoView({ block: 'center' }) } catch (e) { /* ignore */ }
       // Microtask focus
       requestAnimationFrame(() => {
+        try { console.debug('[HPBar] rAF focus attempt') } catch(e){}
         try { inputRef.current?.focus() } catch (e) { /* ignore */ }
         try { inputRef.current?.select() } catch (e) { /* ignore */ }
       })
       // Backup delayed focus for slower devices/browsers
       setTimeout(() => {
+        try { console.debug('[HPBar] delayed focus attempt') } catch(e){}
         try { inputRef.current?.scrollIntoView({ block: 'center' }) } catch (e) { /* ignore */ }
+        try { inputRef.current?.blur() } catch (e) {}
         try { inputRef.current?.focus() } catch (e) { /* ignore */ }
         try { inputRef.current?.select() } catch (e) { /* ignore */ }
       }, 120)
