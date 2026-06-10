@@ -385,19 +385,24 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
       {/* ── Order display ── */}
       <div className="flex-1 overflow-auto py-4">
         <div className="max-w-md mx-auto px-4">
+          {/* Hero: image, heading, subheading — sits on the page above the boxed list */}
+          <div className="text-center mb-6 fade-in">
+            <div className="mb-4 flex justify-center">
+              <img src={lockedIcon} alt="Locked In" className="w-36" style={{ maxWidth: '90vw', filter: 'drop-shadow(0 0 12px rgba(201,168,76,0.5))' }} />
+            </div>
+            <h1 className="text-3xl font-bold tracking-wider" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 16px rgba(201,168,76,0.4)' }}>
+              Locked In
+            </h1>
+            <p className="mt-1 text-sm" style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>
+              Waiting for the Dungeon Master...
+            </p>
+          </div>
+
           <div className="rounded-xl parchment" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>
             {/* Header */}
             <div className="px-5 pt-5 pb-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-              <div style={{ textAlign: 'center', width: '100%' }}>
-                <div className="mb-4 flex justify-center">
-                  <img src={lockedIcon} alt="Locked In" className="w-48" style={{ maxWidth: '90vw', filter: 'drop-shadow(0 0 12px rgba(201,168,76,0.5))' }} />
-                </div>
-                <h1 className="text-3xl font-bold tracking-wider" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 16px rgba(201,168,76,0.4)' }}>
-                  Locked In
-                </h1>
-                <p className="mt-1 text-sm" style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>
-                  Waiting for the Dungeon Master...
-                </p>
+              <div>
+                <span className="text-xs uppercase tracking-widest block" style={{ color: 'var(--text-dim)' }}>Initiative Order</span>
               </div>
               <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'var(--bg-raised)', color: 'var(--gold)', border: '1px solid var(--border)' }}>
                 {groupedVisible.length}
