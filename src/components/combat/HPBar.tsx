@@ -114,7 +114,7 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
               transition: 'left 0.3s ease, right 0.3s ease',
             }}/>
           )}
-          {/* HP label centered inside bar */}
+          {/* HP label centered inside bar */
           <div style={{
             position: 'absolute',
             left: 0,
@@ -125,23 +125,23 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
             alignItems: 'center',
             justifyContent: 'center',
             pointerEvents: 'none',
-            color: 'var(--text-contrast, #fff)',
-            fontFamily: "'Cinzel', serif",
-            fontSize: '0.85rem',
-            fontWeight: 600,
+            color: 'var(--gold)',
+            fontFamily: "'Inter', sans-serif",
+            fontSize: '0.95rem',
+            fontWeight: 700,
           }}>
-            <span style={{ textShadow: '0 0 6px rgba(0,0,0,0.5)' }}>{hpDisplay}</span>
-          </div>
+            <span style={{ textShadow: '0 0 6px rgba(0,0,0,0.35)' }}>{hpDisplay}</span>
+          </div>div>
         </div>
-        {/* Large pill button for editing HP */}
+        {/* Large pill button for editing HP */
         <button
           onClick={() => { if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
-          className="px-3 py-2 rounded-full font-semibold transition-all flex items-center justify-center"
-          style={{ background: 'var(--bg-raised)', color: 'var(--text-primary)', border: '1px solid var(--border)', cursor: 'pointer', minWidth: 88 }}
+          className="flex items-center gap-1.5 py-1 px-3 rounded-lg text-sm font-semibold transition-all"
+          style={{ background: 'var(--bg-void)', color: 'var(--gold)', border: '1px solid var(--border)', cursor: 'pointer', minWidth: 88 }}
           aria-label="Adjust HP"
         >
           +-HP
-        </button>
+        </button>utton>
       </div>
  
       {editing && (
