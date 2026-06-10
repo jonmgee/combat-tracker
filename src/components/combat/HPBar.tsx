@@ -16,26 +16,6 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
   const [delta, setDelta]     = useState('')
   const inputRef = useRef<HTMLInputElement | null>(null)
 
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      // Try a couple of focus strategies to ensure mobile keyboards reliably open and the field is visible.
-      try { inputRef.current?.scrollIntoView({ block: 'center' }) } catch (e) { /* ignore */ }
-      // Microtask focus
-      requestAnimationFrame(() => {
-        try {  } catch(e){}
-        try { inputRef.current?.focus() } catch (e) { /* ignore */ }
-        try { inputRef.current?.select() } catch (e) { /* ignore */ }
-      })
-      // Backup delayed focus for slower devices/browsers
-      setTimeout(() => {
-        try {  } catch(e){}
-        try { inputRef.current?.scrollIntoView({ block: 'center' }) } catch (e) { /* ignore */ }
-        try { inputRef.current?.blur() } catch (e) {}
-        try { inputRef.current?.focus() } catch (e) { /* ignore */ }
-        try { inputRef.current?.select() } catch (e) { /* ignore */ }
-      }, 120)
-    }
-  }, [editing])
 
   // Dead state — show skull
   if (isDead) {
