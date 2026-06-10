@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import rollIcon from '../../assets/rollforinitiative3.png'
+import crossedSwords from '../../assets/crossedswords.png'
 import type { Combatant, Participant } from '../../types'
 
 interface Props {
@@ -242,7 +243,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
             <button onClick={submitDMInitiatives} disabled={saving}
               className="w-full py-4 rounded-xl font-bold text-lg transition-all duration-150 active:scale-95 disabled:opacity-40"
               style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', boxShadow: '0 4px 20px rgba(201,168,76,0.4)' }}>
-              {saving ? 'Setting order…' : '⚔️  Review the Order'}
+              {saving ? 'Setting order…' : (<><img src={crossedSwords} alt="swords" className="h-10 transform rotate-180 inline-block mr-2"/>Review the Order</>)}
             </button>
           </>
         )}
