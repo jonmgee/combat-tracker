@@ -29,6 +29,13 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
   // sort by applied_at ascending (order of application)
   const ordered = [...activeConditions].sort((a, b) => new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime())
 
+
+  // header icon for sheet (use first ordered condition)
+  const headerAsset = CONDITION_ASSETS[ordered[0].condition]
+  const IconNode = headerAsset
+    ? <ConditionImage folder={headerAsset.folder} filename={headerAsset.filename} alt={ordered[0].condition} />
+    : (CONDITION_ICON_MAP[ordered[0].condition] ? React.createElement(CONDITION_ICON_MAP[ordered[0].condition]) : <span style={{ fontSize: '0.8rem' }}>{ordered[0].condition[0]}</span>)
+
   const popoverRoot = (typeof document !== 'undefined' && document.getElementById('popover-root')) || null
 
   const sheet = (
