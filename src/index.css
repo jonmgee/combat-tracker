@@ -176,9 +176,13 @@ body {
 }
 
 @media (max-width: 640px) {
-  /* hide full icon row and show compact summary */
-  .condition-icons-row { display: none !important; }
-  .condition-summary { display: flex !important; }
+  /* hide full icon row and show compact summary.
+     IMPORTANT: scope the hide rule to the *old top-row* icon placement only.
+     The selector below targets the explicit .condition-icons-row that lives in the
+     card's right-side icon column. Do not use a broad descendant selector that
+     can accidentally match the pillbox or Bloodied toggle. */
+  .condition-icons-row { display: none; }
+  .condition-summary { display: flex; }
 }
 
 /* ═══════════════════════════════════════════
