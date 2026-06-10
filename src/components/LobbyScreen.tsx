@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import lanternLogo from '../assets/Lantern3.png'
-import crossedSwords from '../assets/crossedswords.png'
+import crossedAxes from '../assets/crossedaxes.png'
 import { supabase } from '../lib/supabase'
 import { requestNotificationPermission, registerServiceWorker } from '../lib/notifications'
 import type { Session, Participant, CombatState } from '../types'
@@ -381,7 +381,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
             <button onClick={handleStartCombat} disabled={!canStart || loading}
               className="w-full py-4 rounded-xl font-bold text-lg transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ background: canStart ? 'linear-gradient(135deg, var(--gold-dark), var(--gold))' : 'var(--bg-raised)', color: canStart ? '#1a1410' : 'var(--text-dim)', fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', boxShadow: canStart ? '0 4px 20px rgba(201,168,76,0.4)' : 'none', border: canStart ? 'none' : '1px solid var(--border)' }}>
-              {loading ? 'Preparing battle…' : canStart ? (<><img src={crossedSwords} alt="swords" className="h-10 transform rotate-180 inline-block mr-2"/>Prepare Encounter</>) : 'Waiting for Players…'}
+              {loading ? 'Preparing battle…' : canStart ? (<><img src={crossedAxes} alt="swords" className="h-10 transform rotate-180 inline-block mr-2"/>Prepare Encounter</>) : 'Waiting for Players…'}
             </button>
             {!canStart && (
               <p className="text-center text-xs mt-3" style={{ color: 'var(--text-dim)', letterSpacing: '0.06em' }}>
