@@ -18,7 +18,7 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
   if (isDead) {
     return (
       <div className="mt-2">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-3 mb-2">
           <span className="text-xs font-mono" style={{ color: 'var(--text-dim)', minWidth: '48px', textAlign: 'left' }}>
             💀 0/0
           </span>
@@ -87,8 +87,8 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
  
   return (
     <div className="mt-2">
-      <div className="flex items-center gap-2 mb-1">
-        <div className="flex-1 rounded-full overflow-hidden relative" style={{ height: '5px', background: 'rgba(255,255,255,0.06)' }}>
+      <div className="flex items-center gap-3 mb-2">
+        <div className="flex-1 rounded-full overflow-hidden relative" style={{ height: '14px', background: 'rgba(255,255,255,0.06)' }}>
           {/* Base HP bar */}
           <div style={{
             width: `${realPct}%`,
@@ -111,15 +111,33 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
               transition: 'left 0.3s ease, right 0.3s ease',
             }}/>
           )}
+          {/* HP label centered inside bar */}
+          <div style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+            color: 'var(--text-contrast, #fff)',
+            fontFamily: "'Cinzel', serif",
+            fontSize: '0.85rem',
+            fontWeight: 600,
+          }}>
+            <span style={{ textShadow: '0 0 6px rgba(0,0,0,0.5)' }}>{hpDisplay}</span>
+          </div>
         </div>
-        <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)', minWidth: '60px', textAlign: 'right' }}>
-          {hpDisplay}
-        </span>
+        {/* Large pill button for editing HP */}
         <button
           onClick={() => setEditing(e => !e)}
-          className="text-xs px-1.5 py-0.5 rounded transition-all"
-          style={{ color: 'var(--text-dim)', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}>
-          {editing ? '✕' : '±'}
+          className="px-3 py-2 rounded-full font-semibold transition-all flex items-center justify-center"
+          style={{ background: 'var(--bg-raised)', color: 'var(--text-primary)', border: '1px solid var(--border)', cursor: 'pointer', minWidth: 88 }}
+          aria-label="Adjust HP"
+        >
+          +-HP
         </button>
       </div>
  
