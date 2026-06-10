@@ -97,20 +97,20 @@ export default function ConditionPicker({ combatantId, activeConditions, onClose
               return (
                 <button key={name}
                   onClick={() => toggle(name)}
-                  className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg text-center transition-all active:scale-95"
+                  className="flex flex-col items-center gap-1 py-1 px-1 rounded-lg text-center transition-all active:scale-95"
                   style={{
                     background: active ? 'rgba(201,168,76,0.15)' : 'var(--bg-raised)',
                     border: `1px solid ${active ? 'var(--gold-dark)' : 'var(--border)'}`,
                     cursor: 'pointer',
                   }}>
-                  <span className="condition-icon-picker" style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <span className="condition-icon-picker" style={{ width: '110px', height: '110px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                     {asset ? (
                       <div style={{ width: '100%', height: '100%' }}>
                         <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} />
                       </div>
                     ) : (() => { const Ic = CONDITION_ICON_MAP[name]; return Ic ? <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic /></div> : <span style={{ fontSize: '1.2rem' }}>{name[0]}</span> })()}
                   </span>
-                  <span className="text-xs leading-tight" style={{ color: active ? 'var(--gold-light)' : 'var(--text-secondary)', fontSize: '0.65rem' }}>
+                  <span className="text-xs leading-tight" style={{ color: active ? 'var(--gold-light)' : 'var(--text-secondary)', fontSize: '0.85rem' }}>
                     {name}
                   </span>
                 </button>
