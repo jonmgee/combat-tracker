@@ -1,6 +1,5 @@
 import { useMemo, useEffect, useState } from 'react'
 import lockedIcon from '../../assets/lockedin.png'
-import crossedSwords from '../../assets/crossedswords.png'
 import crossedAxes from '../../assets/crossedaxes.png'
 import { supabase } from '../../lib/supabase'
 import type { Combatant, Participant } from '../../types'
