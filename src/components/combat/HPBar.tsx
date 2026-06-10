@@ -39,7 +39,7 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
   const barColor = isBloodied
     ? 'linear-gradient(to right, #6a1010, #a83030)'   // bloodied — deep red
     : pct > 50
-    ? '#4a8e3a'                                         // healthy — forest green
+    ? '#3b6f2c'                                         // healthy — forest green (darkened for contrast)
     : pct > 25
     ? '#c8873a'                                         // hurt — amber
     : '#b03030'                                         // critical — red
