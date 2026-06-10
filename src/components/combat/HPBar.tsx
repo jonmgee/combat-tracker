@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
  
 interface Props {
@@ -13,6 +13,17 @@ interface Props {
 export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false }: Props) {
   const [editing, setEditing] = useState(false)
   const [delta, setDelta]     = useState('')
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      // focus and select after render so mobile keyboard pops up immediately
+      setTimeout(() => {
+        inputRef.current?.focus()
+        try { inputRef.current?.select() } catch (e) { /* ignore */ }
+      }, 50)
+    }
+  }, [editing])
 
   // Dead state — show skull
   if (isDead) {
@@ -144,6 +155,7 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
       {editing && (
         <div className="flex gap-1.5 mt-1 fade-in">
           <input
+            ref={inputRef}
             type="tel" inputMode="numeric" pattern="\d*"
             value={delta}
             onChange={e => setDelta(e.target.value)}
