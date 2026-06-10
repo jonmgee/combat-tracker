@@ -219,10 +219,6 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
         style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', animationDelay: '0.1s' }}>
         <div className="px-5 pt-5 pb-1 flex items-center justify-between">
           <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Adventurers</span>
-          <span className="text-xs font-mono px-2 py-0.5 rounded"
-            style={{ background: 'var(--bg-raised)', color: 'var(--gold)', border: '1px solid var(--border-light)' }}>
-            {participants.length}
-          </span>
         </div>
         <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
           {participants.map(p => (
