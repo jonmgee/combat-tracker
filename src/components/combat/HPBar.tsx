@@ -17,12 +17,19 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
 
   useEffect(() => {
     if (editing && inputRef.current) {
-      // focus and select after render so mobile keyboard pops up immediately
+      // Try a couple of focus strategies to ensure mobile keyboards reliably open and the field is visible.
+      try { inputRef.current?.scrollIntoView({ block: 'center' }) } catch (e) { /* ignore */ }
+      // Microtask focus
+      requestAnimationFrame(() => {
+        try { inputRef.current?.focus() } catch (e) { /* ignore */ }
+        try { inputRef.current?.select() } catch (e) { /* ignore */ }
+      })
+      // Backup delayed focus for slower devices/browsers
       setTimeout(() => {
         try { inputRef.current?.scrollIntoView({ block: 'center' }) } catch (e) { /* ignore */ }
-        inputRef.current?.focus()
+        try { inputRef.current?.focus() } catch (e) { /* ignore */ }
         try { inputRef.current?.select() } catch (e) { /* ignore */ }
-      }, 50)
+      }, 120)
     }
   }, [editing])
 
