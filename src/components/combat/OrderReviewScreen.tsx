@@ -1,4 +1,5 @@
 import { useMemo, useEffect, useState } from 'react'
+import lockedIcon from '../../assets/lockedin.png'
 import { supabase } from '../../lib/supabase'
 import type { Combatant, Participant } from '../../types'
 
@@ -379,28 +380,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-void)' }}>
 
-      {/* ── Begin Combat button (DM only) ── */}
-      {isDM && (
-        <div className="sticky top-0 z-20 px-5 py-3" style={{
-          background: 'linear-gradient(to bottom, var(--bg-void) 0%, transparent 100%)',
-        }}>
-          <button
-            onClick={onBeginCombat}
-            className="w-full py-4 rounded-xl font-bold text-lg transition-all duration-150 active:scale-95 hover:brightness-110"
-            style={{
-              background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))',
-              color: '#1a1410',
-              fontFamily: "'Cinzel', serif",
-              letterSpacing: '0.08em',
-              boxShadow: '0 4px 20px rgba(201,168,76,0.5)',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            ⚔️  Let Battle Commence
-          </button>
-        </div>
-      )}
+      {/* Begin Combat button removed from top; placed below the list to make room for hero */}
 
       {/* ── Order display ── */}
       <div className="flex-1 overflow-auto py-4">
@@ -408,12 +388,16 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
           <div className="rounded-xl parchment" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>
             {/* Header */}
             <div className="px-5 pt-5 pb-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-              <div>
-                <div style={{ textAlign: 'center', width: '100%' }}>
-                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-dim)' }}>INITIATIVE ORDER</div>
-                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: '1.25rem', color: 'var(--gold)', textTransform: 'uppercase', fontWeight: 700 }}>LOCKED IN</div>
-                  <div style={{ fontStyle: 'italic', color: 'var(--text-dim)', marginTop: 4 }}>Waiting for the Dungeon Master…</div>
+              <div style={{ textAlign: 'center', width: '100%' }}>
+                <div className="mb-4 flex justify-center">
+                  <img src={lockedIcon} alt="Locked In" className="w-56" style={{ maxWidth: '90vw', filter: 'drop-shadow(0 0 12px rgba(201,168,76,0.5))' }} />
                 </div>
+                <h1 className="text-3xl font-bold tracking-wider" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 16px rgba(201,168,76,0.4)' }}>
+                  Locked In
+                </h1>
+                <p className="mt-1 text-sm" style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                  Waiting for the DM...
+                </p>
               </div>
               <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'var(--bg-raised)', color: 'var(--gold)', border: '1px solid var(--border)' }}>
                 {groupedVisible.length}
