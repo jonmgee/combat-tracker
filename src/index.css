@@ -212,7 +212,7 @@ body {
 @media (max-width: 640px) {
   /* hide the desktop icon row (exact class rendered by components) and show compact mobile wrapper */
   .condition-icons-row { display: none !important; }
-  .condition-summary-mobile { display: flex !important; align-items: center; gap: 6px; margin-top: 6px; width: 100%; }
+  .condition-summary-mobile { display: flex !important; align-items: center; gap: 6px; margin-top: 6px; width: 100%; justify-content: flex-start; }
   /* ensure the original condition-summary (if present) does not duplicate UI on mobile */
   .condition-summary { display: none !important; }
 
