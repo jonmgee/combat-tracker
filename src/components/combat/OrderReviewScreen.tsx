@@ -409,10 +409,11 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
             {/* Header */}
             <div className="px-5 pt-5 pb-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
               <div>
-                <span className="text-xs uppercase tracking-widest block" style={{ color: 'var(--text-dim)' }}>Initiative Order</span>
-                <span className="text-xs mt-1 block" style={{ color: 'var(--text-dim)' }}>
-                  {isDM ? 'Drag/swap tied dice, begin when ready' : 'Locked in — waiting for DM'}
-                </span>
+                <div style={{ textAlign: 'center', width: '100%' }}>
+                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-dim)' }}>INITIATIVE ORDER</div>
+                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: '1.25rem', color: 'var(--gold)', textTransform: 'uppercase', fontWeight: 700 }}>LOCKED IN</div>
+                  <div style={{ fontStyle: 'italic', color: 'var(--text-dim)', marginTop: 4 }}>Waiting for the Dungeon Master…</div>
+                </div>
               </div>
               <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'var(--bg-raised)', color: 'var(--gold)', border: '1px solid var(--border)' }}>
                 {groupedVisible.length}
