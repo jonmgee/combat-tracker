@@ -389,12 +389,12 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
           {/* Hero: image, heading, subheading — sits on the page above the boxed list */}
           <div className="text-center mb-6 fade-in">
             <div className="mb-4 flex justify-center">
-              <img src={lockedIcon} alt="Locked In" className="w-36" style={{ maxWidth: '90vw', filter: 'drop-shadow(0 0 12px rgba(201,168,76,0.5))' }} />
+              <img src={lockedIcon} alt="Locked In" className="w-72" style={{ maxWidth: '90vw', filter: 'drop-shadow(0 0 12px rgba(201,168,76,0.5))' }} />
             </div>
             <h1 className="text-3xl font-bold tracking-wider" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 16px rgba(201,168,76,0.4)' }}>
               Locked In
             </h1>
-            <p className="mt-1 text-sm" style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>
+            <p className="mt-1 text-sm" style={{ color: 'var(--text-dim)' }}>
               Waiting for the Dungeon Master...
             </p>
           </div>
