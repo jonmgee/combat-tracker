@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { supabase } from '../../lib/supabase'
  
 interface Props {
@@ -21,13 +22,13 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
       try { inputRef.current?.scrollIntoView({ block: 'center' }) } catch (e) { /* ignore */ }
       // Microtask focus
       requestAnimationFrame(() => {
-        try { console.debug('[HPBar] rAF focus attempt') } catch(e){}
+        try {  } catch(e){}
         try { inputRef.current?.focus() } catch (e) { /* ignore */ }
         try { inputRef.current?.select() } catch (e) { /* ignore */ }
       })
       // Backup delayed focus for slower devices/browsers
       setTimeout(() => {
-        try { console.debug('[HPBar] delayed focus attempt') } catch(e){}
+        try {  } catch(e){}
         try { inputRef.current?.scrollIntoView({ block: 'center' }) } catch (e) { /* ignore */ }
         try { inputRef.current?.blur() } catch (e) {}
         try { inputRef.current?.focus() } catch (e) { /* ignore */ }
@@ -154,7 +155,7 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
         </div>
         {/* Large pill button for editing HP */}
         <button
-          onClick={() => setEditing(e => !e)}
+          onClick={() => { if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
           className="px-3 py-2 rounded-full font-semibold transition-all flex items-center justify-center"
           style={{ background: 'var(--bg-raised)', color: 'var(--text-primary)', border: '1px solid var(--border)', cursor: 'pointer', minWidth: 88 }}
           aria-label="Adjust HP"
