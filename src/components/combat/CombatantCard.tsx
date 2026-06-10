@@ -331,7 +331,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 </div>
               )}
 
-
+            </div>
 
             {/* INIT */}
             <div className="shrink-0 text-right flex flex-col justify-center">
