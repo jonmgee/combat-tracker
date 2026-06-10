@@ -121,7 +121,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
                       value={hasMyCombatant ? (initiatives[myCombatant!.id] ?? '') : ''}
                       onChange={e => myCombatant && setInitiatives(p => ({ ...p, [myCombatant.id]: e.target.value }))}
                       placeholder="e.g. 17"
-                      className="flex-1 px-4 py-3 rounded-lg text-2xl text-center outline-none"
+                      className="flex-1 min-w-0 px-4 py-3 rounded-lg text-2xl text-center outline-none"
                       style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)', caretColor: 'var(--gold)' }}
                     />
                     <button onClick={submitPlayerInitiative} disabled={saving}
