@@ -291,6 +291,13 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                     </button>
                   </div>
                 )}
+
+                {/* Mobile: compact condition summary on its own line below the pillboxes to avoid overlap with INIT */}
+                {conditions.length > 0 && (
+                  <div className="condition-summary-mobile">
+                    <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
+                  </div>
+                )}
               </div>
 
               {/* Right side: condition icons — fixed 56px square, flow left-to-right; Conc/Bloodied show icon when active */}
@@ -324,11 +331,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 </div>
               )}
 
-              {/* Mobile: compact condition summary on its own line below the pillboxes to avoid overlap with INIT */}
-              <div className="condition-summary-mobile">
-                <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
-              </div>
-            </div>
+
 
             {/* INIT */}
             <div className="shrink-0 text-right flex flex-col justify-center">
