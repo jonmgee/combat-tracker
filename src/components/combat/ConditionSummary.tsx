@@ -6,7 +6,7 @@ import { CONDITION_MAP } from '../../lib/conditions'
 import { supabase } from '../../lib/supabase'
 import type { Condition } from '../../types'
 
-export default function ConditionSummary({ combatantId, activeConditions, mobileInline }: { combatantId: string; activeConditions: Condition[]; mobileInline?: boolean }) {
+export default function ConditionSummary({ combatantId, activeConditions }: { combatantId: string; activeConditions: Condition[] }) {
   const [open, setOpen] = useState(false)
 
   // Handle escape to close when open
