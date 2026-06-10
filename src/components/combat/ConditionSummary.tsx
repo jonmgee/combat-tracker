@@ -98,7 +98,7 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
   )
 
   return (
-    <div className="condition-summary" style={{ display: 'none', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto', minWidth: 48 }}>
+    <div className="condition-summary" style={{ display: 'none', alignItems: 'center', gap: 6, flexShrink: 0, minWidth: 48 }}>
       <button
         aria-haspopup="dialog"
         aria-expanded={open}
