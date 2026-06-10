@@ -413,6 +413,17 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
             {groupedVisible.map((entry, idx) => renderEntry(entry, idx))}
           </div>
 
+          {/* Begin Combat button (DM only) placed under the list as a large pill */}
+          {isDM && (
+            <div className="mt-4 px-0">
+              <button onClick={onBeginCombat}
+                className="w-full py-4 rounded-full font-bold text-lg transition-all duration-150 active:scale-95 hover:brightness-110"
+                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', boxShadow: '0 4px 20px rgba(201,168,76,0.4)', border: 'none', cursor: 'pointer' }}>
+                ⚔️  Let Battle Commence
+              </button>
+            </div>
+          )}
+
           {/* ── Alert swap info (players only) ── */}
           {!isDM && meRefreshed.alert_feat && (
             <div className="mt-4 rounded-xl p-4" style={{ background: 'var(--bg-panel)', border: '1px solid var(--gold-dark)', boxShadow: '0 0 12px rgba(201,168,76,0.1)' }}>
