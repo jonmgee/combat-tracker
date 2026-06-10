@@ -103,12 +103,12 @@ export default function ConditionPicker({ combatantId, activeConditions, onClose
                     border: `1px solid ${active ? 'var(--gold-dark)' : 'var(--border)'}`,
                     cursor: 'pointer',
                   }}>
-                  <span className="condition-icon-picker" style={{ width: '70%', height: '70%' }}>
+                  <span className="condition-icon-picker" style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                     {asset ? (
                       <div style={{ width: '100%', height: '100%' }}>
                         <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} />
                       </div>
-                    ) : (() => { const Ic = CONDITION_ICON_MAP[name]; return Ic ? <Ic /> : <span style={{ fontSize: '1.2rem' }}>{name[0]}</span> })()}
+                    ) : (() => { const Ic = CONDITION_ICON_MAP[name]; return Ic ? <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Ic /></div> : <span style={{ fontSize: '1.2rem' }}>{name[0]}</span> })()}
                   </span>
                   <span className="text-xs leading-tight" style={{ color: active ? 'var(--gold-light)' : 'var(--text-secondary)', fontSize: '0.65rem' }}>
                     {name}
