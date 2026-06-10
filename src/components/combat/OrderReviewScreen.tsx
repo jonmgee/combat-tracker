@@ -389,7 +389,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
           {/* Hero: image, heading, subheading — sits on the page above the boxed list */}
           <div className="text-center mb-6 fade-in">
             <div className="mb-4 flex justify-center">
-              <img src={lockedIcon} alt="Locked In" className="w-72" style={{ maxWidth: '90vw', filter: 'drop-shadow(0 0 12px rgba(201,168,76,0.5))' }} />
+              <img src={lockedIcon} alt="Locked In" className="w-36" style={{ maxWidth: '90vw', filter: 'drop-shadow(0 0 12px rgba(201,168,76,0.5))' }} />
             </div>
             <h1 className="text-3xl font-bold tracking-wider" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', textShadow: '0 0 16px rgba(201,168,76,0.4)' }}>
               Locked In
@@ -422,7 +422,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
               <button onClick={onBeginCombat}
                 className="w-full py-4 rounded-full font-bold text-lg transition-all duration-150 active:scale-95 hover:brightness-110 flex items-center justify-center gap-3"
                 style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', boxShadow: '0 4px 20px rgba(201,168,76,0.4)', border: 'none', cursor: 'pointer' }}>
-                <img src={crossedSwords} alt="swords" className="h-5 transform rotate-180" />
+                <img src={crossedSwords} alt="swords" className="h-10 transform rotate-180" />
                 Let Battle Commence
               </button>
             </div>
