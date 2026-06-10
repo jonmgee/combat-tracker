@@ -215,4 +215,9 @@ body {
   .condition-summary-mobile { display: flex !important; align-items: center; gap: 6px; margin-top: 6px; width: 100%; }
   /* ensure the original condition-summary (if present) does not duplicate UI on mobile */
   .condition-summary { display: none !important; }
+
+  /* Show the inner ConditionSummary rendered INSIDE the .condition-summary-mobile wrapper.
+     The ConditionSummary component sets an inline style display:none; override it here with !important
+     so the compact icons are visible on mobile without restructuring components. */
+  .condition-summary-mobile .condition-summary { display: flex !important; align-items: center; gap: 6px; }
 }
