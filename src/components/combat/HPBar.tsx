@@ -114,7 +114,7 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
               transition: 'left 0.3s ease, right 0.3s ease',
             }}/>
           )}
-          {/* HP label centered inside bar */
+{/* HP label centered inside bar */}
           <div style={{
             position: 'absolute',
             left: 0,
@@ -131,9 +131,9 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
             fontWeight: 700,
           }}>
             <span style={{ textShadow: '0 0 6px rgba(0,0,0,0.35)' }}>{hpDisplay}</span>
-          </div>div>
+          </div>
         </div>
-        {/* Large pill button for editing HP */
+        {/* Large pill button for editing HP */}
         <button
           onClick={() => { if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
           className="flex items-center gap-1.5 py-1 px-3 rounded-lg text-sm font-semibold transition-all"
@@ -141,7 +141,7 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
           aria-label="Adjust HP"
         >
           +-HP
-        </button>utton>
+        </button>
       </div>
  
       {editing && (
