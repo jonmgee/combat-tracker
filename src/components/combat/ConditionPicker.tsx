@@ -103,7 +103,7 @@ export default function ConditionPicker({ combatantId, activeConditions, onClose
                     border: `1px solid ${active ? 'var(--gold-dark)' : 'var(--border)'}`,
                     cursor: 'pointer',
                   }}>
-                  <span className="condition-icon-picker" style={{ width: '2.4rem', height: '2.4rem' }}>
+                  <span className="condition-icon-picker" style={{ width: '70%', height: '70%' }}>
                     {asset ? (
                       <div style={{ width: '100%', height: '100%' }}>
                         <ConditionImage folder={asset.folder} filename={asset.filename} alt={name} />
