@@ -419,9 +419,10 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
           {isDM && (
             <div className="mt-4 px-0">
               <button onClick={onBeginCombat}
-                className="w-full py-4 rounded-full font-bold text-lg transition-all duration-150 active:scale-95 hover:brightness-110"
+                className="w-full py-4 rounded-full font-bold text-lg transition-all duration-150 active:scale-95 hover:brightness-110 flex items-center justify-center gap-3"
                 style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', boxShadow: '0 4px 20px rgba(201,168,76,0.4)', border: 'none', cursor: 'pointer' }}>
-                ⚔️  Let Battle Commence
+                <img src={require('../../assets/crossedswords.png')} alt="swords" className="h-5 transform rotate-180" />
+                Let Battle Commence
               </button>
             </div>
           )}
