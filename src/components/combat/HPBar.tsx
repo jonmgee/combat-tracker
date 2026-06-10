@@ -126,7 +126,7 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
       {editing && (
         <div className="flex gap-1.5 mt-1 fade-in">
           <input
-            type="number"
+            type="tel" inputMode="numeric" pattern="\d*"
             value={delta}
             onChange={e => setDelta(e.target.value)}
             placeholder="Amount"

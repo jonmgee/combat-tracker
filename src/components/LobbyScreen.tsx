@@ -275,7 +275,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
                   <div>
                     <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Current HP</label>
                     <input
-                      type="number"
+                      type="tel" inputMode="numeric" pattern="\d*"
                       min={1}
                       value={startingHp}
                       onChange={e => setStartingHp(e.target.value)}
@@ -299,7 +299,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
                     <div>
                       <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Max HP</label>
                       <input
-                        type="number"
+                        type="tel" inputMode="numeric" pattern="\d*"
                         min={1}
                         value={maxHpInput}
                         onChange={e => setMaxHpInput(e.target.value)}

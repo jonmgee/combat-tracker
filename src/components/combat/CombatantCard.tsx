@@ -458,7 +458,7 @@ function TempHpSetter({ combatantId, currentTempHp }: { combatantId: string; cur
         <div className="flex items-center gap-2">
           <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>🛡️</span>
           <input
-            type="number"
+            type="tel" inputMode="numeric" pattern="\d*"
             value={value}
             onChange={e => setValue(e.target.value)}
             placeholder="Amount"

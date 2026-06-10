@@ -116,7 +116,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
                   </label>
                   <div className="flex gap-2">
                     <input
-                      type="number"
+                      type="tel" inputMode="numeric" pattern="\d*"
                       min={1} max={30}
                       value={hasMyCombatant ? (initiatives[myCombatant!.id] ?? '') : ''}
                       onChange={e => myCombatant && setInitiatives(p => ({ ...p, [myCombatant.id]: e.target.value }))}
@@ -152,7 +152,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
                     <span className="text-lg font-bold" style={{ color: 'var(--gold)' }}>{c.initiative}</span>
                   ) : (
                     <input
-                      type="number"
+                      type="tel" inputMode="numeric" pattern="\d*"
                       value={initiatives[c.id] ?? ''}
                       onChange={e => setInitiatives(p => ({ ...p, [c.id]: e.target.value }))}
                       placeholder="—"
@@ -186,7 +186,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
                       style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
                     />
                     <input
-                      type="number"
+                      type="tel" inputMode="numeric" pattern="\d*"
                       min={1}
                       value={m.count}
                       onChange={e => setMonsters(ms => ms.map((x, j) => j === i ? { ...x, count: e.target.value } : x))}
@@ -195,7 +195,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
                       style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
                     />
                     <input
-                      type="number"
+                      type="tel" inputMode="numeric" pattern="\d*"
                       value={m.initiative}
                       onChange={e => setMonsters(ms => ms.map((x, j) => j === i ? { ...x, initiative: e.target.value } : x))}
                       placeholder="Init"
@@ -218,7 +218,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
                     </button>
                     {m.hpEnabled && (
                       <input
-                        type="number"
+                        type="tel" inputMode="numeric" pattern="\d*"
                         value={m.hp}
                         onChange={e => setMonsters(ms => ms.map((x, j) => j === i ? { ...x, hp: e.target.value } : x))}
                         placeholder="Max HP"
