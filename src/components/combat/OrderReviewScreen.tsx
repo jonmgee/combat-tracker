@@ -404,9 +404,6 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
               <div>
                 <span className="text-xs uppercase tracking-widest block" style={{ color: 'var(--text-dim)' }}>Initiative Order</span>
               </div>
-              <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: 'var(--bg-raised)', color: 'var(--gold)', border: '1px solid var(--border)' }}>
-                {groupedVisible.length}
-              </span>
             </div>
 
             {/* Entry rows */}
