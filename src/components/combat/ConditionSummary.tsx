@@ -16,17 +16,7 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
 
-  const first = activeConditions[0]
-  const extra = Math.max(0, activeConditions.length - 1)
-
-  if (!first) return null
-
-  // Prefer ConditionImage for correct asset resolution
-  const asset = CONDITION_ASSETS[first.condition]
-
-  const IconNode = asset
-    ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={first.condition} />
-    : (() => { const Ic = CONDITION_ICON_MAP[first.condition]; return Ic ? <Ic /> : <span style={{ fontSize: '0.7rem' }}>{first.condition[0]}</span> })()
+  if (!activeConditions || activeConditions.length === 0) return null
 
   async function removeCondition(id: string) {
     try {
@@ -108,16 +98,19 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
         aria-controls={`conditions-sheet-${combatantId}`}
         className="cond-summary-btn"
         onClick={e => { e.stopPropagation(); setOpen(s => !s) }}
-        style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', justifyContent: 'flex-start', flexWrap: 'wrap' }}
       >
-        <div style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {IconNode}
-        </div>
-        {extra > 0 && (
-          <div style={{ minWidth: 28, height: 28, borderRadius: 8, background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-            +{extra}
-          </div>
-        )}
+        {ordered.map(c => {
+          const asset = CONDITION_ASSETS[c.condition]
+          const iconNode = asset
+            ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={c.condition} />
+            : (() => { const Ic = CONDITION_ICON_MAP[c.condition]; return Ic ? <Ic /> : <span style={{ fontSize: '0.7rem' }}>{c.condition[0]}</span> })()
+          return (
+            <div key={c.id} style={{ width: 30, height: 30, borderRadius: 6, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
+              {iconNode}
+            </div>
+          )
+        })}
       </button>
 
       {open && (
