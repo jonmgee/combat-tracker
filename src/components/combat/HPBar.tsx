@@ -19,6 +19,7 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
     if (editing && inputRef.current) {
       // focus and select after render so mobile keyboard pops up immediately
       setTimeout(() => {
+        try { inputRef.current?.scrollIntoView({ block: 'center' }) } catch (e) { /* ignore */ }
         inputRef.current?.focus()
         try { inputRef.current?.select() } catch (e) { /* ignore */ }
       }, 50)
