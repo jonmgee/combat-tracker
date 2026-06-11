@@ -27,6 +27,9 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
 
   // Local state for desktop sheet open
   const [sheetOpen, setSheetOpen] = useState(false)
+  // optimistic revive state: when true, treat card as alive locally until server confirms
+  const [optimisticAlive, setOptimisticAlive] = useState(false)
+  const hpBarRef = React.useRef<any>(null)
 
 
   const isDM      = me.role === 'dm'
@@ -330,12 +333,13 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
           {/* ── HP bar ── */}
           {canSeeHP && combatant.max_hp !== null && combatant.current_hp !== null && (
             <HPBar
+              ref={hpBarRef}
               combatantId={combatant.id}
               currentHp={combatant.current_hp}
               maxHp={combatant.max_hp}
               tempHp={combatant.temp_hp}
               isBloodied={isBloodied}
-              isDead={isDead}
+              isDead={isDead && !optimisticAlive}
             />
           )}
 
@@ -357,21 +361,46 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               )}
 
               {isDM && (
-                <button
-                  onClick={async () => {
-                    const next = !combatant.dead
-                    await supabase.from('combatants').update({ dead: next }).eq('id', combatant.id)
-                  }}
-                  className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-                  style={{
-                    background: isDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
-                    border: `1px solid ${isDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
-                    color: isDead ? '#c06060' : 'var(--text-dim)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {isDead ? '💀 Dead' : '💀 Kill'}
-                </button>
+                isDead ? (
+                  <button
+                    onClick={async () => {
+                      // optimistic un-dead locally (synchronous) so HPBar can mount
+                      flushSync(() => setOptimisticAlive(true))
+                      // synchronously focus HP input if HP is tracked
+                      if (canSeeHP && combatant.max_hp !== null && combatant.current_hp !== null) {
+                        try { hpBarRef.current?.focusAndEdit() } catch (e) {}
+                      }
+                      // then update server; if it fails and server still says dead, roll back optimistic state
+                      try {
+                        await supabase.from('combatants').update({ dead: false }).eq('id', combatant.id)
+                      } catch (err) {
+                        // reload will reconcile if server different; rollback optimistic if still dead on server
+                        setOptimisticAlive(false)
+                        console.error('Revive failed', err)
+                      }
+                    }}
+                    className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                    style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}
+                  >
+                    Revive
+                  </button>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      const next = !combatant.dead
+                      await supabase.from('combatants').update({ dead: next }).eq('id', combatant.id)
+                    }}
+                    className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                    style={{
+                      background: isDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
+                      border: `1px solid ${isDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
+                      color: isDead ? '#c06060' : 'var(--text-dim)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {isDead ? '💀 Dead' : '💀 Kill'}
+                  </button>
+                )
               )}
 
               <button
