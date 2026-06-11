@@ -160,6 +160,7 @@ export default function GroupCombatantCard({
 
       {/* ── Sub-cards grid ── */}
       <div className="px-3 pb-3 grid gap-2 group-combat-grid">
+      >
         {combatants.map((c, idx) => {
           const cConditions = conditions.filter(cond => cond.combatant_id === c.id)
           const cHpBloodied = c.hp_enabled && c.max_hp !== null && c.current_hp !== null &&
