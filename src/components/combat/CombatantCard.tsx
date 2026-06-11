@@ -312,7 +312,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
             </div>
 
           {sheetOpen && (
-            <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
+            <ConditionSheetPanel open={sheetOpen} onClose={() => setSheetOpen(false)} combatantId={combatant.id} activeConditions={conditions} />
           )}
 
             {/* INIT */}
