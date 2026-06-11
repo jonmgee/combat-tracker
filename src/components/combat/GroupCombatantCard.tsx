@@ -5,7 +5,7 @@ import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
 import type { Combatant, Condition, Participant } from '../../types'
-import ConditionSummary, { ConditionSheetPanel } from './ConditionSummary'
+import { ConditionSheetPanel } from './ConditionSummary'
 
 interface Props {
   combatants: Combatant[]
