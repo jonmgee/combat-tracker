@@ -6,17 +6,15 @@ import { CONDITION_MAP } from '../../lib/conditions'
 import { supabase } from '../../lib/supabase'
 import type { Condition } from '../../types'
 
-export default function ConditionSummary({ combatantId, activeConditions }: { combatantId: string; activeConditions: Condition[] }) {
-  const [open, setOpen] = useState(false)
-
-  // Handle escape to close when open
+// Presentational sheet panel. Parent controls open state.
+function ConditionSheetPanel({ open, onClose, combatantId, activeConditions }: { open: boolean; onClose: () => void; combatantId: string; activeConditions: Condition[] }) {
   useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false) }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
     if (open) window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open])
+  }, [open, onClose])
 
-  if (!activeConditions || activeConditions.length === 0) return null
+  if (!open || !activeConditions || activeConditions.length === 0) return null
 
   async function removeCondition(id: string) {
     try {
@@ -26,11 +24,7 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
     }
   }
 
-  // sort by applied_at ascending (order of application)
   const ordered = [...activeConditions].sort((a, b) => new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime())
-
-
-  // header icon for sheet (use first ordered condition)
   const headerAsset = CONDITION_ASSETS[ordered[0].condition]
   const IconNode = headerAsset
     ? <ConditionImage folder={headerAsset.folder} filename={headerAsset.filename} alt={ordered[0].condition} />
@@ -43,13 +37,11 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
       id={`conditions-sheet-${combatantId}`}
       role="dialog"
       aria-modal="true"
-      onClick={() => setOpen(false)}
+      onClick={() => onClose()}
       style={{ position: 'fixed', inset: 0, zIndex: 100000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', pointerEvents: 'none' }}
     >
-      {/* Backdrop */}
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 100000, pointerEvents: 'auto' }} />
 
-      {/* Sheet panel */}
       <div
         onClick={e => { e.stopPropagation(); }}
         style={{
@@ -61,13 +53,11 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {IconNode}
-            </div>
+            <div style={{ width: 44, height: 44, borderRadius: 8, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{IconNode}</div>
             <div style={{ fontWeight: 700 }}>Conditions</div>
           </div>
           <div>
-            <button type="button" aria-label="Close conditions" onClick={(e) => { e.stopPropagation(); setOpen(false) }} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '1.25rem', cursor: 'pointer' }}>✕</button>
+            <button type="button" aria-label="Close conditions" onClick={(e) => { e.stopPropagation(); onClose() }} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '1.25rem', cursor: 'pointer' }}>✕</button>
           </div>
         </div>
 
@@ -78,9 +68,7 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
             const Icon = asset ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={cond.condition} /> : (CONDITION_ICON_MAP[cond.condition] ? React.createElement(CONDITION_ICON_MAP[cond.condition]) : <span style={{ fontSize: '0.8rem' }}>{cond.condition[0]}</span>)
             return (
               <div key={cond.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 6px', borderRadius: 8, background: 'rgba(255,255,255,0.02)' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 6, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {Icon}
-                </div>
+                <div style={{ width: 40, height: 40, borderRadius: 6, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icon}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{cond.condition}</div>
                   {Def?.desc && <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginTop: 4 }}>{Def.desc}</div>}
@@ -96,6 +84,16 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
       </div>
     </div>
   )
+
+  return open ? ReactDOM.createPortal(sheet, popoverRoot || document.body) : null
+}
+
+export default function ConditionSummary({ combatantId, activeConditions }: { combatantId: string; activeConditions: Condition[] }) {
+  const [open, setOpen] = useState(false)
+
+  if (!activeConditions || activeConditions.length === 0) return null
+
+  const ordered = [...activeConditions].sort((a, b) => new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime())
 
   return (
     <div className="condition-summary" style={{ display: 'none', alignItems: 'center', gap: 6, flexShrink: 0, minWidth: 48 }}>
@@ -120,12 +118,9 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
         })}
       </button>
 
-      {open && (
-        ReactDOM.createPortal(
-          sheet,
-          popoverRoot || document.body
-        )
-      )}
+      <ConditionSheetPanel open={open} onClose={() => setOpen(false)} combatantId={combatantId} activeConditions={activeConditions} />
     </div>
   )
 }
+
+export { ConditionSheetPanel }

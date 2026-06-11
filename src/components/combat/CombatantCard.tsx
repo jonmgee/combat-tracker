@@ -4,7 +4,7 @@ import { CONDITION_ICON_MAP, ConditionImage, ConditionIconWrapper } from './Cond
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
-import ConditionSummary from './ConditionSummary'
+import ConditionSummary, { ConditionSheetPanel } from './ConditionSummary'
 import BloodDrips from './BloodDrips'
 import type { Combatant, Condition, Participant } from '../../types'
 
@@ -24,6 +24,9 @@ interface Props {
 
 export default function CombatantCard({ combatant, conditions, isActive, me, position, canMoveUp, canMoveDown, onMoveUp, onMoveDown, canSwapTarget, onSwapTarget }: Props) {
   const [showConditions, setShowConditions] = useState(false)
+
+  // Local state for desktop sheet open
+  const [sheetOpen, setSheetOpen] = useState(false)
 
 
   const isDM      = me.role === 'dm'
@@ -285,6 +288,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                     return (
                       <ConditionIconWrapper conditionName={c.condition}>
                         <div key={c.id} className="group"
+                          onClick={() => setSheetOpen(true)}
                           style={{ position: 'relative', flexShrink: 0, width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {asset
                             ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={c.condition} />
@@ -306,6 +310,10 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               )}
 
             </div>
+
+          {sheetOpen && (
+            <ConditionSheetPanel open={sheetOpen} onClose={() => setSheetOpen(false)} combatantId={combatant.id} activeConditions={conditions} />
+          )}
 
             {/* INIT */}
             <div className="shrink-0 text-right flex flex-col justify-center">
