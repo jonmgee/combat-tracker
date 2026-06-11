@@ -5,6 +5,7 @@ import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
 import type { Combatant, Condition, Participant } from '../../types'
+import ConditionSummary, { ConditionSheetPanel } from './ConditionSummary'
 
 interface Props {
   combatants: Combatant[]
@@ -336,7 +337,7 @@ export default function GroupCombatantCard({
         />
       )}
       {sheetFor && (
-        <ConditionSummary combatantId={sheetFor} activeConditions={conditions.filter(c => c.combatant_id === sheetFor)} />
+        <ConditionSheetPanel open={!!sheetFor} onClose={() => setSheetFor(null)} combatantId={sheetFor!} activeConditions={conditions.filter(c => c.combatant_id === sheetFor)} />
       )}
     </div>
   )
