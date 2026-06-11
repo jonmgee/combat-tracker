@@ -178,3 +178,6 @@ const HPBar = forwardRef(function HPBar({ combatantId, currentHp, maxHp, tempHp,
     </div>
   )
 }
+)
+
+export default HPBar

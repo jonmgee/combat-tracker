@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { CONDITION_ICON_MAP, ConditionImage, ConditionIconWrapper } from './ConditionIcons'
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'

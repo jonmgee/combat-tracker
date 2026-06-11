@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { supabase } from '../../lib/supabase'
 import { CONDITION_ICON_MAP, ConditionImage, ConditionIconWrapper } from './ConditionIcons'
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
@@ -29,7 +30,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
   const [sheetOpen, setSheetOpen] = useState(false)
   // optimistic revive state: when true, treat card as alive locally until server confirms
   const [optimisticAlive, setOptimisticAlive] = useState(false)
-  const hpBarRef = React.useRef<any>(null)
+  const hpBarRef = useRef<any>(null)
 
 
   const isDM      = me.role === 'dm'
