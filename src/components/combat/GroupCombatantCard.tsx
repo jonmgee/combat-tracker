@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { CONDITION_ICON_MAP, ConditionImage, ConditionIconWrapper } from './ConditionIcons'
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
@@ -39,6 +39,9 @@ export default function GroupCombatantCard({
   const isDM = me.role === 'dm'
   const [showConditionsFor, setShowConditionsFor] = useState<string | null>(null)
   const [sheetFor, setSheetFor] = useState<string | null>(null)
+  // optimistic revive set of IDs
+  const [_optimisticAliveIds, setOptimisticAliveIds] = useState<Record<string, boolean>>({})
+  const hpRefs = useRef<Record<string, any>>({})
 
   async function toggleBloodied(c: Combatant) {
     const existing = conditions.find(co => co.combatant_id === c.id && co.condition === 'Bloodied')
@@ -296,22 +299,45 @@ export default function GroupCombatantCard({
                     </button>
 
                     {/* Dead toggle (DM only, independent of HP) */}
-                    <button
-                      onClick={async () => {
-                        const next = !c.dead
-                        await supabase.from('combatants').update({ dead: next }).eq('id', c.id)
-                      }}
-                      className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
-                      style={{
-                        background: cDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
-                        border: `0.5px solid ${cDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
-                        color: cDead ? '#c06060' : 'var(--text-dim)',
-                        cursor: 'pointer',
-                        lineHeight: 1,
-                      }}
-                    >
-                      {cDead ? '💀' : '💀 Kill'}
-                    </button>
+                    {cDead ? (
+                      <button
+                        onClick={async () => {
+                          // optimistic revive for this sub-card
+                          setOptimisticAliveIds(prev => ({ ...prev, [c.id]: true }))
+                          if (canSeeHP && c.max_hp !== null && c.current_hp !== null) {
+                            try { hpRefs.current[c.id]?.focusAndEdit() } catch (e) {}
+                          }
+                          try {
+                            await supabase.from('combatants').update({ dead: false }).eq('id', c.id)
+                          } catch (err) {
+                            // rollback if server still has dead
+                            setOptimisticAliveIds(prev => { const n = { ...prev }; delete n[c.id]; return n })
+                            console.error('Revive failed', err)
+                          }
+                        }}
+                        className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
+                        style={{ background: 'var(--bg-void)', border: '0.5px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', lineHeight: 1 }}
+                      >
+                        Revive
+                      </button>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          const next = !c.dead
+                          await supabase.from('combatants').update({ dead: next }).eq('id', c.id)
+                        }}
+                        className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
+                        style={{
+                          background: cDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
+                          border: `0.5px solid ${cDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
+                          color: cDead ? '#c06060' : 'var(--text-dim)',
+                          cursor: 'pointer',
+                          lineHeight: 1,
+                        }}
+                      >
+                        {cDead ? '💀' : '💀 Kill'}
+                      </button>
+                    )}
 
                     {/* Condition picker */}
                     <button

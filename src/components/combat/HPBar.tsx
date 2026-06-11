@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import React, { useState, useRef, useImperativeHandle } from 'react'
 import { flushSync } from 'react-dom'
 import { supabase } from '../../lib/supabase'
  
@@ -11,11 +11,19 @@ interface Props {
   isDead?: boolean
 }
  
-export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false }: Props) {
+const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false }: Props, ref) {
   const [editing, setEditing] = useState(false)
   const [delta, setDelta]     = useState('')
   const inputRef = useRef<HTMLInputElement | null>(null)
 
+  useImperativeHandle(ref, () => ({
+    focusAndEdit() {
+      if (!editing) {
+        try { flushSync(() => setEditing(true)) } catch (e) {}
+        try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {}
+      }
+    }
+  }))
 
   // Dead state — show skull
   if (isDead) {
@@ -170,3 +178,6 @@ export default function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodie
     </div>
   )
 }
+)
+
+export default HPBar
