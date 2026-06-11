@@ -4,7 +4,7 @@ import { CONDITION_ICON_MAP, ConditionImage, ConditionIconWrapper } from './Cond
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
-import ConditionSummary from './ConditionSummary'
+import ConditionSummary, { ConditionSheetPanel } from './ConditionSummary'
 import BloodDrips from './BloodDrips'
 import type { Combatant, Condition, Participant } from '../../types'
 
