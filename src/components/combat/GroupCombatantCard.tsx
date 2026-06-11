@@ -40,7 +40,7 @@ export default function GroupCombatantCard({
   const [showConditionsFor, setShowConditionsFor] = useState<string | null>(null)
   const [sheetFor, setSheetFor] = useState<string | null>(null)
   // optimistic revive set of IDs
-  const [optimisticAliveIds, setOptimisticAliveIds] = useState<Record<string, boolean>>({})
+  const [_optimisticAliveIds, setOptimisticAliveIds] = useState<Record<string, boolean>>({})
   const hpRefs = useRef<Record<string, any>>({})
 
   async function toggleBloodied(c: Combatant) {

@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react'
+import React, { useState, useRef, useImperativeHandle } from 'react'
 import { flushSync } from 'react-dom'
 import { supabase } from '../../lib/supabase'
  
@@ -11,7 +11,7 @@ interface Props {
   isDead?: boolean
 }
  
-const HPBar = forwardRef(function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false }: Props, ref) {
+const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false }: Props, ref) {
   const [editing, setEditing] = useState(false)
   const [delta, setDelta]     = useState('')
   const inputRef = useRef<HTMLInputElement | null>(null)
