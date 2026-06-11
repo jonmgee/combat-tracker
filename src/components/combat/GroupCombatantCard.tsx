@@ -38,15 +38,6 @@ export default function GroupCombatantCard({
   const isDM = me.role === 'dm'
   const [showConditionsFor, setShowConditionsFor] = useState<string | null>(null)
 
-  async function toggleConcentration(c: Combatant) {
-    const existing = conditions.find(co => co.combatant_id === c.id && co.condition === 'Concentrating')
-    if (existing) {
-      await supabase.from('conditions').delete().eq('id', existing.id)
-    } else {
-      await supabase.from('conditions').insert({ combatant_id: c.id, condition: 'Concentrating', category: 'spell' })
-    }
-  }
-
   async function toggleBloodied(c: Combatant) {
     const existing = conditions.find(co => co.combatant_id === c.id && co.condition === 'Bloodied')
     if (existing) {
@@ -283,26 +274,6 @@ export default function GroupCombatantCard({
                 {/* Actions — DM only */}
                 {isDM && !cDead && (
                   <div className="flex gap-1 mt-1">
-                    {/* Concentration toggle */}
-                    <button
-                      onClick={() => toggleConcentration(c)}
-                      className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
-                      style={{
-                        background: cConcentrating ? 'rgba(140,90,220,0.25)' : 'var(--bg-void)',
-                        border: `0.5px solid ${cConcentrating ? 'rgba(140,90,220,0.5)' : 'var(--border)'}`,
-                        color: cConcentrating ? '#c0a0f0' : 'var(--text-dim)',
-                        cursor: 'pointer',
-                        lineHeight: 1,
-                      }}
-                    >
-                      <svg viewBox="0 0 14 14" fill="none" style={{ width: 9, height: 9, flexShrink: 0 }}>
-                        <ellipse cx="7" cy="7" rx="5.5" ry="4" stroke="currentColor" strokeWidth="1"/>
-                        <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="0.8"/>
-                        <circle cx="7" cy="7" r="0.7" fill="currentColor"/>
-                      </svg>
-                      {cConcentrating ? '⚡' : 'Conc'}
-                    </button>
-
                     {/* Bloodied toggle */}
                     <button
                       onClick={() => toggleBloodied(c)}

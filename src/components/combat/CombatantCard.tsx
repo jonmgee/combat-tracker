@@ -47,18 +47,6 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
   const concentratingCondition = conditions.find(c => c.condition === 'Concentrating')
   const isConcentrating = !!concentratingCondition
 
-  async function toggleConcentration() {
-    if (isConcentrating) {
-      await supabase.from('conditions').delete().eq('id', concentratingCondition!.id)
-    } else {
-      await supabase.from('conditions').insert({
-        combatant_id: combatant.id,
-        condition: 'Concentrating',
-        category: 'spell',
-      })
-    }
-  }
-
   async function toggleBloodied() {
     if (bloodiedCondition) {
       await supabase.from('conditions').delete().eq('id', bloodiedCondition.id)
@@ -262,20 +250,6 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 {/* Pills row */}
                 {!isDead && (isDM || isMe) && (
                   <div className="flex gap-2 items-center">
-                    <button onClick={toggleConcentration}
-                      className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-                      style={{
-                        background: isConcentrating ? 'rgba(140,90,220,0.25)' : 'var(--bg-void)',
-                        border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.5)' : 'var(--border)'}`,
-                        color: isConcentrating ? '#c0a0f0' : 'var(--text-dim)', cursor: 'pointer',
-                      }}>
-                      <svg viewBox="0 0 14 14" fill="none" style={{ width: 12, height: 12, flexShrink: 0 }}>
-                        <ellipse cx="7" cy="7" rx="5.5" ry="4" stroke="currentColor" strokeWidth="1"/>
-                        <circle cx="7" cy="7" r="2" stroke="currentColor" strokeWidth="0.8"/>
-                        <circle cx="7" cy="7" r="0.7" fill="currentColor"/>
-                      </svg>
-                      {isConcentrating ? 'Concentrating' : 'Concentrate'}
-                    </button>
                     <button onClick={toggleBloodied}
                       className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
                       style={{
