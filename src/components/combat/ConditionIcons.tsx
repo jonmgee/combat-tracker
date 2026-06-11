@@ -3,7 +3,6 @@
  
 import React from 'react'
 import { getConditionImageUrls } from '../../lib/conditionImageUrls'
-import { CONDITION_MAP } from '../../lib/conditions'
 
 // Helper to prefer WebP with PNG fallback — uses Vite-resolved asset URLs so it works in production.
 export function ConditionImage({ folder, filename, alt }: { folder: string, filename: string, alt?: string }) {
