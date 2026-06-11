@@ -122,3 +122,5 @@ export default function ConditionSummary({ combatantId, activeConditions }: { co
     </div>
   )
 }
+
+export { ConditionSheetPanel }
