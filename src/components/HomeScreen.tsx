@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { generateUniqueCode } from '../lib/roomCodes'
 import lanternLogo from '../assets/Lantern3.png'
@@ -26,7 +26,19 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
     }
   }, [])
   const [playerName, setPlayerName] = useState('')
+  const roomInputRef = React.useRef<HTMLInputElement | null>(null)
   const [loading, setLoading] = useState(false)
+  useEffect(() => {
+    if (mode === 'join') {
+      // ensure the room code input is visible when autofocus occurs (helps on mobile with keyboard)
+      try {
+        setTimeout(() => {
+          roomInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 50)
+      } catch (e) {}
+    }
+  }, [mode])
+
   const [error, setError] = useState<string | null>(null)
 
   async function handleCreateSession() {
@@ -272,10 +284,12 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
                 Room Code
               </label>
               <input
+                ref={roomInputRef}
                 type="text"
                 maxLength={13}
                 value={roomCode}
                 onChange={e => setRoomCode(e.target.value.toUpperCase())}
+                autoFocus
                 placeholder="e.g. GHOST-LANTERN"
                 className="w-full px-4 py-3 rounded-lg text-lg font-mono tracking-widest text-center outline-none transition-all"
                 style={{
@@ -298,8 +312,8 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
                 maxLength={40}
                 value={playerName}
                 onChange={e => setPlayerName(e.target.value)}
-                placeholder="Aragorn, son of Arathorn…"
-                className="w-full px-4 py-3 rounded-lg outline-none transition-all"
+                placeholder="e.g. Bo Damage"
+                className="w-full px-4 py-3 rounded-lg outline-none transition-all placeholder-italic"
                 style={{
                   background: 'var(--bg-input)',
                   border: '1px solid var(--border-light)',
