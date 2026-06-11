@@ -299,8 +299,8 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
                 maxLength={40}
                 value={playerName}
                 onChange={e => setPlayerName(e.target.value)}
-                placeholder="Bo Damage"
-                className="w-full px-4 py-3 rounded-lg outline-none transition-all"
+                placeholder="e.g. Bo Damage"
+                className="w-full px-4 py-3 rounded-lg outline-none transition-all placeholder-italic"
                 style={{
                   background: 'var(--bg-input)',
                   border: '1px solid var(--border-light)',
