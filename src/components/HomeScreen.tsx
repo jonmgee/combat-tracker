@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { generateUniqueCode } from '../lib/roomCodes'
 import lanternLogo from '../assets/Lantern3.png'
