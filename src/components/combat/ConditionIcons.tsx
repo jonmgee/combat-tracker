@@ -320,13 +320,16 @@ export function PolymorphedIcon() {
 
 // On touch devices tooltips should not float over neighbours. We'll hide hover tooltips on touch devices and rely on the bottom sheet UI instead.
 export function ConditionIconWrapper({
-  _conditionName,
+  conditionName,
   children,
 }: {
   conditionName: string
   children: React.ReactNode
 }) {
   // Tooltip removed. Parent components should open the full Conditions sheet on icon click.
+  // avoid unused variable error
+  void conditionName
+
   return (
     <div className="condition-icon-wrapper" style={{ position: 'relative' }}>
       {children}
