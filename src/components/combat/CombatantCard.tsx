@@ -412,6 +412,35 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               </button>
             </div>
           )}
+
+          {/* Revive row (shown only when dead) */}
+          {isDead && (
+            <div className="flex gap-2 mt-2">
+              {isDM && (
+                <button
+                  onClick={async () => {
+                    // optimistic un-dead locally (synchronous) so HPBar can mount
+                    flushSync(() => setOptimisticAlive(true))
+                    // synchronously focus HP input if HP is tracked
+                    if (canSeeHP && combatant.max_hp !== null && combatant.current_hp !== null) {
+                      try { hpBarRef.current?.focusAndEdit() } catch (e) {}
+                    }
+                    // then update server; if it fails and server still says dead, roll back optimistic state
+                    try {
+                      await supabase.from('combatants').update({ dead: false }).eq('id', combatant.id)
+                    } catch (err) {
+                      setOptimisticAlive(false)
+                      console.error('Revive failed', err)
+                    }
+                  }}
+                  className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                  style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}
+                >
+                  Revive
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
