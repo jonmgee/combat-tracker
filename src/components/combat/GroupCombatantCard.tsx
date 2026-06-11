@@ -37,6 +37,7 @@ export default function GroupCombatantCard({
 }: Props) {
   const isDM = me.role === 'dm'
   const [showConditionsFor, setShowConditionsFor] = useState<string | null>(null)
+  const [sheetFor, setSheetFor] = useState<string | null>(null)
 
   async function toggleBloodied(c: Combatant) {
     const existing = conditions.find(co => co.combatant_id === c.id && co.condition === 'Bloodied')
@@ -245,7 +246,7 @@ export default function GroupCombatantCard({
                       }
                       return (
                         <ConditionIconWrapper conditionName={co.condition}>
-                          <div key={co.id} className="group"
+                          <div key={co.id} className="group" onClick={() => setSheetFor(c.id)}
                             style={{ position: 'relative', width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {asset
                               ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={co.condition} />
@@ -333,6 +334,9 @@ export default function GroupCombatantCard({
           activeConditions={conditions.filter(c => c.combatant_id === showConditionsFor)}
           onClose={() => setShowConditionsFor(null)}
         />
+      )}
+      {sheetFor && (
+        <ConditionSummary combatantId={sheetFor} activeConditions={conditions.filter(c => c.combatant_id === sheetFor)} />
       )}
     </div>
   )
