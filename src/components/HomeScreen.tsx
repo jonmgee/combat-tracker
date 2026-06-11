@@ -26,7 +26,19 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
     }
   }, [])
   const [playerName, setPlayerName] = useState('')
+  const roomInputRef = React.useRef<HTMLInputElement | null>(null)
   const [loading, setLoading] = useState(false)
+  useEffect(() => {
+    if (mode === 'join') {
+      // ensure the room code input is visible when autofocus occurs (helps on mobile with keyboard)
+      try {
+        setTimeout(() => {
+          roomInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }, 50)
+      } catch (e) {}
+    }
+  }, [mode])
+
   const [error, setError] = useState<string | null>(null)
 
   async function handleCreateSession() {
@@ -272,6 +284,7 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
                 Room Code
               </label>
               <input
+                ref={roomInputRef}
                 type="text"
                 maxLength={13}
                 value={roomCode}
