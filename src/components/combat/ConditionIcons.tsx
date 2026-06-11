@@ -320,7 +320,7 @@ export function PolymorphedIcon() {
 
 // On touch devices tooltips should not float over neighbours. We'll hide hover tooltips on touch devices and rely on the bottom sheet UI instead.
 export function ConditionIconWrapper({
-  conditionName,
+  _conditionName,
   children,
 }: {
   conditionName: string
