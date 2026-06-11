@@ -276,6 +276,7 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
                 maxLength={13}
                 value={roomCode}
                 onChange={e => setRoomCode(e.target.value.toUpperCase())}
+                autoFocus
                 placeholder="e.g. GHOST-LANTERN"
                 className="w-full px-4 py-3 rounded-lg text-lg font-mono tracking-widest text-center outline-none transition-all"
                 style={{
@@ -298,7 +299,7 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
                 maxLength={40}
                 value={playerName}
                 onChange={e => setPlayerName(e.target.value)}
-                placeholder="Aragorn, son of Arathorn…"
+                placeholder="Bo Damage"
                 className="w-full px-4 py-3 rounded-lg outline-none transition-all"
                 style={{
                   background: 'var(--bg-input)',
