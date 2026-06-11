@@ -221,3 +221,9 @@ body {
      so the compact icons are visible on mobile without restructuring components. */
   .condition-summary-mobile .condition-summary { display: flex !important; align-items: center; gap: 6px; }
 }
+
+/* Scoped placeholder italic utility (used by Join character name input) */
+.placeholder-italic::placeholder {
+  font-style: italic;
+  opacity: 0.9;
+}
