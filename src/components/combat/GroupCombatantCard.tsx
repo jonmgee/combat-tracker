@@ -159,7 +159,12 @@ export default function GroupCombatantCard({
       </div>
 
       {/* ── Sub-cards grid ── */}
-      <div className="px-3 pb-3 grid gap-2 group-combat-grid">
+      <div className="px-3 pb-3 grid gap-2"
+        style={{
+          gridTemplateColumns: combatants.length <= 3
+            ? `repeat(${combatants.length}, 1fr)`
+            : `repeat(3, 1fr)`,
+        }}
       >
         {combatants.map((c, idx) => {
           const cConditions = conditions.filter(cond => cond.combatant_id === c.id)
