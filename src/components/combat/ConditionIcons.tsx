@@ -346,56 +346,10 @@ export function ConditionIconWrapper({
   conditionName: string
   children: React.ReactNode
 }) {
-  const [showTooltip, setShowTooltip] = React.useState(false)
-  const def = CONDITION_MAP[conditionName]
-
-  // Hide hover tooltips on touch devices: detect pointer capabilities
-  const isTouch = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches
-
+  // Tooltip removed. Parent components should open the full Conditions sheet on icon click.
   return (
-    <div className="condition-icon-wrapper" style={{ position: 'relative' }}
-      onMouseEnter={() => { if (!isTouch) setShowTooltip(true) }}
-      onMouseLeave={() => { if (!isTouch) setShowTooltip(false) }}
-      onClick={() => setShowTooltip(s => !s)}
-    >
+    <div className="condition-icon-wrapper" style={{ position: 'relative' }}>
       {children}
-
-      {/* Info badge — top-left */}
-      <div
-        style={{
-          position: 'absolute',
-          top: -4,
-          left: -4,
-          width: 14,
-          height: 14,
-          borderRadius: '50%',
-          background: 'rgba(100,80,60,0.85)',
-          border: '1px solid rgba(180,140,100,0.5)',
-          color: '#d0c0a0',
-          fontSize: 9,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          lineHeight: 1,
-          zIndex: 10,
-          fontFamily: "'Inter', sans-serif",
-          fontStyle: 'italic',
-          fontWeight: 700,
-        }}
-      >
-        i
-      </div>
-
-      {/* Tooltip */}
-      {showTooltip && def?.desc && (
-        <div style={TOOLTIP_STYLE}>
-          <div style={{ fontWeight: 600, marginBottom: 2, color: '#c0a080' }}>
-            {conditionName}
-          </div>
-          {def.desc}
-        </div>
-      )}
     </div>
   )
 }
