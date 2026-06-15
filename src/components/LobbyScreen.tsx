@@ -203,7 +203,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
           {showQr && (
             <div className="mt-4 fade-in">
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('https://combat-tracker-one.vercel.app/?join=' + session.room_code)}`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent('https://torchandturn.com/?join=' + session.room_code)}`}
                 alt="QR code to join this room"
                 className="mx-auto"
                 style={{ borderRadius: '8px', border: '1px solid var(--border)', background: 'white' }}
