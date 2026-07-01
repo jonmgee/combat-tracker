@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { generateUniqueCode } from '../lib/roomCodes'
 import lanternLogo from '../assets/Lantern3.png'
+import InfoSheetPanel from './InfoSheetPanel'
 
 import type { Session, Participant, CombatState } from '../types'
 
@@ -12,6 +13,7 @@ interface Props {
 
 export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
   const [mode, setMode] = useState<'idle' | 'join'>('idle')
+  const [showInfo, setShowInfo] = useState(false)
   const [roomCode, setRoomCode] = useState('')
 
   // Read ?join=CODE from URL params (e.g. QR scan) and pre-fill join screen
@@ -235,6 +237,26 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
               {loading ? 'Preparing…' : '⚔️  Create Session (DM)'}
             </button>
 
+            {/* How it works link — DM only */}
+            <button
+              onClick={() => setShowInfo(true)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-dim)',
+                fontSize: '0.8rem',
+                fontFamily: "'Inter', sans-serif",
+                letterSpacing: '0.04em',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                textUnderlineOffset: 3,
+                transition: 'color 0.15s',
+              }}
+              className="hover:opacity-80"
+            >
+              How it works
+            </button>
+
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
               <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem', letterSpacing: '0.1em' }}>OR</span>
@@ -346,6 +368,55 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
           </div>
         )}
       </div>
+
+      {/* How it works info sheet */}
+      <InfoSheetPanel open={showInfo} onClose={() => setShowInfo(false)} title="How Torch &amp; Turn Works">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', fontStyle: 'italic' }}>
+            You&rsquo;re the DM. This is your battle map — minus the miniatures.
+          </p>
+
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--gold)', marginBottom: 4 }}>
+              1. Create a session
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              You get a two-word code, like <span style={{ fontFamily: "'Courier New', monospace", color: 'var(--gold)' }}>GHOST-LANTERN</span>. No account, no setup.
+            </p>
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--gold)', marginBottom: 4 }}>
+              2. Get your table in
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              Show the QR code on your screen for players to scan, or just call out the code. Either way, they&rsquo;re in within seconds.
+            </p>
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--gold)', marginBottom: 4 }}>
+              3. They join on their phones
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              Your players see initiative order, their own HP, and their conditions. Nothing more, nothing that spoils your fun.
+            </p>
+          </div>
+
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--gold)', marginBottom: 4 }}>
+              4. You run the fight
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+              Advance turns, apply conditions, track HP, drop a boss without breaking your narration. Start a new fight anytime without breaking the session — your party and their HP carry over.
+            </p>
+          </div>
+
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', fontStyle: 'italic', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+            Session ends, code retires. Next week, new fray.
+          </p>
+        </div>
+      </InfoSheetPanel>
 
     </div>
   )
