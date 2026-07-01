@@ -32,6 +32,14 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
   const isDM = me.role === 'dm'
   const subPaused = useRef(false)
 
+  // ── Add PC state ──
+  const [showAddPc, setShowAddPc] = useState(false)
+  const [addPcName, setAddPcName] = useState('')
+  const [addPcHp, setAddPcHp] = useState('')
+  const [addPcMaxHp, setAddPcMaxHp] = useState('')
+  const [addPcIsMaxHp, setAddPcIsMaxHp] = useState(true)
+  const [savingPc, setSavingPc] = useState(false)
+
   // ── Load everything (combatants + conditions + participants) in one shot ──
   const loadAll = useCallback(async () => {
 
@@ -533,6 +541,13 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                 {advancing ? '...' : 'Next ▶'}
               </button>
               <button
+                onClick={() => setShowAddPc(true)}
+                className="text-xs transition-all hover:opacity-70"
+                style={{ color: 'var(--gold-dark)', fontFamily: "'Cinzel', serif", letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
+                + Add PC
+              </button>
+              <button
                 onClick={() => setShowResetConfirm(true)}
                 className="text-xs transition-all hover:opacity-70"
                 style={{ color: 'var(--text-dim)', fontFamily: "'Cinzel', serif", letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
@@ -699,6 +714,145 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
           </div>
         </div>
       </div>
+
+      {/* ── Add PC modal ── */}
+      {showAddPc && isDM && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setShowAddPc(false)}
+        >
+          <div
+            className="rounded-t-xl p-6 w-full max-w-sm"
+            style={{ background: 'var(--bg-panel)', border: '1px solid var(--gold-dark)', boxShadow: '0 -8px 40px rgba(0,0,0,0.8)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                className="text-lg font-bold"
+                style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', letterSpacing: '0.06em' }}
+              >
+                Add Player Character
+              </h3>
+              <button
+                onClick={() => setShowAddPc(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '1.25rem', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Character Name</label>
+                <input
+                  type="text" maxLength={40}
+                  value={addPcName}
+                  onChange={e => setAddPcName(e.target.value)}
+                  placeholder="e.g. Bo Damage"
+                  autoFocus
+                  className="w-full px-3 py-2.5 rounded-lg outline-none text-sm"
+                  style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                />
+              </div>
+
+              {/* HP toggle */}
+              <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={!!addPcHp || !!addPcMaxHp}
+                  onChange={e => { if (!e.target.checked) { setAddPcHp(''); setAddPcMaxHp('') } else { setAddPcHp('30'); setAddPcIsMaxHp(true) } }}
+                  style={{ accentColor: 'var(--gold)' }}
+                />
+                Track HP
+              </label>
+
+              {(!!addPcHp || !!addPcMaxHp) && (
+                <div className="flex gap-2 fade-in">
+                  <div className="flex-1">
+                    <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Current HP</label>
+                    <input
+                      type="tel" inputMode="numeric" pattern="\d*"
+                      value={addPcHp}
+                      onChange={e => setAddPcHp(e.target.value)}
+                      min={1}
+                      placeholder="HP"
+                      className="w-full px-3 py-2 rounded text-sm text-center outline-none"
+                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                    />
+                  </div>
+                  {!addPcIsMaxHp && (
+                    <div className="flex-1">
+                      <label className="text-xs mb-1 block" style={{ color: 'var(--text-dim)' }}>Max HP</label>
+                      <input
+                        type="tel" inputMode="numeric" pattern="\d*"
+                        value={addPcMaxHp}
+                        onChange={e => setAddPcMaxHp(e.target.value)}
+                        min={1}
+                        placeholder="Max"
+                        className="w-full px-3 py-2 rounded text-sm text-center outline-none"
+                        style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(!!addPcHp || !!addPcMaxHp) && (
+                <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-dim)', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={addPcIsMaxHp}
+                    onChange={e => setAddPcIsMaxHp(e.target.checked)}
+                    style={{ accentColor: 'var(--gold)' }}
+                  />
+                  Current HP is max HP
+                </label>
+              )}
+
+              <button
+                onClick={async () => {
+                  const name = addPcName.trim()
+                  if (!name) return
+                  setSavingPc(true)
+                  try {
+                    const hp = addPcHp ? parseInt(addPcHp) : null
+                    const max = (addPcHp && addPcIsMaxHp) ? hp : (addPcMaxHp ? parseInt(addPcMaxHp) : null)
+                    await supabase.from('combatants').insert({
+                      session_id: session.id,
+                      participant_id: null,
+                      name,
+                      kind: 'player',
+                      initiative: null,
+                      initiative_order: null,
+                      is_hidden: false,
+                      hp_enabled: !!hp,
+                      current_hp: hp ?? null,
+                      max_hp: max ?? null,
+                      temp_hp: 0,
+                    })
+                    setAddPcName('')
+                    setAddPcHp('')
+                    setAddPcMaxHp('')
+                    setAddPcIsMaxHp(true)
+                    setShowAddPc(false)
+                    await loadAll()
+                  } catch (e) {
+                    console.error('Failed to add PC', e)
+                  } finally {
+                    setSavingPc(false)
+                  }
+                }}
+                disabled={savingPc || !addPcName.trim()}
+                className="w-full py-3 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+              >
+                {savingPc ? 'Adding…' : 'Add to Battle'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Reset confirmation modal ── */}
       {showResetConfirm && (

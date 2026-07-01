@@ -125,7 +125,7 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
         .maybeSingle()
 
       if (combatState) {
-        // Combat has started — only insert combatant if one doesn't already exist for this participant
+        // Combat has started — check if participant already has a combatant
         const { data: existingCombatant } = await supabase
           .from('combatants')
           .select('id')
@@ -134,28 +134,43 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
           .maybeSingle()
 
         if (!existingCombatant) {
-          // Find the highest initiative_order currently assigned
-          const { data: orderMax } = await supabase
+          // ── Claim mechanic: look for an unclaimed DM-added PC with matching name ──
+          const { data: unclaimedPc } = await supabase
             .from('combatants')
-            .select('initiative_order')
+            .select('id')
             .eq('session_id', session.id)
-            .order('initiative_order', { ascending: false })
-            .limit(1)
+            .eq('kind', 'player')
+            .is('participant_id', null)
+            .ilike('name', playerName.trim())
+            .maybeSingle()
 
-          const nextOrder = orderMax && orderMax.length > 0
-            ? (orderMax[0].initiative_order ?? 0) + 1
-            : 1
+          if (unclaimedPc) {
+            // Claim it — set participant_id (HP/conditions carry over untouched)
+            await supabase.from('combatants').update({ participant_id: participant.id }).eq('id', unclaimedPc.id)
+          } else {
+            // No unclaimed PC with this name — create a fresh combatant as before
+            const { data: orderMax } = await supabase
+              .from('combatants')
+              .select('initiative_order')
+              .eq('session_id', session.id)
+              .order('initiative_order', { ascending: false })
+              .limit(1)
 
-          await supabase.from('combatants').insert({
-            session_id:       session.id,
-            participant_id:   participant.id,
-            name:             playerName.trim(),
-            kind:             'player',
-            initiative:       null,
-            initiative_order: nextOrder,
-            is_hidden:        false,
-            hp_enabled:       false,
-          })
+            const nextOrder = orderMax && orderMax.length > 0
+              ? (orderMax[0].initiative_order ?? 0) + 1
+              : 1
+
+            await supabase.from('combatants').insert({
+              session_id:       session.id,
+              participant_id:   participant.id,
+              name:             playerName.trim(),
+              kind:             'player',
+              initiative:       null,
+              initiative_order: nextOrder,
+              is_hidden:        false,
+              hp_enabled:       false,
+            })
+          }
         }
 
         onEnterCombat(session, participant, combatState as CombatState)

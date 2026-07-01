@@ -38,6 +38,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
   const isMonster = combatant.kind === 'monster'
   const isHidden  = combatant.is_hidden
   const isDead    = combatant.dead
+  const isClaimed = combatant.participant_id !== null && combatant.kind === 'player'
 
   const canSeeHP  = (isMe && combatant.hp_enabled) || (isDM && isMonster && combatant.hp_enabled)
   const showCard  = !isHidden || isDM
@@ -358,6 +359,19 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   className="flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs transition-all active:scale-95"
                   style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid var(--gold-dark)', color: 'var(--gold)', cursor: 'pointer', fontWeight: 600 }}>
                   ↔ Alert Swap
+                </button>
+              )}
+
+              {/* Revert to DM control — claimed PC only */}
+              {isDM && isClaimed && !isDead && (
+                <button
+                  onClick={async () => {
+                    await supabase.from('combatants').update({ participant_id: null }).eq('id', combatant.id)
+                  }}
+                  className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
+                  style={{ background: 'rgba(140,90,220,0.08)', border: '1px solid rgba(140,90,220,0.3)', color: '#b090f0', cursor: 'pointer' }}
+                >
+                  ↺ Revert
                 </button>
               )}
 

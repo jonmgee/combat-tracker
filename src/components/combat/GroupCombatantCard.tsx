@@ -278,7 +278,19 @@ export default function GroupCombatantCard({
 
                 {/* Actions — DM only */}
                 {isDM && !cDead && (
-                  <div className="flex gap-1 mt-1">
+                  <div className="flex gap-1 mt-1" style={{ flexWrap: 'wrap' }}>
+                    {/* Revert to DM control — claimed PC only */}
+                    {c.participant_id !== null && c.kind === 'player' && (
+                      <button
+                        onClick={async () => {
+                          await supabase.from('combatants').update({ participant_id: null }).eq('id', c.id)
+                        }}
+                        className="px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
+                        style={{ background: 'rgba(140,90,220,0.08)', border: '0.5px solid rgba(140,90,220,0.3)', color: '#b090f0', cursor: 'pointer', lineHeight: 1 }}
+                      >
+                        ↺ Revert
+                      </button>
+                    )}
                     {/* Bloodied toggle */}
                     <button
                       onClick={() => toggleBloodied(c)}
