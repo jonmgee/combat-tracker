@@ -288,7 +288,7 @@ export default function GroupCombatantCard({
                         className="px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
                         style={{ background: 'rgba(140,90,220,0.08)', border: '0.5px solid rgba(140,90,220,0.3)', color: '#b090f0', cursor: 'pointer', lineHeight: 1 }}
                       >
-                        ↺ Revert
+                        ↺ Reclaim
                       </button>
                     )}
                     {/* Bloodied toggle */}

@@ -371,7 +371,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
                   style={{ background: 'rgba(140,90,220,0.08)', border: '1px solid rgba(140,90,220,0.3)', color: '#b090f0', cursor: 'pointer' }}
                 >
-                  ↺ Revert
+                  ↺ Reclaim
                 </button>
               )}
 
