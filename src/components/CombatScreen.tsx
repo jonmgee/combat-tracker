@@ -28,6 +28,13 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
   const [lateCurrentHp, setLateCurrentHp] = useState('')
   const [lateMaxHp, setLateMaxHp]       = useState('')
   const [lateIsMaxHp, setLateIsMaxHp]   = useState(true)
+  // ── Mid-combat monster summon ──
+  const [showSummon, setShowSummon]       = useState(false)
+  const [summonName, setSummonName]       = useState('')
+  const [summonInit, setSummonInit]       = useState('')
+  const [summonHpOpt, setSummonHpOpt]     = useState(false)
+  const [summonHp, setSummonHp]           = useState('')
+  const [summonSaving, setSummonSaving]   = useState(false)
 
   const isDM = me.role === 'dm'
   const subPaused = useRef(false)
@@ -217,6 +224,53 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
 
     setLateInit('')
     setLateInitSaving(false)
+  }
+
+  // ── Mid-combat monster summon (DM only) ──
+  async function handleSummon() {
+    const name = summonName.trim()
+    const init = parseInt(summonInit)
+    if (!name || isNaN(init) || summonSaving) return
+    setSummonSaving(true)
+    try {
+      subPaused.current = true
+
+      // Insert the new monster row
+      const row = {
+        session_id: session.id,
+        name,
+        kind: 'monster' as const,
+        initiative: init,
+        is_hidden: false,
+        has_taken_turn: false,
+        dead: false,
+        count: 1,
+        hp_enabled: summonHpOpt,
+        max_hp: summonHpOpt && summonHp ? parseInt(summonHp) : null,
+        current_hp: summonHpOpt && summonHp ? parseInt(summonHp) : null,
+        temp_hp: 0,
+        participant_id: null,
+      }
+      await supabase.from('combatants').insert(row)
+
+      // Reload and re-sort via existing grouped-order logic
+      const { data: fresh } = await supabase.from('combatants')
+        .select('*').eq('session_id', session.id)
+      if (fresh) {
+        await assignGroupedInitiativeOrders(fresh)
+        setCombatants(fresh as Combatant[])
+      }
+
+      // Reset form
+      setShowSummon(false)
+      setSummonName('')
+      setSummonInit('')
+      setSummonHpOpt(false)
+      setSummonHp('')
+    } finally {
+      subPaused.current = false
+      setSummonSaving(false)
+    }
   }
 
   // ── Advance turn (DM only) ──
@@ -522,6 +576,15 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
           <div className="text-sm font-semibold" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold-light)' }}>
             {currentCombatant?.name ?? '-'}
           </div>
+          {isDM && (
+            <button
+              onClick={() => setShowSummon(true)}
+              className="mt-1 text-xs transition-all hover:opacity-70"
+              style={{ color: 'var(--gold-dark)', fontFamily: "'Cinzel', serif", letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}
+            >
+              + Summon
+            </button>
+          )}
         </div>
 
         <div className="text-right">
@@ -705,6 +768,108 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
           </div>
         </div>
       </div>
+
+      {/* ── Summon monster modal (DM only) ── */}
+      {showSummon && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+        >
+          <div
+            className="rounded-xl p-6 max-w-sm w-full mx-4"
+            style={{ background: 'var(--bg-panel)', border: '1px solid var(--gold-dark)', boxShadow: '0 8px 40px rgba(0,0,0,0.8)' }}
+          >
+            <h3
+              className="text-lg font-bold mb-4 text-center"
+              style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', letterSpacing: '0.06em' }}
+            >
+              🐾 Summon Monster
+            </h3>
+
+            {/* Name */}
+            <label className="block text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>
+              Name
+            </label>
+            <input
+              type="text"
+              value={summonName}
+              onChange={e => setSummonName(e.target.value)}
+              placeholder="e.g. Zombie"
+              className="w-full px-3 py-2 rounded text-sm outline-none mb-4"
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+            />
+
+            {/* Initiative */}
+            <label className="block text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>
+              Initiative Roll
+            </label>
+            <input
+              type="tel" inputMode="numeric" pattern="\d*"
+              min={1} max={30}
+              value={summonInit}
+              onChange={e => setSummonInit(e.target.value)}
+              placeholder="e.g. 14"
+              className="w-full px-3 py-2 rounded text-sm outline-none mb-4"
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
+            />
+
+            {/* Track HP toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm" style={{ color: 'var(--text-dim)' }}>Track HP</span>
+              <button
+                onClick={() => setSummonHpOpt(o => !o)}
+                className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5"
+                style={{ background: summonHpOpt ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)' }}
+              >
+                <div className="w-5 h-5 rounded-full transition-all duration-200"
+                  style={{ background: summonHpOpt ? 'var(--gold)' : 'var(--text-dim)', transform: summonHpOpt ? 'translateX(20px)' : 'translateX(0)' }} />
+              </button>
+            </div>
+
+            {/* HP input (conditional) */}
+            {summonHpOpt && (
+              <div className="mb-4 fade-in">
+                <label className="block text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>
+                  HP
+                </label>
+                <input
+                  type="tel" inputMode="numeric" pattern="\d*"
+                  value={summonHp}
+                  onChange={e => setSummonHp(e.target.value)}
+                  placeholder="e.g. 40"
+                  className="w-full px-3 py-2 rounded text-sm outline-none"
+                  style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                />
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowSummon(false)
+                  setSummonName('')
+                  setSummonInit('')
+                  setSummonHpOpt(false)
+                  setSummonHp('')
+                }}
+                className="flex-1 py-3 rounded-lg font-semibold text-sm transition-all active:scale-95"
+                style={{ background: 'var(--bg-raised)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontFamily: "'Cinzel', serif" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSummon}
+                disabled={summonSaving || !summonName.trim() || !summonInit.trim()}
+                className="flex-1 py-3 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+              >
+                {summonSaving ? 'Summoning…' : 'Summon'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Reset confirmation modal ── */}
       {showResetConfirm && (
