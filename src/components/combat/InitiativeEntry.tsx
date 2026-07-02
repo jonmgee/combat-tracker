@@ -20,7 +20,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
     { name: '', count: '1', initiative: '', hp: '', hpEnabled: false }
   ])
   // DM-added PC rows
-  const [addPcRows, setAddPcRows] = useState<{ name: string; init: string }[]>([])
+  const [addPcRows, setAddPcRows] = useState<{ name: string; init: string; hpEnabled: boolean; hp: string }[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState<string | null>(null)
 
@@ -84,7 +84,10 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
           initiative: init,
           participant_id: null,
           is_hidden: false,
-          hp_enabled: false,
+          hp_enabled: row.hpEnabled,
+          current_hp: row.hpEnabled && row.hp ? parseInt(row.hp) : null,
+          max_hp: row.hpEnabled && row.hp ? parseInt(row.hp) : null,
+          temp_hp: 0,
         })
       }
 
@@ -162,7 +165,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
             <div className="rounded-xl parchment" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>
               <div className="px-5 pt-4 pb-1 flex items-center justify-between">
                 <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Players</span>
-                <button onClick={() => setAddPcRows(p => [...p, { name: '', init: '' }])}
+                <button onClick={() => setAddPcRows(p => [...p, { name: '', init: '', hpEnabled: false, hp: '' }])}
                   className="text-xs px-2 py-1 rounded transition-all"
                   style={{ color: 'var(--gold)', border: '1px solid var(--gold-dark)', background: 'transparent' }}>
                   + Add
@@ -170,28 +173,49 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
               </div>
               {/* DM-added PC rows */}
               {addPcRows.map((row, i) => (
-                <div key={`dm-pc-${i}`} className="flex items-center gap-3 px-5 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
-                  <input
-                    type="text"
-                    value={row.name}
-                    onChange={e => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, name: e.target.value } : r))}
-                    placeholder="Character name"
-                    className="flex-1 px-3 py-2 rounded text-sm outline-none"
-                    style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
-                  />
-                  <input
-                    type="tel" inputMode="numeric" pattern="\d*"
-                    value={row.init}
-                    onChange={e => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, init: e.target.value } : r))}
-                    placeholder="Init"
-                    className="w-16 px-2 py-2 rounded text-center text-sm outline-none"
-                    style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
-                  />
-                  {addPcRows.length > 1 && (
-                    <button onClick={() => setAddPcRows(rows => rows.filter((_, j) => j !== i))}
-                      className="px-2 py-1 rounded text-sm"
-                      style={{ color: 'var(--text-dim)', background: 'transparent' }}>✕</button>
-                  )}
+                <div key={`dm-pc-${i}`} className="px-5 py-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={row.name}
+                      onChange={e => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, name: e.target.value } : r))}
+                      placeholder="Character name"
+                      className="flex-1 px-3 py-2 rounded text-sm outline-none"
+                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                    />
+                    <input
+                      type="tel" inputMode="numeric" pattern="\d*"
+                      value={row.init}
+                      onChange={e => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, init: e.target.value } : r))}
+                      placeholder="Init"
+                      className="w-16 px-2 py-2 rounded text-center text-sm outline-none"
+                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
+                    />
+                    {addPcRows.length > 1 && (
+                      <button onClick={() => setAddPcRows(rows => rows.filter((_, j) => j !== i))}
+                        className="px-2 py-1 rounded text-sm"
+                        style={{ color: 'var(--text-dim)', background: 'transparent' }}>✕</button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Track HP</span>
+                    <button onClick={() => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, hpEnabled: !r.hpEnabled } : r))}
+                      className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5 shrink-0"
+                      style={{ background: row.hpEnabled ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)', cursor: 'pointer' }}>
+                      <div className="w-5 h-5 rounded-full transition-all duration-200"
+                        style={{ background: row.hpEnabled ? 'var(--gold)' : 'var(--text-dim)', transform: row.hpEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
+                    </button>
+                    {row.hpEnabled && (
+                      <input
+                        type="tel" inputMode="numeric" pattern="\d*"
+                        value={row.hp}
+                        onChange={e => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, hp: e.target.value } : r))}
+                        placeholder="Starting HP"
+                        className="flex-1 px-3 py-1.5 rounded text-sm outline-none"
+                        style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                      />
+                    )}
+                  </div>
                 </div>
               ))}
               {/* Joined player rows */}
