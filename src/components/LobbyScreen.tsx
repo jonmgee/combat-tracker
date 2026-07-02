@@ -22,10 +22,14 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
   const [isMaxHp, setIsMaxHp]           = useState(true)
   const [notifEnabled, setNotifEnabled] = useState(me.notifications_enabled)
   const [alertFeat, setAlertFeat]       = useState(me.alert_feat)
+  // DM-added PC names (pre-combat, no initiative or HP)
+  const [dmPcNames, setDmPcNames]       = useState<string[]>([])
+  const [addingPc, setAddingPc]         = useState(false)
+  const [newPcName, setNewPcName]       = useState('')
 
   const isDM      = me.role === 'dm'
   const players   = participants.filter(p => p.role === 'player')
-  const canStart  = isDM && players.length >= 1
+  const canStart  = isDM && (players.length >= 1 || dmPcNames.length >= 1)
 
   // ── Initial load ──
   useEffect(() => {
@@ -122,7 +126,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
 
       // Create a combatant row for each player participant
       const playerParts = participants.filter(p => p.role === 'player')
-      const combatantRows = playerParts.map(p => ({
+      const combatantRows: any[] = playerParts.map(p => ({
         session_id:     session.id,
         participant_id: p.id,
         name:           p.name,
@@ -132,6 +136,17 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
         current_hp:     p.starting_hp,
         max_hp:         p.max_hp_participant ?? p.starting_hp,
       }))
+      // Add DM-created PC combatants (no participant_id)
+      for (const name of dmPcNames) {
+        combatantRows.push({
+          session_id: session.id,
+          participant_id: null,
+          name,
+          kind: 'player',
+          is_hidden: false,
+          hp_enabled: false,
+        })
+      }
       await supabase.from('combatants').insert(combatantRows)
 
       // Create combat_state row
@@ -219,6 +234,15 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
         style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', animationDelay: '0.1s' }}>
         <div className="px-5 pt-5 pb-1 flex items-center justify-between">
           <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Adventurers</span>
+          {isDM && (
+            <button
+              onClick={() => setAddingPc(true)}
+              className="text-xs px-2 py-1 rounded transition-all"
+              style={{ color: 'var(--gold)', border: '1px solid var(--gold-dark)', background: 'transparent' }}
+            >
+              + Add
+            </button>
+          )}
         </div>
         <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
           {participants.map(p => (
@@ -236,7 +260,61 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
               </span>
             </li>
           ))}
-          {participants.length === 0 && (
+          {/* DM-added PCs — no tag, no distinguishing marker */}
+          {dmPcNames.map((name, i) => (
+            <li key={`dm-pc-${i}`} className="flex items-center gap-3 px-5 py-3.5 fade-in">
+              <span className="shrink-0" style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--gold)', boxShadow: '0 0 6px var(--glow-gold)', display: 'inline-block' }} />
+              <span className="flex-1 text-base" style={{ color: 'var(--text-primary)' }}>{name}</span>
+              {isDM && (
+                <button
+                  onClick={() => setDmPcNames(names => names.filter((_, j) => j !== i))}
+                  className="text-xs px-1.5 py-0.5 rounded transition-all"
+                  style={{ color: 'var(--text-dim)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                >✕</button>
+              )}
+            </li>
+          ))}
+          {/* Inline Add input (DM only) */}
+          {isDM && addingPc && (
+            <li className="px-5 py-3 flex items-center gap-3 fade-in" style={{ borderTop: '1px solid var(--border)' }}>
+              <input
+                type="text"
+                value={newPcName}
+                onChange={e => setNewPcName(e.target.value)}
+                placeholder="Character name"
+                className="flex-1 px-3 py-2 rounded text-sm outline-none"
+                style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newPcName.trim()) {
+                    setDmPcNames(names => [...names, newPcName.trim()])
+                    setNewPcName('')
+                    setAddingPc(false)
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (newPcName.trim()) {
+                    setDmPcNames(names => [...names, newPcName.trim()])
+                    setNewPcName('')
+                    setAddingPc(false)
+                  }
+                }}
+                disabled={!newPcName.trim()}
+                className="px-3 py-2 rounded text-sm font-semibold transition-all active:scale-95 disabled:opacity-40"
+                style={{ background: 'var(--gold-dark)', color: '#1a1410' }}
+              >
+                Add
+              </button>
+              <button
+                onClick={() => { setAddingPc(false); setNewPcName('') }}
+                className="px-2 py-2 rounded text-sm"
+                style={{ color: 'var(--text-dim)', background: 'transparent', border: 'none', cursor: 'pointer' }}
+              >✕</button>
+            </li>
+          )}
+          {participants.length === 0 && dmPcNames.length === 0 && !addingPc && (
             <li className="px-5 py-6 text-center" style={{ color: 'var(--text-dim)' }}>
               <span className="text-2xl block mb-2">⚔️</span>
               <span className="text-sm">No adventurers yet…</span>
@@ -381,7 +459,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
             </button>
             {!canStart && (
               <p className="text-center text-xs mt-3" style={{ color: 'var(--text-dim)', letterSpacing: '0.06em' }}>
-                At least one player must join before combat can begin
+                At least one player or adventurer is needed to begin
               </p>
             )}
           </>
