@@ -566,8 +566,19 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
       >
         <div>
           <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Round</div>
-          <div className="text-3xl font-bold" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', lineHeight: 1 }}>
-            {combatState.round_number}
+          <div className="flex items-center gap-2">
+            <div className="text-3xl font-bold" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', lineHeight: 1 }}>
+              {combatState.round_number}
+            </div>
+            {isDM && (
+              <button
+                onClick={() => setShowSummon(true)}
+                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95"
+                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+              >
+                + Add Monster
+              </button>
+            )}
           </div>
         </div>
 
@@ -584,23 +595,14 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
           </div>
           {isDM && (
             <div className="flex flex-col items-end gap-1">
-              <div className="flex gap-2">
-                <button
-                  onClick={advanceTurn}
-                  disabled={advancing}
-                  className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
-                >
-                  {advancing ? '...' : 'Next ▶'}
-                </button>
-                <button
-                  onClick={() => setShowSummon(true)}
-                  className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95"
-                  style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
-                >
-                  + Add Monster
-                </button>
-              </div>
+              <button
+                onClick={advanceTurn}
+                disabled={advancing}
+                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+              >
+                {advancing ? '...' : 'Next Turn ▶'}
+              </button>
               <button
                 onClick={() => setShowResetConfirm(true)}
                 className="text-xs transition-all hover:opacity-70"
