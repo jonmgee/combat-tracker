@@ -24,8 +24,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
   const [alertFeat, setAlertFeat]       = useState(me.alert_feat)
 
   const isDM      = me.role === 'dm'
-  const players   = participants.filter(p => p.role === 'player')
-  const canStart  = isDM && players.length >= 1
+  const canStart  = isDM // gate removed — DM may proceed with zero players
 
   // ── Initial load ──
   useEffect(() => {
@@ -114,7 +113,6 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
   }
 
   async function handleStartCombat() {
-    if (!canStart) return
     setLoading(true)
     try {
       // Update session status
@@ -379,11 +377,7 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
               style={{ background: canStart ? 'linear-gradient(135deg, var(--gold-dark), var(--gold))' : 'var(--bg-raised)', color: canStart ? '#1a1410' : 'var(--text-dim)', fontFamily: "'Cinzel', serif", letterSpacing: '0.08em', boxShadow: canStart ? '0 4px 20px rgba(201,168,76,0.4)' : 'none', border: canStart ? 'none' : '1px solid var(--border)' }}>
               {loading ? 'Preparing battle…' : canStart ? (<><img src={crossedAxes} alt="swords" className="h-10 transform inline-block mr-2"/>Prepare Encounter</>) : 'Waiting for Players…'}
             </button>
-            {!canStart && (
-              <p className="text-center text-xs mt-3" style={{ color: 'var(--text-dim)', letterSpacing: '0.06em' }}>
-                At least one player must join before combat can begin
-              </p>
-            )}
+
           </>
         ) : (
           <div className="w-full py-4 rounded-xl text-center" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>
