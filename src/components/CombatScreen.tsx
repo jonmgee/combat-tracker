@@ -576,15 +576,6 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
           <div className="text-sm font-semibold" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold-light)' }}>
             {currentCombatant?.name ?? '-'}
           </div>
-          {isDM && (
-            <button
-              onClick={() => setShowSummon(true)}
-              className="mt-1 text-xs transition-all hover:opacity-70"
-              style={{ color: 'var(--gold-dark)', fontFamily: "'Cinzel', serif", letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}
-            >
-              + Summon
-            </button>
-          )}
         </div>
 
         <div className="text-right">
@@ -593,14 +584,23 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
           </div>
           {isDM && (
             <div className="flex flex-col items-end gap-1">
-              <button
-                onClick={advanceTurn}
-                disabled={advancing}
-                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
-              >
-                {advancing ? '...' : 'Next ▶'}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={advanceTurn}
+                  disabled={advancing}
+                  className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+                  style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+                >
+                  {advancing ? '...' : 'Next ▶'}
+                </button>
+                <button
+                  onClick={() => setShowSummon(true)}
+                  className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95"
+                  style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+                >
+                  + Add Monster
+                </button>
+              </div>
               <button
                 onClick={() => setShowResetConfirm(true)}
                 className="text-xs transition-all hover:opacity-70"
