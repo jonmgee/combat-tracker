@@ -497,6 +497,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
       <InitiativeEntry
         combatants={combatants}
         me={me}
+        sessionId={session.id}
         onReady={async ({ playerUpdates, monsterInserts, pcInserts }) => {
           // Pause subscription-driven loads while we write
           subPaused.current = true

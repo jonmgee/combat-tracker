@@ -7,10 +7,11 @@ import type { Combatant, Participant } from '../../types'
 interface Props {
   combatants: Combatant[]
   me: Participant
+  sessionId: string
   onReady: (data: { playerUpdates: { id: string; initiative: number }[]; monsterInserts: any[]; pcInserts: any[] }) => void
 }
 
-export default function InitiativeEntry({ combatants, me, onReady }: Props) {
+export default function InitiativeEntry({ combatants, me, sessionId, onReady }: Props) {
   const isDM = me.role === 'dm'
 
   // Initiatives keyed by combatant id
@@ -19,8 +20,16 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
   const [monsters, setMonsters] = useState<{ name: string; count: string; initiative: string; hp: string; hpEnabled: boolean }[]>([
     { name: '', count: '1', initiative: '', hp: '', hpEnabled: false }
   ])
-  // DM-added PC rows
-  const [addPcRows, setAddPcRows] = useState<{ name: string; init: string; hpEnabled: boolean; hp: string }[]>([])
+  // DM-added PC rows with settings fields
+  const [addPcRows, setAddPcRows] = useState<{
+    name: string
+    init: string
+    hpEnabled: boolean
+    hp: string
+    isMaxHp: boolean
+    maxHp: string
+    alertFeat: boolean
+  }[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState<string | null>(null)
 
@@ -72,21 +81,44 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
         }
       }
 
-      // DM-added PCs — insert as player-kind combatants with participant_id=null
+      // DM-added PCs — create participants row first, then combatant with real participant_id
       const pcInserts: any[] = []
       for (const row of addPcRows) {
         const name = row.name.trim()
         const init = parseInt(row.init)
         if (!name || isNaN(init)) continue
+
+        // Create a participants row with role='dm_pc'
+        const { data: newPart, error: partErr } = await supabase
+          .from('participants')
+          .insert({
+            session_id: sessionId,
+            name,
+            role: 'dm_pc',
+            hp_opt_in: row.hpEnabled,
+            starting_hp: row.hpEnabled && row.hp ? parseInt(row.hp) : null,
+            max_hp_participant: row.hpEnabled && row.hp && !row.isMaxHp && row.maxHp ? parseInt(row.maxHp) : row.hpEnabled && row.hp ? parseInt(row.hp) : null,
+            alert_feat: row.alertFeat,
+            notifications_enabled: false,
+            alert_used: false,
+          })
+          .select()
+          .single()
+
+        if (partErr || !newPart) {
+          console.error('[InitiativeEntry] failed to create dm_pc participant', partErr)
+          continue
+        }
+
         pcInserts.push({
           name,
           kind: 'player',
           initiative: init,
-          participant_id: null,
+          participant_id: newPart.id,
           is_hidden: false,
           hp_enabled: row.hpEnabled,
           current_hp: row.hpEnabled && row.hp ? parseInt(row.hp) : null,
-          max_hp: row.hpEnabled && row.hp ? parseInt(row.hp) : null,
+          max_hp: row.hpEnabled && row.hp && !row.isMaxHp && row.maxHp ? parseInt(row.maxHp) : row.hpEnabled && row.hp ? parseInt(row.hp) : null,
           temp_hp: 0,
         })
       }
@@ -165,7 +197,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
             <div className="rounded-xl parchment" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>
               <div className="px-5 pt-4 pb-1 flex items-center justify-between">
                 <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Players</span>
-                <button onClick={() => setAddPcRows(p => [...p, { name: '', init: '', hpEnabled: false, hp: '' }])}
+                <button onClick={() => setAddPcRows(p => [...p, { name: '', init: '', hpEnabled: false, hp: '', isMaxHp: true, maxHp: '', alertFeat: false }])}
                   className="text-xs px-2 py-1 rounded transition-all"
                   style={{ color: 'var(--gold)', border: '1px solid var(--gold-dark)', background: 'transparent' }}>
                   + Add
@@ -197,6 +229,7 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
                         style={{ color: 'var(--text-dim)', background: 'transparent' }}>✕</button>
                     )}
                   </div>
+                  {/* Track HP toggle */}
                   <div className="flex items-center gap-3">
                     <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Track HP</span>
                     <button onClick={() => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, hpEnabled: !r.hpEnabled } : r))}
@@ -205,16 +238,58 @@ export default function InitiativeEntry({ combatants, me, onReady }: Props) {
                       <div className="w-5 h-5 rounded-full transition-all duration-200"
                         style={{ background: row.hpEnabled ? 'var(--gold)' : 'var(--text-dim)', transform: row.hpEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
                     </button>
-                    {row.hpEnabled && (
-                      <input
-                        type="tel" inputMode="numeric" pattern="\d*"
-                        value={row.hp}
-                        onChange={e => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, hp: e.target.value } : r))}
-                        placeholder="Starting HP"
-                        className="flex-1 px-3 py-1.5 rounded text-sm outline-none"
-                        style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
-                      />
-                    )}
+                  </div>
+                  {row.hpEnabled && (
+                    <div className="flex flex-col gap-2 fade-in">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="tel" inputMode="numeric" pattern="\d*"
+                          value={row.hp}
+                          onChange={e => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, hp: e.target.value } : r))}
+                          placeholder="Starting HP"
+                          className="flex-1 px-3 py-1.5 rounded text-sm outline-none"
+                          style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                        />
+                      </div>
+                      {/* This is my max HP checkbox */}
+                      <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-dim)', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={row.isMaxHp}
+                          onChange={e => {
+                            const checked = e.target.checked
+                            setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, isMaxHp: checked } : r))
+                          }}
+                          className="rounded"
+                          style={{ accentColor: 'var(--gold)' }}
+                        />
+                        <span>This is my max HP</span>
+                      </label>
+                      {/* Max HP field (shown when isMaxHp is unchecked) */}
+                      {!row.isMaxHp && (
+                        <input
+                          type="tel" inputMode="numeric" pattern="\d*"
+                          value={row.maxHp}
+                          onChange={e => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, maxHp: e.target.value } : r))}
+                          placeholder="Max HP"
+                          className="w-full px-3 py-1.5 rounded text-sm outline-none"
+                          style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                        />
+                      )}
+                    </div>
+                  )}
+                  {/* Alert Feat toggle */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-dim)' }}>
+                      <span style={{ filter: row.alertFeat ? 'none' : 'grayscale(0.6)' }}>⚡</span>
+                      Alert Feat
+                    </span>
+                    <button onClick={() => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, alertFeat: !r.alertFeat } : r))}
+                      className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5 shrink-0"
+                      style={{ background: row.alertFeat ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)', cursor: 'pointer' }}>
+                      <div className="w-5 h-5 rounded-full transition-all duration-200"
+                        style={{ background: row.alertFeat ? 'var(--gold)' : 'var(--text-dim)', transform: row.alertFeat ? 'translateX(20px)' : 'translateX(0)' }} />
+                    </button>
                   </div>
                 </div>
               ))}

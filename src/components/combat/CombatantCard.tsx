@@ -39,7 +39,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
   const isHidden  = combatant.is_hidden
   const isDead    = combatant.dead
 
-  const canSeeHP  = (isMe && combatant.hp_enabled) || (isDM && isMonster && combatant.hp_enabled)
+  const canSeeHP  = (isMe && combatant.hp_enabled) || (isDM && isMonster && combatant.hp_enabled) || (isDM && combatant.kind === 'player' && combatant.hp_enabled)
   const showCard  = !isHidden || isDM
 
   // Bloodied: visible to all — true if HP is known to be below 50%

@@ -118,8 +118,8 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
       // Update session status
       await supabase.from('sessions').update({ status: 'active' }).eq('id', session.id)
 
-      // Create a combatant row for each player participant
-      const playerParts = participants.filter(p => p.role === 'player')
+      // Create a combatant row for each player participant (real + DM-added)
+      const playerParts = participants.filter(p => p.role === 'player' || p.role === 'dm_pc')
       const combatantRows = playerParts.map(p => ({
         session_id:     session.id,
         participant_id: p.id,
