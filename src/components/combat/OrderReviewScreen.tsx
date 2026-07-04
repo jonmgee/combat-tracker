@@ -290,7 +290,6 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
 
     const thisHasAlert = isPlayerEntry && alertEnabledParticipantIds.has(combatant.participant_id ?? '')
     const isDmProxyActive = isDM && dmSwapActive !== null && dmSwapActive === combatant.participant_id
-    const isDmProxyEligible = isDM && dmAlertCombatant !== null
     const isAlertSwapTarget = isPlayerEntry && (
       (!isDM && alertSwapTargets.some(t => t.id === combatant.id)) ||
       (isDM && dmAlertSwapTargets.some(t => t.id === combatant.id))
