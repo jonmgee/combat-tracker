@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import rollIcon from '../../assets/rollforinitiative3.png'
 import crossedAxes from '../../assets/crossedaxes.png'
@@ -6,12 +6,13 @@ import type { Combatant, Participant } from '../../types'
 
 interface Props {
   combatants: Combatant[]
+  participants: Participant[]
   me: Participant
   sessionId: string
   onReady: (data: { playerUpdates: { id: string; initiative: number }[]; monsterInserts: any[]; pcInserts: any[] }) => void
 }
 
-export default function InitiativeEntry({ combatants, me, sessionId, onReady }: Props) {
+export default function InitiativeEntry({ combatants, participants: initialParticipants, me, sessionId, onReady }: Props) {
   const isDM = me.role === 'dm'
 
   // Initiatives keyed by combatant id
@@ -32,6 +33,37 @@ export default function InitiativeEntry({ combatants, me, sessionId, onReady }: 
   }[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState<string | null>(null)
+
+  // ── DM-PC toggles: participants state synced from props + re-fetched after each write ──
+  const [participantsState, setParticipantsState] = useState<Participant[]>(initialParticipants)
+  const [participantsSaving, setParticipantsSaving] = useState<Record<string, boolean>>({})
+  const [toggleError, setToggleError] = useState<string | null>(null)
+
+  // Sync participantsState when props change (Start New Combat re-fetches)
+  useEffect(() => {
+    setParticipantsState(initialParticipants)
+  }, [initialParticipants])
+
+  const participantById = new Map(participantsState.map(p => [p.id, p]))
+
+  async function writeParticipantToggle(participantId: string, field: 'hp_opt_in' | 'alert_feat', currentValue: boolean) {
+    const nextValue = !currentValue
+    setToggleError(null)
+    setParticipantsSaving(p => ({ ...p, [participantId]: true }))
+    try {
+      const { error: err } = await supabase.from('participants').update({ [field]: nextValue }).eq('id', participantId)
+      if (err) {
+        setToggleError(`Failed to update ${field === 'hp_opt_in' ? 'HP tracking' : 'Alert Feat'}`)
+        console.error('[InitiativeEntry] writeParticipantToggle error', field, err)
+      } else {
+        setParticipantsState(prev => prev.map(p => p.id === participantId ? { ...p, [field]: nextValue } : p))
+      }
+    } catch (e) {
+      setToggleError(`Failed to update ${field === 'hp_opt_in' ? 'HP tracking' : 'Alert Feat'}`)
+    } finally {
+      setParticipantsSaving(p => ({ ...p, [participantId]: false }))
+    }
+  }
 
   // My combatant (player only)
   const myCombatant = combatants.find(c => c.participant_id === me.id)
@@ -294,23 +326,82 @@ export default function InitiativeEntry({ combatants, me, sessionId, onReady }: 
                 </div>
               ))}
               {/* Joined player rows */}
-              {combatants.filter(c => c.kind === 'player').map(c => (
-                <div key={c.id} className="flex items-center gap-3 px-5 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
-                  <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{c.name}</span>
-                  {c.initiative !== null ? (
-                    <span className="text-lg font-bold" style={{ color: 'var(--gold)' }}>{c.initiative}</span>
-                  ) : (
-                    <input
-                      type="tel" inputMode="numeric" pattern="\d*"
-                      value={initiatives[c.id] ?? ''}
-                      onChange={e => setInitiatives(p => ({ ...p, [c.id]: e.target.value }))}
-                      placeholder="—"
-                      className="w-16 px-2 py-1.5 rounded text-center outline-none text-sm"
-                      style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
-                    />
-                  )}
-                </div>
-              ))}
+              {combatants.filter(c => c.kind === 'player').map(c => {
+                const cParticipant = c.participant_id ? participantById.get(c.participant_id) : null
+                const isDmPc = cParticipant?.role === 'dm_pc'
+                const isSavingHp = c.participant_id ? !!participantsSaving[c.participant_id] : false
+                const isSavingAlert = c.participant_id ? !!participantsSaving[c.participant_id] : false
+                return (
+                  <div key={c.id} className="px-5 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
+                    <div className="flex items-center gap-3">
+                      <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{c.name}</span>
+                      {c.initiative !== null ? (
+                        <span className="text-lg font-bold" style={{ color: 'var(--gold)' }}>{c.initiative}</span>
+                      ) : (
+                        <input
+                          type="tel" inputMode="numeric" pattern="\d*"
+                          value={initiatives[c.id] ?? ''}
+                          onChange={e => setInitiatives(p => ({ ...p, [c.id]: e.target.value }))}
+                          placeholder="—"
+                          className="w-16 px-2 py-1.5 rounded text-center outline-none text-sm"
+                          style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
+                        />
+                      )}
+                    </div>
+                    {/* DM-PC controls: HP tracking + Alert Feat — read/write from participant row directly */}
+                    {isDmPc && cParticipant && (
+                      <div className="flex items-center gap-4 mt-2 fade-in">
+                        {/* Track HP toggle */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Track HP</span>
+                          <button
+                            onClick={() => writeParticipantToggle(cParticipant.id, 'hp_opt_in', cParticipant.hp_opt_in)}
+                            disabled={isSavingHp}
+                            className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5 shrink-0"
+                            style={{
+                              background: cParticipant.hp_opt_in ? 'var(--gold-dark)' : 'var(--bg-raised)',
+                              border: '1px solid var(--border-light)',
+                              cursor: isSavingHp ? 'wait' : 'pointer',
+                              opacity: isSavingHp ? 0.5 : 1,
+                            }}
+                          >
+                            <div className="w-5 h-5 rounded-full transition-all duration-200"
+                              style={{
+                                background: cParticipant.hp_opt_in ? 'var(--gold)' : 'var(--text-dim)',
+                                transform: cParticipant.hp_opt_in ? 'translateX(20px)' : 'translateX(0)',
+                              }} />
+                          </button>
+                        </div>
+                        {/* Alert Feat toggle */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-dim)' }}>
+                            <span style={{ filter: cParticipant.alert_feat ? 'none' : 'grayscale(0.6)' }}>⚡</span>
+                            Alert Feat
+                          </span>
+                          <button
+                            onClick={() => writeParticipantToggle(cParticipant.id, 'alert_feat', cParticipant.alert_feat)}
+                            disabled={isSavingAlert}
+                            className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5 shrink-0"
+                            style={{
+                              background: cParticipant.alert_feat ? 'var(--gold-dark)' : 'var(--bg-raised)',
+                              border: '1px solid var(--border-light)',
+                              cursor: isSavingAlert ? 'wait' : 'pointer',
+                              opacity: isSavingAlert ? 0.5 : 1,
+                            }}
+                          >
+                            <div className="w-5 h-5 rounded-full transition-all duration-200"
+                              style={{
+                                background: cParticipant.alert_feat ? 'var(--gold)' : 'var(--text-dim)',
+                                transform: cParticipant.alert_feat ? 'translateX(20px)' : 'translateX(0)',
+                              }} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              {toggleError && <div className="px-5 pt-2 pb-1"><p className="text-xs" style={{ color: '#e07070' }}>{toggleError}</p></div>}
             </div>
 
             {/* Monster entries */}

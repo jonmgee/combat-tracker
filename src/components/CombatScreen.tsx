@@ -496,6 +496,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
     return (
       <InitiativeEntry
         combatants={combatants}
+        participants={participants}
         me={me}
         sessionId={session.id}
         onReady={async ({ playerUpdates, monsterInserts, pcInserts }) => {
