@@ -189,20 +189,40 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     )
   }, [players, myAlertCombatant])
 
-  async function handleAlertSwap(targetId: string) {
-    console.debug('[OrderReview] handleAlertSwap start', { targetId })
-    if (!myAlertCombatant) return
-    const target = players.find(c => c.id === targetId)
-    if (!target) return
-    const myInit = myAlertCombatant.initiative
-    const targetInit = target.initiative
-    if (myInit === null || targetInit === null) return
+  // ── DM Alert proxy state ──
+  // When the DM clicks ⚡ on a DM-PC row, this holds that participant_id.
+  // While active, ↔ Swap buttons appear on eligible targets for the DM to click.
+  const [dmSwapActive, setDmSwapActive] = useState<string | null>(null)
+
+  const dmAlertCombatant = useMemo(
+    () => isDM && dmSwapActive
+      ? players.find(c => c.participant_id === dmSwapActive) ?? null
+      : null,
+    [players, isDM, dmSwapActive]
+  )
+
+  const dmAlertSwapTargets = useMemo(() => {
+    if (!dmAlertCombatant) return []
+    return players.filter(c =>
+      c.id !== dmAlertCombatant.id && c.participant_id !== null
+    )
+  }, [players, dmAlertCombatant])
+
+  // ── Core swap logic (shared between player and DM-proxy paths) ──
+  async function performAlertSwap(
+    sourceCombatant: Combatant,
+    targetCombatant: Combatant,
+    sourceParticipantId: string
+  ) {
+    const sourceInit = sourceCombatant.initiative
+    const targetInit = targetCombatant.initiative
+    if (sourceInit === null || targetInit === null) return
 
     // Swap initiative values
-    await supabase.from('combatants').update({ initiative: targetInit }).eq('id', myAlertCombatant.id)
-    await supabase.from('combatants').update({ initiative: myInit }).eq('id', target.id)
+    await supabase.from('combatants').update({ initiative: targetInit }).eq('id', sourceCombatant.id)
+    await supabase.from('combatants').update({ initiative: sourceInit }).eq('id', targetCombatant.id)
     // Mark alert used for this participant
-    await supabase.from('participants').update({ alert_used: true }).eq('id', meRefreshed.id)
+    await supabase.from('participants').update({ alert_used: true }).eq('id', sourceParticipantId)
 
     console.debug('[OrderReview] swapped initiatives, recalculating orders')
     // Recalculate grouped initiative_order immediately so the pre-combat order reflects the swap
@@ -212,7 +232,6 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
       .order('initiative', { ascending: false })
 
     if (allCombatants && allCombatants.length > 0) {
-      // Compute grouped orders: same-name monsters with same initiative share an order
       const fresh = [...(allCombatants as Combatant[])]
       let order = 0
       for (let i = 0; i < fresh.length; i++) {
@@ -225,12 +244,8 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
           c.initiative === prev.initiative
         if (!sameGroup) order++
 
-        // Update this combatant's initiative_order if it differs
         const newOrder = order
         if ((c.initiative_order ?? 0) !== newOrder) {
-          // best-effort update per-row
-          // don't await inside loop sequentially if you want speed, but keep it serial for simplicity/safety
-          // small per-encounter counts make this fine
           await supabase.from('combatants').update({ initiative_order: newOrder }).eq('id', c.id)
         }
       }
@@ -243,10 +258,26 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
       .then(({ data }) => { if (data) setParticipants(data as Participant[]) })
 
     console.debug('[OrderReview] touching combat_state.updated_at to trigger reloads')
-    // Touch combat_state.updated_at so all other clients (DM / other PCs) reload their local state
-    // CombatScreen listens for combat_state changes and will call loadAll() when it updates.
     await supabase.from('combat_state').update({ updated_at: new Date().toISOString() }).eq('session_id', sessionId)
+  }
+
+  async function handleAlertSwap(targetId: string) {
+    console.debug('[OrderReview] handleAlertSwap start', { targetId })
+    if (!myAlertCombatant) return
+    const target = players.find(c => c.id === targetId)
+    if (!target) return
+    await performAlertSwap(myAlertCombatant, target, meRefreshed.id)
     console.debug('[OrderReview] handleAlertSwap complete')
+  }
+
+  async function handleDmAlertSwap(targetId: string) {
+    console.debug('[OrderReview] handleDmAlertSwap start', { targetId, dmSwapActive })
+    if (!dmAlertCombatant) return
+    const target = players.find(c => c.id === targetId)
+    if (!target) return
+    await performAlertSwap(dmAlertCombatant, target, dmSwapActive!)
+    setDmSwapActive(null) // reset proxy after swap completes
+    console.debug('[OrderReview] handleDmAlertSwap complete')
   }
 
   // ── Render a grouped entry row ──
@@ -258,7 +289,12 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     const tDown = isDM && tiedBelow(idx)
 
     const thisHasAlert = isPlayerEntry && alertEnabledParticipantIds.has(combatant.participant_id ?? '')
-    const isAlertSwapTarget = isPlayerEntry && alertSwapTargets.some(t => t.id === combatant.id)
+    const isDmProxyActive = isDM && dmSwapActive !== null && dmSwapActive === combatant.participant_id
+    const isDmProxyEligible = isDM && dmAlertCombatant !== null
+    const isAlertSwapTarget = isPlayerEntry && (
+      (!isDM && alertSwapTargets.some(t => t.id === combatant.id)) ||
+      (isDM && dmAlertSwapTargets.some(t => t.id === combatant.id))
+    )
 
     return (
       <div
@@ -331,37 +367,66 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
           </div>
         </div>
 
-        {/* Alert eligible indicator (DM) — player has Alert toggled */}
+        {/* Alert eligible indicator (DM) — clickable button for DM-PC proxy swap */}
         {isDM && isPlayerEntry && thisHasAlert && (
-          <span className="text-xs px-1.5 py-0.5 rounded"
+          <button
+            onClick={() => {
+              // Clicking the active PC cancels; clicking a different one activates it
+              if (isDmProxyActive) {
+                setDmSwapActive(null)
+              } else {
+                setDmSwapActive(combatant.participant_id)
+              }
+            }}
+            className="text-xs px-1.5 py-0.5 rounded transition-all active:scale-95"
             style={{
-              background: 'rgba(201,168,76,0.1)',
-              color: 'var(--gold-dark)',
-              border: '1px solid var(--gold-dark)',
+              background: isDmProxyActive ? 'rgba(201,168,76,0.25)' : 'rgba(201,168,76,0.1)',
+              color: isDmProxyActive ? 'var(--gold)' : 'var(--gold-dark)',
+              border: isDmProxyActive ? '1px solid var(--gold)' : '1px solid var(--gold-dark)',
+              boxShadow: isDmProxyActive ? '0 0 10px rgba(201,168,76,0.4)' : 'none',
               fontSize: '0.55rem',
               letterSpacing: '0.08em',
               fontWeight: 600,
-            }}>
-            ⚡
-          </span>
-        )}
-
-        {/* Alert swap button (player, not DM) */}
-        {!isDM && isAlertSwapTarget && (
-          <button
-            onClick={() => handleAlertSwap(combatant.id)}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-all active:scale-95"
-            style={{
-              background: 'rgba(201,168,76,0.12)',
-              border: '1px solid var(--gold-dark)',
-              color: 'var(--gold)',
               cursor: 'pointer',
-              fontFamily: "'Cinzel', serif",
-              fontWeight: 600,
             }}
           >
-            ↔ Swap
+            {isDmProxyActive ? '⚡ Cancel' : '⚡'}
           </button>
+        )}
+
+        {/* Alert swap button (player, not DM) — or DM proxy swap button */}
+        {isAlertSwapTarget && (
+          isDM ? (
+            <button
+              onClick={() => handleDmAlertSwap(combatant.id)}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-all active:scale-95"
+              style={{
+                background: 'rgba(201,168,76,0.12)',
+                border: '1px solid var(--gold-dark)',
+                color: 'var(--gold)',
+                cursor: 'pointer',
+                fontFamily: "'Cinzel', serif",
+                fontWeight: 600,
+              }}
+            >
+              ↔ Swap
+            </button>
+          ) : (
+            <button
+              onClick={() => handleAlertSwap(combatant.id)}
+              className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-all active:scale-95"
+              style={{
+                background: 'rgba(201,168,76,0.12)',
+                border: '1px solid var(--gold-dark)',
+                color: 'var(--gold)',
+                cursor: 'pointer',
+                fontFamily: "'Cinzel', serif",
+                fontWeight: 600,
+              }}
+            >
+              ↔ Swap
+            </button>
+          )
         )}
 
         {/* Initiative value */}
