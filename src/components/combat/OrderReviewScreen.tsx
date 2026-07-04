@@ -389,7 +389,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
               cursor: 'pointer',
             }}
           >
-            {isDmProxyActive ? '⚡ Cancel' : '⚡'}
+            ⚡
           </button>
         )}
 
