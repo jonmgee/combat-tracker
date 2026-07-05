@@ -344,8 +344,8 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
             />
           )}
 
-          {/* ── Temp HP setter (PC's own card only) ── */}
-          {isMe && !isDead && canSeeHP && (
+          {/* ── Temp HP setter — PC's own card, or DM on any player card ── */}
+          {(isMe || (isDM && combatant.kind === 'player')) && !isDead && canSeeHP && (
             <TempHpSetter combatantId={combatant.id} currentTempHp={combatant.temp_hp} />
           )}
 
