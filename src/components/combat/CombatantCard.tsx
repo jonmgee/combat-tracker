@@ -182,8 +182,8 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
           {/* ── Outer row: [position] [name + INIT sub-row | icons] on left, nothing right ── */}
           <div style={{ display: 'flex', alignItems: 'stretch', gap: 8 }}>
 
-            {/* Position bubble */}
-            <div className="shrink-0 flex flex-col items-center justify-center" style={{ gap: 2 }}>
+            {/* Position bubble — pinned to top, aligns with name */}
+            <div className="shrink-0 flex flex-col items-center" style={{ gap: 2, justifyContent: 'flex-start' }}>
               {canMoveUp && (
                 <button onClick={onMoveUp} className="cursor-pointer transition-colors hover:opacity-70"
                   style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▲</button>
@@ -203,11 +203,11 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               )}
             </div>
 
-            {/* Centre: name+pills on left, icons on right — stretch to same height */}
-            <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', gap: 8, minWidth: 0 }}>
+            {/* Centre: name + pills on left, icons pinned top-right */}
+            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
 
-              {/* Left side: name row + pills row stacked */}
-              <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 6, minWidth: 0 }}>
+              {/* Left side: name row + pills row stacked from top */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
                 {/* Name + badges */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold truncate"
@@ -280,9 +280,9 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 )}
               </div>
 
-              {/* Right side: condition icons — fixed 56px square, flow left-to-right; Conc/Bloodied show icon when active */}
+              {/* Right side: condition icons — fixed 56px square, pinned top-right */}
               {conditions.length > 0 && (
-                <div className="condition-icons-row" style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <div className="condition-icons-row" style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, alignSelf: 'flex-start' }}>
                   {conditions.map(c => {
                     const asset = CONDITION_ASSETS[c.condition]
                     async function removeCondition() {
