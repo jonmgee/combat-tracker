@@ -204,16 +204,18 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   }, [players, myAlertCombatant])
   console.log('alertSwapTargets:', alertSwapTargets)
 
-  // ── DM Alert proxy state ──
-  // When the DM clicks ⚡ on a DM-PC row, this holds that participant_id.
-  // While active, ↔ Swap buttons appear on eligible targets for the DM to click.
-  const [dmSwapActive, setDmSwapActive] = useState<string | null>(null)
-
+  // ── DM Alert proxy for DM-PCs ──
+  // Automatically detect the first DM-PC with Alert Feat enabled and unused.
+  // ↔ Swap buttons appear on other player combatants with no activation step needed.
   const dmAlertCombatant = useMemo(
-    () => isDM && dmSwapActive
-      ? players.find(c => c.participant_id === dmSwapActive) ?? null
-      : null,
-    [players, isDM, dmSwapActive]
+    () => {
+      if (!isDM) return null
+      const dmPcIds = new Set(
+        participants.filter(p => p.role === 'dm_pc' && p.alert_feat && !p.alert_used).map(p => p.id)
+      )
+      return players.find(c => c.participant_id !== null && dmPcIds.has(c.participant_id)) ?? null
+    },
+    [players, participants, isDM]
   )
 
   const dmAlertSwapTargets = useMemo(() => {
@@ -235,11 +237,9 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     alertEnabledParticipantIds: Array.from(alertEnabledParticipantIds),
     myAlertCombatant: myAlertCombatant ? { id: myAlertCombatant.id, name: myAlertCombatant.name, pid: myAlertCombatant.participant_id } : null,
     alertSwapTargets: alertSwapTargets.map(t => ({ id: t.id, name: t.name, pid: t.participant_id })),
-    dmSwapActive,
     dmAlertCombatant: dmAlertCombatant ? { id: dmAlertCombatant.id, name: dmAlertCombatant.name, pid: dmAlertCombatant.participant_id } : null,
     dmAlertSwapTargets: dmAlertSwapTargets.map(t => ({ id: t.id, name: t.name, pid: t.participant_id })),
-    playerCombatants: players.map(p => ({ id: p.id, name: p.name, pid: p.participant_id })),
-    note: 'If participants shows alert_feat=true but alertEnabledParticipantIds is empty, the stale-read hypothesis is confirmed. If both are fine but thisHasAlert is false, the participant_id mismatch is the issue.'
+    playerCombatants: players.map(p => ({ id: p.id, name: p.name, pid: p.participant_id }))
   })
 
   // ── Core swap logic (shared between player and DM-proxy paths) ──
@@ -306,12 +306,11 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   }
 
   async function handleDmAlertSwap(targetId: string) {
-    console.debug('[OrderReview] handleDmAlertSwap start', { targetId, dmSwapActive })
-    if (!dmAlertCombatant) return
+    console.debug('[OrderReview] handleDmAlertSwap start', { targetId })
+    if (!dmAlertCombatant || !dmAlertCombatant.participant_id) return
     const target = players.find(c => c.id === targetId)
     if (!target) return
-    await performAlertSwap(dmAlertCombatant, target, dmSwapActive!)
-    setDmSwapActive(null) // reset proxy after swap completes
+    await performAlertSwap(dmAlertCombatant, target, dmAlertCombatant.participant_id)
     console.debug('[OrderReview] handleDmAlertSwap complete')
   }
 
@@ -324,7 +323,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     const tDown = isDM && tiedBelow(idx)
 
     const thisHasAlert = isPlayerEntry && alertEnabledParticipantIds.has(combatant.participant_id ?? '')
-    const isDmProxyActive = isDM && dmSwapActive !== null && dmSwapActive === combatant.participant_id
+    const isDmProxyActive = isDM && dmAlertCombatant !== null && dmAlertCombatant.id === combatant.id
     const isAlertSwapTarget = isPlayerEntry && (
       (!isDM && alertSwapTargets.some(t => t.id === combatant.id)) ||
       (isDM && dmAlertSwapTargets.some(t => t.id === combatant.id))
@@ -335,9 +334,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
         participant_id: combatant.participant_id,
         thisHasAlert,
         isDmProxyActive,
-        isAlertSwapTarget,
-        dmSwapActive,
-        note: 'thisHasAlert false means either missing from alertEnabledParticipantIds or participant_id is null'
+        isAlertSwapTarget
       })
     }
 
@@ -412,31 +409,18 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
           </div>
         </div>
 
-        {/* Alert eligible indicator (DM) — clickable button for DM-PC proxy swap */}
+        {/* Alert eligible indicator (DM) — purely visual, no activation step needed */}
         {isDM && isPlayerEntry && thisHasAlert && (
-          <button
-            onClick={() => {
-              // Clicking the active PC cancels; clicking a different one activates it
-              if (isDmProxyActive) {
-                setDmSwapActive(null)
-              } else {
-                setDmSwapActive(combatant.participant_id)
-              }
-            }}
-            className="text-xs px-1.5 py-0.5 rounded transition-all active:scale-95"
+          <span className="inline-flex items-center justify-center px-1"
             style={{
-              background: isDmProxyActive ? 'rgba(201,168,76,0.25)' : 'rgba(201,168,76,0.1)',
-              color: isDmProxyActive ? 'var(--gold)' : 'var(--gold-dark)',
-              border: isDmProxyActive ? '1px solid var(--gold)' : '1px solid var(--gold-dark)',
-              boxShadow: isDmProxyActive ? '0 0 10px rgba(201,168,76,0.4)' : 'none',
-              fontSize: '0.55rem',
-              letterSpacing: '0.08em',
-              fontWeight: 600,
-              cursor: 'pointer',
+              color: 'var(--gold)',
+              fontSize: '0.75rem',
+              lineHeight: 1,
+              userSelect: 'none',
             }}
           >
             ⚡
-          </button>
+          </span>
         )}
 
         {/* Alert swap button (player, not DM) — or DM proxy swap button */}
