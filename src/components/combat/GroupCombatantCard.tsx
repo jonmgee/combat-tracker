@@ -169,6 +169,7 @@ export default function GroupCombatantCard({
           const cBloodied = cHpBloodied || cConditions.some(cond => cond.condition === 'Bloodied')
           const cConcentrating = cConditions.some(cond => cond.condition === 'Concentrating')
           const cDead = c.dead
+          const cOwns = c.participant_id === me.id
           const isSubActive = c.id === activeId && isActive
           const canSeeHP = isDM && c.hp_enabled
 
@@ -276,18 +277,21 @@ export default function GroupCombatantCard({
                   <div className="mt-1 text-xs" style={{ color: '#c06060' }}>💀 Dead</div>
                 )}
 
-                {/* Actions — DM only */}
-                {isDM && !cDead && (
+                {/* Actions */}
+                {!cDead && (
                   <div className="flex gap-1 mt-1" style={{ flexWrap: 'wrap' }}>
                     {/* Bloodied toggle */}
                     <button
                       onClick={() => toggleBloodied(c)}
-                      className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
+                      disabled={!isDM && !cOwns}
+                      className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95 disabled:active:scale-100"
                       style={{
+                        flex: 1,
                         background: cBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
                         border: `0.5px solid ${cBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
                         color: cBloodied ? '#c07070' : 'var(--text-dim)',
-                        cursor: 'pointer',
+                        cursor: (!isDM && !cOwns) ? 'not-allowed' : 'pointer',
+                        opacity: (!isDM && !cOwns) ? 0.4 : 1,
                         lineHeight: 1,
                       }}
                     >
@@ -298,11 +302,10 @@ export default function GroupCombatantCard({
                       {cBloodied ? '🩸' : 'Bloody'}
                     </button>
 
-                    {/* Dead toggle (DM only, independent of HP) */}
+                    {/* Dead toggle (DM or owner) */}
                     {cDead ? (
                       <button
                         onClick={async () => {
-                          // optimistic revive for this sub-card
                           setOptimisticAliveIds(prev => ({ ...prev, [c.id]: true }))
                           if (canSeeHP && c.max_hp !== null && c.current_hp !== null) {
                             try { hpRefs.current[c.id]?.focusAndEdit() } catch (e) {}
@@ -310,13 +313,21 @@ export default function GroupCombatantCard({
                           try {
                             await supabase.from('combatants').update({ dead: false }).eq('id', c.id)
                           } catch (err) {
-                            // rollback if server still has dead
                             setOptimisticAliveIds(prev => { const n = { ...prev }; delete n[c.id]; return n })
                             console.error('Revive failed', err)
                           }
                         }}
-                        className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
-                        style={{ background: 'var(--bg-void)', border: '0.5px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer', lineHeight: 1 }}
+                        disabled={!isDM && !cOwns}
+                        className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95 disabled:active:scale-100"
+                        style={{
+                          flex: 1,
+                          background: 'var(--bg-void)',
+                          border: '0.5px solid var(--border)',
+                          color: 'var(--text-dim)',
+                          cursor: (!isDM && !cOwns) ? 'not-allowed' : 'pointer',
+                          opacity: (!isDM && !cOwns) ? 0.4 : 1,
+                          lineHeight: 1,
+                        }}
                       >
                         Revive
                       </button>
@@ -326,12 +337,15 @@ export default function GroupCombatantCard({
                           const next = !c.dead
                           await supabase.from('combatants').update({ dead: next }).eq('id', c.id)
                         }}
-                        className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95"
+                        disabled={!isDM && !cOwns}
+                        className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95 disabled:active:scale-100"
                         style={{
+                          flex: 1,
                           background: cDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
                           border: `0.5px solid ${cDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
                           color: cDead ? '#c06060' : 'var(--text-dim)',
-                          cursor: 'pointer',
+                          cursor: (!isDM && !cOwns) ? 'not-allowed' : 'pointer',
+                          opacity: (!isDM && !cOwns) ? 0.4 : 1,
                           lineHeight: 1,
                         }}
                       >

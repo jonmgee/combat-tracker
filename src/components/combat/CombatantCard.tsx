@@ -317,7 +317,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
           )}
 
           {/* ── Three-button row: Bloody / + Condition / Kill ── */}
-          {!isDead && isDM && (
+          {!isDead && (
             <div className="flex gap-2 mt-2">
               {canSwapTarget && (
                 <button
@@ -329,12 +329,15 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               )}
 
               <button onClick={toggleBloodied}
-                className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95"
+                disabled={!isDM && !isMe}
+                className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
                 style={{
                   flex: 1,
                   background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
                   border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
-                  color: isBloodied ? '#c07070' : 'var(--text-dim)', cursor: 'pointer',
+                  color: isBloodied ? '#c07070' : 'var(--text-dim)',
+                  cursor: (!isDM && !isMe) ? 'not-allowed' : 'pointer',
+                  opacity: (!isDM && !isMe) ? 0.4 : 1,
                 }}>
                 <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
                   <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
@@ -355,35 +358,17 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   const next = !combatant.dead
                   await supabase.from('combatants').update({ dead: next }).eq('id', combatant.id)
                 }}
-                className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95"
+                disabled={!isDM && !isMe}
+                className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
                 style={{
                   flex: 1,
                   background: isDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
                   border: `1px solid ${isDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
                   color: isDead ? '#c06060' : 'var(--text-dim)',
-                  cursor: 'pointer',
+                  cursor: (!isDM && !isMe) ? 'not-allowed' : 'pointer',
+                  opacity: (!isDM && !isMe) ? 0.4 : 1,
                 }}>
                 💀 Kill
-              </button>
-            </div>
-          )}
-
-          {/* ── Non-DM: solo + Condition button (players on their own card) ── */}
-          {!isDead && !isDM && (isMe || isMonster) && (
-            <div className="flex gap-2 mt-2">
-              {canSwapTarget && (
-                <button
-                  onClick={onSwapTarget}
-                  className="flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs transition-all active:scale-95"
-                  style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid var(--gold-dark)', color: 'var(--gold)', cursor: 'pointer', fontWeight: 600 }}>
-                  ↔ Alert Swap
-                </button>
-              )}
-              <button
-                onClick={() => setShowConditions(true)}
-                className="flex-1 py-1.5 rounded-lg text-xs transition-all active:scale-95"
-                style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
-                + Condition
               </button>
             </div>
           )}
@@ -391,29 +376,34 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
           {/* Revive row (shown only when dead) */}
           {isDead && (
             <div className="flex gap-2 mt-2">
-              {isDM && (
-                <button
-                  onClick={async () => {
-                    // optimistic un-dead locally (synchronous) so HPBar can mount
-                    flushSync(() => setOptimisticAlive(true))
-                    // synchronously focus HP input if HP is tracked
-                    if (canSeeHP && combatant.max_hp !== null && combatant.current_hp !== null) {
-                      try { hpBarRef.current?.focusAndEdit() } catch (e) {}
-                    }
-                    // then update server; if it fails and server still says dead, roll back optimistic state
-                    try {
-                      await supabase.from('combatants').update({ dead: false }).eq('id', combatant.id)
-                    } catch (err) {
-                      setOptimisticAlive(false)
-                      console.error('Revive failed', err)
-                    }
-                  }}
-                  className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-                  style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}
-                >
-                  Revive
-                </button>
-              )}
+              <button
+                onClick={async () => {
+                  // optimistic un-dead locally (synchronous) so HPBar can mount
+                  flushSync(() => setOptimisticAlive(true))
+                  // synchronously focus HP input if HP is tracked
+                  if (canSeeHP && combatant.max_hp !== null && combatant.current_hp !== null) {
+                    try { hpBarRef.current?.focusAndEdit() } catch (e) {}
+                  }
+                  // then update server; if it fails and server still says dead, roll back optimistic state
+                  try {
+                    await supabase.from('combatants').update({ dead: false }).eq('id', combatant.id)
+                  } catch (err) {
+                    setOptimisticAlive(false)
+                    console.error('Revive failed', err)
+                  }
+                }}
+                disabled={!isDM && !isMe}
+                className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
+                style={{
+                  background: 'var(--bg-void)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-dim)',
+                  cursor: (!isDM && !isMe) ? 'not-allowed' : 'pointer',
+                  opacity: (!isDM && !isMe) ? 0.4 : 1,
+                }}
+              >
+                Revive
+              </button>
             </div>
           )}
         </div>
