@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../lib/supabase'
 import rollIcon from '../../assets/rollforinitiative3.png'
 import crossedAxes from '../../assets/crossedaxes.png'
@@ -45,6 +45,40 @@ export default function InitiativeEntry({ combatants, participants: initialParti
   }, [initialParticipants])
 
   const participantById = new Map(participantsState.map(p => [p.id, p]))
+
+  // ── Persistent DM-PCs — have a participant row but no combatant in this encounter yet ──
+  const persistentDmPcs = useMemo(() => {
+    const claimedIds = new Set(combatants.map(c => c.participant_id).filter((id): id is string => id !== null))
+    return participantsState.filter(p => p.role === 'dm_pc' && !claimedIds.has(p.id))
+  }, [participantsState, combatants])
+
+  // Per-encounter overrides for persistent DM-PCs (init + HP per fight — never writes to participant baseline)
+  const [persistentOverrides, setPersistentOverrides] = useState<Record<string, {
+    init: string
+    hpEnabled: boolean
+    hp: string
+    isMaxHp: boolean
+    maxHp: string
+    alertFeat: boolean
+  }>>({})
+
+  // Re-initialise overrides when persistent list changes (new encounter loaded)
+  useEffect(() => {
+    const overrides: Record<string, {
+      init: string; hpEnabled: boolean; hp: string; isMaxHp: boolean; maxHp: string; alertFeat: boolean
+    }> = {}
+    for (const p of persistentDmPcs) {
+      overrides[p.id] = {
+        init: '',
+        hpEnabled: p.hp_opt_in,
+        hp: p.starting_hp?.toString() ?? '',
+        isMaxHp: !p.max_hp_participant || (p.starting_hp !== null && p.starting_hp === p.max_hp_participant),
+        maxHp: p.max_hp_participant?.toString() ?? '',
+        alertFeat: p.alert_feat,
+      }
+    }
+    setPersistentOverrides(overrides)
+  }, [persistentDmPcs])
 
   async function writeParticipantToggle(participantId: string, field: 'hp_opt_in' | 'alert_feat', currentValue: boolean) {
     const nextValue = !currentValue
@@ -151,6 +185,26 @@ export default function InitiativeEntry({ combatants, participants: initialParti
           hp_enabled: row.hpEnabled,
           current_hp: row.hpEnabled && row.hp ? parseInt(row.hp) : null,
           max_hp: row.hpEnabled && row.hp && !row.isMaxHp && row.maxHp ? parseInt(row.maxHp) : row.hpEnabled && row.hp ? parseInt(row.hp) : null,
+          temp_hp: 0,
+        })
+      }
+
+      // Persistent DM-PCs — reuse existing participant row, no participant UPDATE on HP
+      for (const p of persistentDmPcs) {
+        const ov = persistentOverrides[p.id]
+        if (!ov) continue
+        const init = parseInt(ov.init)
+        if (isNaN(init)) continue
+
+        pcInserts.push({
+          name: p.name,
+          kind: 'player',
+          initiative: init,
+          participant_id: p.id,
+          is_hidden: false,
+          hp_enabled: ov.hpEnabled,
+          current_hp: ov.hpEnabled && ov.hp ? parseInt(ov.hp) : null,
+          max_hp: ov.hpEnabled && ov.hp && !ov.isMaxHp && ov.maxHp ? parseInt(ov.maxHp) : ov.hpEnabled && ov.hp ? parseInt(ov.hp) : null,
           temp_hp: 0,
         })
       }
@@ -325,6 +379,85 @@ export default function InitiativeEntry({ combatants, participants: initialParti
                   </div>
                 </div>
               ))}
+              {/* Persistent DM-PCs — have participant row but no combatant this encounter */}
+              {persistentDmPcs.map(p => {
+                const ov = persistentOverrides[p.id]
+                if (!ov) return null
+                return (
+                  <div key={`persistent-${p.id}`} className="px-5 py-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border)' }}>
+                    <div className="flex items-center gap-3">
+                      <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{p.name}</span>
+                      <input
+                        type="tel" inputMode="numeric" pattern="\d*"
+                        value={ov.init}
+                        onChange={e => setPersistentOverrides(prev => ({ ...prev, [p.id]: { ...prev[p.id], init: e.target.value } }))}
+                        placeholder="Init"
+                        className="w-16 px-2 py-1.5 rounded text-center text-sm outline-none"
+                        style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
+                      />
+                    </div>
+                    {/* Track HP toggle */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Track HP</span>
+                      <button
+                        onClick={() => setPersistentOverrides(prev => ({ ...prev, [p.id]: { ...prev[p.id], hpEnabled: !prev[p.id].hpEnabled } }))}
+                        className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5 shrink-0"
+                        style={{ background: ov.hpEnabled ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)', cursor: 'pointer' }}
+                      >
+                        <div className="w-5 h-5 rounded-full transition-all duration-200"
+                          style={{ background: ov.hpEnabled ? 'var(--gold)' : 'var(--text-dim)', transform: ov.hpEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
+                      </button>
+                    </div>
+                    {ov.hpEnabled && (
+                      <div className="flex flex-col gap-2 fade-in">
+                        <input
+                          type="tel" inputMode="numeric" pattern="\d*"
+                          value={ov.hp}
+                          onChange={e => setPersistentOverrides(prev => ({ ...prev, [p.id]: { ...prev[p.id], hp: e.target.value } }))}
+                          placeholder="Starting HP"
+                          className="w-full px-3 py-1.5 rounded text-sm outline-none"
+                          style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                        />
+                        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-dim)', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={ov.isMaxHp}
+                            onChange={e => setPersistentOverrides(prev => ({ ...prev, [p.id]: { ...prev[p.id], isMaxHp: e.target.checked } }))}
+                            className="rounded"
+                            style={{ accentColor: 'var(--gold)' }}
+                          />
+                          <span>This is my max HP</span>
+                        </label>
+                        {!ov.isMaxHp && (
+                          <input
+                            type="tel" inputMode="numeric" pattern="\d*"
+                            value={ov.maxHp}
+                            onChange={e => setPersistentOverrides(prev => ({ ...prev, [p.id]: { ...prev[p.id], maxHp: e.target.value } }))}
+                            placeholder="Max HP"
+                            className="w-full px-3 py-1.5 rounded text-sm outline-none"
+                            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {/* Alert Feat toggle */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-dim)' }}>
+                        <span style={{ filter: ov.alertFeat ? 'none' : 'grayscale(0.6)' }}>⚡</span>
+                        Alert Feat
+                      </span>
+                      <button
+                        onClick={() => setPersistentOverrides(prev => ({ ...prev, [p.id]: { ...prev[p.id], alertFeat: !prev[p.id].alertFeat } }))}
+                        className="rounded-full w-11 h-6 flex items-center transition-all duration-200 px-0.5 shrink-0"
+                        style={{ background: ov.alertFeat ? 'var(--gold-dark)' : 'var(--bg-raised)', border: '1px solid var(--border-light)', cursor: 'pointer' }}
+                      >
+                        <div className="w-5 h-5 rounded-full transition-all duration-200"
+                          style={{ background: ov.alertFeat ? 'var(--gold)' : 'var(--text-dim)', transform: ov.alertFeat ? 'translateX(20px)' : 'translateX(0)' }} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
               {/* Joined player rows */}
               {combatants.filter(c => c.kind === 'player').map(c => {
                 const cParticipant = c.participant_id ? participantById.get(c.participant_id) : null
