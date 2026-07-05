@@ -253,26 +253,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   </span>
                 </div>
 
-                {/* Pills row */}
-                {!isDead && (isDM || isMe) && (
-                  <div className="flex gap-2 items-center">
-                    <button onClick={toggleBloodied}
-                      className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-                      style={{
-                        background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
-                        border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
-                        color: isBloodied ? '#c07070' : 'var(--text-dim)', cursor: 'pointer',
-                      }}>
-                      <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
-                        <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
-                          stroke="currentColor" strokeWidth="0.9" fill={isBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
-                      </svg>
-                      {isBloodied ? 'Bloodied' : 'Bloody'}
-                    </button>
-                  </div>
-                )}
-
-                {/* Mobile: compact condition summary on its own line below the pillboxes to avoid overlap with INIT */}
+                {/* Mobile: compact condition summary on its own line below the INIT row */}
                 {conditions.length > 0 && (
                   <div className="condition-summary-mobile">
                     <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
@@ -335,13 +316,8 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
             />
           )}
 
-          {/* ── Temp HP setter — PC's own card, or DM on any player card ── */}
-          {(isMe || (isDM && combatant.kind === 'player')) && !isDead && canSeeHP && (
-            <TempHpSetter combatantId={combatant.id} currentTempHp={combatant.temp_hp} />
-          )}
-
-          {/* ── Actions row ── */}
-          {!isDead && (
+          {/* ── Three-button row: Bloody / + Condition / Kill ── */}
+          {!isDead && isDM && (
             <div className="flex gap-2 mt-2">
               {canSwapTarget && (
                 <button
@@ -352,52 +328,60 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 </button>
               )}
 
-              {isDM && (
-                isDead ? (
-                  <button
-                    onClick={async () => {
-                      // optimistic un-dead locally (synchronous) so HPBar can mount
-                      flushSync(() => setOptimisticAlive(true))
-                      // synchronously focus HP input if HP is tracked
-                      if (canSeeHP && combatant.max_hp !== null && combatant.current_hp !== null) {
-                        try { hpBarRef.current?.focusAndEdit() } catch (e) {}
-                      }
-                      // then update server; if it fails and server still says dead, roll back optimistic state
-                      try {
-                        await supabase.from('combatants').update({ dead: false }).eq('id', combatant.id)
-                      } catch (err) {
-                        // reload will reconcile if server different; rollback optimistic if still dead on server
-                        setOptimisticAlive(false)
-                        console.error('Revive failed', err)
-                      }
-                    }}
-                    className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-                    style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}
-                  >
-                    Revive
-                  </button>
-                ) : (
-                  <button
-                    onClick={async () => {
-                      const next = !combatant.dead
-                      await supabase.from('combatants').update({ dead: next }).eq('id', combatant.id)
-                    }}
-                    className="flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs transition-all active:scale-95"
-                    style={{
-                      background: isDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
-                      border: `1px solid ${isDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
-                      color: isDead ? '#c06060' : 'var(--text-dim)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {isDead ? '💀 Dead' : '💀 Kill'}
-                  </button>
-                )
-              )}
+              <button onClick={toggleBloodied}
+                className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95"
+                style={{
+                  flex: 1,
+                  background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
+                  border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
+                  color: isBloodied ? '#c07070' : 'var(--text-dim)', cursor: 'pointer',
+                }}>
+                <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
+                  <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
+                    stroke="currentColor" strokeWidth="0.9" fill={isBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
+                </svg>
+                {isBloodied ? 'Bloodied' : 'Bloody'}
+              </button>
 
               <button
                 onClick={() => setShowConditions(true)}
-                className={`py-1.5 rounded-lg text-xs transition-all active:scale-95 ${canSwapTarget ? '' : 'flex-1'}`}
+                className="flex items-center justify-center py-1.5 rounded-lg text-xs transition-all active:scale-95"
+                style={{ flex: 1, background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
+                + Condition
+              </button>
+
+              <button
+                onClick={async () => {
+                  const next = !combatant.dead
+                  await supabase.from('combatants').update({ dead: next }).eq('id', combatant.id)
+                }}
+                className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95"
+                style={{
+                  flex: 1,
+                  background: isDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
+                  border: `1px solid ${isDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
+                  color: isDead ? '#c06060' : 'var(--text-dim)',
+                  cursor: 'pointer',
+                }}>
+                💀 Kill
+              </button>
+            </div>
+          )}
+
+          {/* ── Non-DM: solo + Condition button (players on their own card) ── */}
+          {!isDead && !isDM && (isMe || isMonster) && (
+            <div className="flex gap-2 mt-2">
+              {canSwapTarget && (
+                <button
+                  onClick={onSwapTarget}
+                  className="flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs transition-all active:scale-95"
+                  style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid var(--gold-dark)', color: 'var(--gold)', cursor: 'pointer', fontWeight: 600 }}>
+                  ↔ Alert Swap
+                </button>
+              )}
+              <button
+                onClick={() => setShowConditions(true)}
+                className="flex-1 py-1.5 rounded-lg text-xs transition-all active:scale-95"
                 style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
                 + Condition
               </button>
@@ -443,91 +427,5 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         />
       )}
     </>
-  )
-}
-
-// ── Temp HP setter — inline control on PC's own card only ──
-function TempHpSetter({ combatantId, currentTempHp }: { combatantId: string; currentTempHp: number }) {
-  const [showInput, setShowInput] = useState(false)
-  const [value, setValue] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  async function setTempHp() {
-    const val = parseInt(value)
-    if (isNaN(val) || val <= 0) return
-    setSaving(true)
-    const next = Math.max(currentTempHp, val)
-    await supabase.from('combatants').update({ temp_hp: next }).eq('id', combatantId)
-    setValue('')
-    setSaving(false)
-    setShowInput(false)
-  }
-
-  async function clearTempHp() {
-    setSaving(true)
-    await supabase.from('combatants').update({ temp_hp: 0 }).eq('id', combatantId)
-    setSaving(false)
-  }
-
-  return (
-    <div className="mt-2">
-      {currentTempHp > 0 ? (
-        <div className="flex items-center gap-2">
-          <span style={{ color: '#c0b0e0', fontSize: '0.8rem' }}>🛡️</span>
-          <span className="text-xs font-mono" style={{ color: '#c0b0e0' }}>
-            +{currentTempHp} temp HP
-          </span>
-          <button
-            onClick={clearTempHp}
-            disabled={saving}
-            className="text-xs px-2 py-0.5 rounded transition-all"
-            style={{ color: 'var(--text-dim)', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
-          >
-            ✕
-          </button>
-        </div>
-      ) : showInput ? (
-        <div className="flex items-center gap-2">
-          <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>🛡️</span>
-          <input
-            type="tel" inputMode="numeric" pattern="\d*"
-            value={value}
-            onChange={e => setValue(e.target.value)}
-            placeholder="Amount"
-            className="w-16 px-2 py-1 rounded text-sm text-center outline-none"
-            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
-            autoFocus
-          />
-          <button
-            onClick={setTempHp}
-            disabled={saving || !value}
-            className="text-xs px-2 py-1 rounded transition-all active:scale-95 disabled:opacity-50"
-            style={{ background: 'rgba(180,140,220,0.15)', color: '#c0a0e0', border: '1px solid rgba(180,140,220,0.3)', cursor: 'pointer', fontWeight: 600 }}
-          >
-            Set
-          </button>
-          <button
-            onClick={() => setShowInput(false)}
-            className="text-xs px-1.5 py-1 rounded transition-all"
-            style={{ color: 'var(--text-dim)', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer' }}
-          >
-            ✕
-          </button>
-        </div>
-      ) : (
-        <label
-          className="flex items-center gap-2 cursor-pointer select-none"
-          style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}
-        >
-          <input
-            type="checkbox"
-            checked={showInput}
-            onChange={() => setShowInput(true)}
-            style={{ accentColor: '#c0a0e0' }}
-          />
-          Add Temporary HP
-        </label>
-      )}
-    </div>
   )
 }
