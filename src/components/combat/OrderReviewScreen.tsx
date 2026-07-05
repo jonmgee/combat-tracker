@@ -183,11 +183,21 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   )
 
   const alertSwapTargets = useMemo(() => {
-    if (!myAlertCombatant) return []
-    return players.filter(c =>
+    if (!myAlertCombatant) { console.debug('[DEBUG alertSwapTargets] no myAlertCombatant'); return [] }
+    const targets = players.filter(c =>
       c.id !== myAlertCombatant.id && c.participant_id !== null
     )
+    console.debug('[DEBUG alertSwapTargets]', {
+      myAlertCombatantId: myAlertCombatant.id,
+      myAlertName: myAlertCombatant.name,
+      myAlertPartId: myAlertCombatant.participant_id,
+      targetCount: targets.length,
+      targets: targets.map(t => ({ id: t.id, name: t.name, pid: t.participant_id })),
+      allPlayerNames: players.map(p => ({ id: p.id, name: p.name, pid: p.participant_id, kind: p.kind }))
+    })
+    return targets
   }, [players, myAlertCombatant])
+  console.log('alertSwapTargets:', alertSwapTargets)
 
   // ── DM Alert proxy state ──
   // When the DM clicks ⚡ on a DM-PC row, this holds that participant_id.
@@ -263,9 +273,10 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
 
   async function handleAlertSwap(targetId: string) {
     console.debug('[OrderReview] handleAlertSwap start', { targetId })
-    if (!myAlertCombatant) return
+    if (!myAlertCombatant) { console.debug('[DEBUG handleAlertSwap] FAIL: no myAlertCombatant'); return }
     const target = players.find(c => c.id === targetId)
-    if (!target) return
+    if (!target) { console.debug('[DEBUG handleAlertSwap] FAIL: target not found in players', { targetId, playerIds: players.map(p => ({ id: p.id, name: p.name, pid: p.participant_id })) }); return }
+    console.debug('[DEBUG handleAlertSwap] proceeding', { sourceName: myAlertCombatant.name, targetName: target.name, sourcePartId: meRefreshed.id })
     await performAlertSwap(myAlertCombatant, target, meRefreshed.id)
     console.debug('[OrderReview] handleAlertSwap complete')
   }
