@@ -18,6 +18,7 @@ type GroupedEntry =
 
 export default function OrderReviewScreen({ combatants: initialCombatants, participants: initialParticipants, me, sessionId, onBeginCombat }: Props) {
   const isDM = me.role === 'dm'
+  console.log('[DM_ALERT_DIAG] Mounted:', new Date().toISOString(), { sessionId, role: me.role, myId: me.id })
 
   // ── Own combatants state — re-fetched after every swap/nudge so screen stays in sync ──
   const [combatants, setCombatants] = useState<Combatant[]>(initialCombatants)
@@ -54,13 +55,17 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   // ── Fresh participant data — fetch directly so lobby toggles are always current ──
   useEffect(() => {
     let mounted = true
+    console.log('[DM_ALERT_DIAG] participants fetch effect started:', new Date().toISOString())
 
     // Fetch once up-front
     const fetchParticipants = () => {
       supabase.from('participants')
         .select('*')
         .eq('session_id', sessionId)
-        .then(({ data }) => { if (data && mounted) setParticipants(data as Participant[]) })
+        .then(({ data }) => {
+          console.log('[DM_ALERT_DIAG] participants fetched:', new Date().toISOString(), data?.length, 'rows')
+          if (data && mounted) setParticipants(data as Participant[])
+        })
     }
 
     fetchParticipants()
@@ -218,6 +223,25 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     )
   }, [players, dmAlertCombatant])
 
+  // ── DM Alert diagnostic — dumps every render so we can see whether data is stale or missing ──
+  console.log('[DM_ALERT_DIAG]', new Date().toISOString(), {
+    isDM,
+    participantCount: participants.length,
+    participants: participants.map(p => ({
+      id: p.id, name: p.name, role: p.role,
+      alert_feat: p.alert_feat,
+      alert_used: p.alert_used
+    })),
+    alertEnabledParticipantIds: Array.from(alertEnabledParticipantIds),
+    myAlertCombatant: myAlertCombatant ? { id: myAlertCombatant.id, name: myAlertCombatant.name, pid: myAlertCombatant.participant_id } : null,
+    alertSwapTargets: alertSwapTargets.map(t => ({ id: t.id, name: t.name, pid: t.participant_id })),
+    dmSwapActive,
+    dmAlertCombatant: dmAlertCombatant ? { id: dmAlertCombatant.id, name: dmAlertCombatant.name, pid: dmAlertCombatant.participant_id } : null,
+    dmAlertSwapTargets: dmAlertSwapTargets.map(t => ({ id: t.id, name: t.name, pid: t.participant_id })),
+    playerCombatants: players.map(p => ({ id: p.id, name: p.name, pid: p.participant_id })),
+    note: 'If participants shows alert_feat=true but alertEnabledParticipantIds is empty, the stale-read hypothesis is confirmed. If both are fine but thisHasAlert is false, the participant_id mismatch is the issue.'
+  })
+
   // ── Core swap logic (shared between player and DM-proxy paths) ──
   async function performAlertSwap(
     sourceCombatant: Combatant,
@@ -305,6 +329,17 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
       (!isDM && alertSwapTargets.some(t => t.id === combatant.id)) ||
       (isDM && dmAlertSwapTargets.some(t => t.id === combatant.id))
     )
+    if (isDM && isPlayerEntry) {
+      console.log('[DM_ALERT_DIAG] renderEntry player row:', new Date().toISOString(), {
+        name: combatant.name,
+        participant_id: combatant.participant_id,
+        thisHasAlert,
+        isDmProxyActive,
+        isAlertSwapTarget,
+        dmSwapActive,
+        note: 'thisHasAlert false means either missing from alertEnabledParticipantIds or participant_id is null'
+      })
+    }
 
     return (
       <div
