@@ -34,29 +34,20 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
   const btnRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  if (conditions.length === 0) return null
-
-  const sorted = oldestFirst(conditions)
-  const first = sorted[0]
-  const overflowCount = conditions.length - 1
-  const open = expanded
-
-  // Measure button position to place dropdown relative to it
+  // All hooks unconditionally — before any early return
   useEffect(() => {
-    if (open && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      setDropdownStyle({
-        position: 'fixed',
-        top: rect.bottom + 4,
-        right: window.innerWidth - rect.right,
-        zIndex: 100000,
-      })
-    }
-  }, [open])
+    if (!expanded || !btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    setDropdownStyle({
+      position: 'fixed',
+      top: rect.bottom + 4,
+      right: window.innerWidth - rect.right,
+      zIndex: 100000,
+    })
+  }, [expanded])
 
-  // Close on outside click
   useEffect(() => {
-    if (!open) return
+    if (!expanded) return
     function handleClick(e: MouseEvent) {
       if (
         dropdownRef.current &&
@@ -74,7 +65,14 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
       clearTimeout(timer)
       document.removeEventListener('mousedown', handleClick)
     }
-  }, [open, onToggle])
+  }, [expanded, onToggle])
+
+  if (conditions.length === 0) return null
+
+  const sorted = oldestFirst(conditions)
+  const first = sorted[0]
+  const overflowCount = conditions.length - 1
+  const open = expanded
 
   return (
     <div style={{ position: 'relative' }}>
