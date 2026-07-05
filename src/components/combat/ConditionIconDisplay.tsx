@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import ReactDOM from 'react-dom'
 import { supabase } from '../../lib/supabase'
 import { CONDITION_ICON_MAP, ConditionImage } from './ConditionIcons'
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
@@ -7,9 +8,7 @@ import type { Condition } from '../../types'
 interface Props {
   conditions: Condition[]
   combatantId: string
-  /** The parent-provided "which card is expanded right now" value */
   expanded: boolean
-  /** Callback: pass null to close, this combatantId to open */
   onToggle: (combatantId: string | null) => void
 }
 
@@ -19,43 +18,39 @@ function oldestFirst(list: Condition[]): Condition[] {
   )
 }
 
-function renderIcon(conditionName: string, size: number) {
+function iconTile(conditionName: string) {
   const asset = CONDITION_ASSETS[conditionName]
   if (asset) {
     return <ConditionImage folder={asset.folder} filename={asset.filename} alt={conditionName} />
   }
   const Ic = CONDITION_ICON_MAP[conditionName]
   if (Ic) return <Ic />
-  return <span style={{ fontSize: size * 0.4, color: 'var(--text-dim)' }}>{conditionName[0]}</span>
+  return <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{conditionName[0]}</span>
 }
 
 export default function ConditionIconDisplay({ conditions, combatantId, expanded, onToggle }: Props) {
-  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   // All hooks unconditionally — before any early return
   useEffect(() => {
     if (!expanded || !btnRef.current) return
     const rect = btnRef.current.getBoundingClientRect()
-    setDropdownStyle({
-      position: 'fixed',
-      top: rect.bottom + 4,
-      right: window.innerWidth - rect.right,
-      zIndex: 100000,
-    })
+    setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
   }, [expanded])
 
   useEffect(() => {
     if (!expanded) return
     function handleClick(e: MouseEvent) {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node) &&
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
         btnRef.current &&
         !btnRef.current.contains(e.target as Node)
       ) {
         onToggle(null)
+        setMenuPos(null)
       }
     }
     const timer = setTimeout(() => {
@@ -82,6 +77,7 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
           e.stopPropagation()
           e.preventDefault()
           onToggle(open ? null : combatantId)
+          if (open) setMenuPos(null)
         }}
         style={{
           position: 'relative',
@@ -97,21 +93,8 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
           flexShrink: 0,
         }}
       >
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 8,
-            overflow: 'hidden',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {renderIcon(first.condition, 52)}
-        </div>
+        {iconTile(first.condition)}
 
-        {/* Chevron badge — only when 2+ conditions */}
         {overflowCount > 0 && (
           <div
             style={{
@@ -137,12 +120,15 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
         )}
       </button>
 
-      {/* Dropdown overlay */}
-      {open && (
+      {/* Portal dropdown to body so it escapes any parent stacking context */}
+      {open && menuPos && ReactDOM.createPortal(
         <div
-          ref={dropdownRef}
+          ref={menuRef}
           style={{
-            ...dropdownStyle,
+            position: 'fixed',
+            top: menuPos.top,
+            right: menuPos.right,
+            zIndex: 100000,
             minWidth: 220,
             background: 'var(--bg-panel)',
             border: '1px solid var(--border)',
@@ -177,7 +163,7 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
                   justifyContent: 'center',
                 }}
               >
-                {renderIcon(cond.condition, 52)}
+                {iconTile(cond.condition)}
               </div>
               <button
                 onClick={e => {
@@ -204,7 +190,8 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
               </button>
             </div>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

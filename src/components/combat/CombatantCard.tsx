@@ -3,7 +3,6 @@ import { flushSync } from 'react-dom'
 import { supabase } from '../../lib/supabase'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
-import ConditionSummary from './ConditionSummary'
 import ConditionIconDisplay from './ConditionIconDisplay'
 import BloodDrips from './BloodDrips'
 import type { Combatant, Condition, Participant } from '../../types'
@@ -252,12 +251,6 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                   </span>
                 </div>
 
-                {/* Mobile: compact condition summary on its own line below the INIT row */}
-                {conditions.length > 0 && (
-                  <div className="condition-summary-mobile">
-                    <ConditionSummary combatantId={combatant.id} activeConditions={conditions} />
-                  </div>
-                )}
               </div>
 
               {/* Right side: condition icon — single oldest, with dropdown overlay */}
