@@ -1,11 +1,9 @@
 import { useState, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
-import { CONDITION_ICON_MAP, ConditionImage, ConditionIconWrapper } from './ConditionIcons'
-import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
+import ConditionIconDisplay from './ConditionIconDisplay'
 import type { Combatant, Condition, Participant } from '../../types'
-import { ConditionSheetPanel } from './ConditionSummary'
 
 interface Props {
   combatants: Combatant[]
@@ -20,6 +18,8 @@ interface Props {
   canMoveDown?: boolean
   onMoveUp?: () => void
   onMoveDown?: () => void
+  expandedConditionCard: string | null
+  onToggleConditionCard: (id: string | null) => void
 }
 
 export default function GroupCombatantCard({
@@ -35,10 +35,11 @@ export default function GroupCombatantCard({
   canMoveDown,
   onMoveUp,
   onMoveDown,
+  expandedConditionCard,
+  onToggleConditionCard,
 }: Props) {
   const isDM = me.role === 'dm'
   const [showConditionsFor, setShowConditionsFor] = useState<string | null>(null)
-  const [sheetFor, setSheetFor] = useState<string | null>(null)
   // optimistic revive set of IDs
   const [_optimisticAliveIds, setOptimisticAliveIds] = useState<Record<string, boolean>>({})
   const hpRefs = useRef<Record<string, any>>({})
@@ -241,36 +242,13 @@ export default function GroupCombatantCard({
                   />
                 )}
 
-                {/* Condition icons — all conditions including Bloodied/Concentrating, 36px, with × remove */}
-                {cConditions.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6 }}>
-                    {cConditions.map(co => {
-                      const asset = CONDITION_ASSETS[co.condition]
-                      async function removeCondition() {
-                        await supabase.from('conditions').delete().eq('id', co.id)
-                      }
-                      return (
-                        <ConditionIconWrapper conditionName={co.condition}>
-                          <div key={co.id} className="group" onClick={() => setSheetFor(c.id)}
-                            style={{ position: 'relative', width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {asset
-                              ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={co.condition} />
-                              : (() => { const Ic = CONDITION_ICON_MAP[co.condition]; return Ic ? <Ic /> : <span style={{ fontSize: '0.6rem' }}>{co.condition[0]}</span> })()
-                            }
-                            <button
-                              onClick={e => { e.stopPropagation(); removeCondition() }}
-                              className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
-                              style={{
-                                top: 0, right: 0, width: 14, height: 14, borderRadius: '50%',
-                                background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(200,60,50,0.9)',
-                                color: '#e06050', cursor: 'pointer', fontSize: 9, lineHeight: 1, padding: 0, zIndex: 10,
-                              }}>✕</button>
-                          </div>
-                        </ConditionIconWrapper>
-                      )
-                    })}
-                  </div>
-                )}
+                {/* Condition icon — single oldest, with dropdown overlay */}
+                <ConditionIconDisplay
+                  conditions={cConditions}
+                  combatantId={c.id}
+                  expanded={expandedConditionCard === c.id}
+                  onToggle={onToggleConditionCard}
+                />
 
                 {/* Dead badge */}
                 {cDead && (
@@ -375,9 +353,6 @@ export default function GroupCombatantCard({
           activeConditions={conditions.filter(c => c.combatant_id === showConditionsFor)}
           onClose={() => setShowConditionsFor(null)}
         />
-      )}
-      {sheetFor && (
-        <ConditionSheetPanel open={!!sheetFor} onClose={() => setSheetFor(null)} combatantId={sheetFor!} activeConditions={conditions.filter(c => c.combatant_id === sheetFor)} />
       )}
     </div>
   )

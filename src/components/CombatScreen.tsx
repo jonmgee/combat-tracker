@@ -28,6 +28,8 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
   const [lateCurrentHp, setLateCurrentHp] = useState('')
   const [lateMaxHp, setLateMaxHp]       = useState('')
   const [lateIsMaxHp, setLateIsMaxHp]   = useState(true)
+  // ── Which card's condition dropdown is expanded (null = none) ──
+  const [expandedConditionCard, setExpandedConditionCard] = useState<string | null>(null)
   // ── Mid-combat monster summon ──
   const [showSummon, setShowSummon]       = useState(false)
   const [summonName, setSummonName]       = useState('')
@@ -739,6 +741,8 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                       canMoveDown={tiedBelow}
                       onMoveUp={() => swapBlocks(groupIndex, groupIndex - 1)}
                       onMoveDown={() => swapBlocks(groupIndex, groupIndex + 1)}
+                      expandedConditionCard={expandedConditionCard}
+                      onToggleConditionCard={setExpandedConditionCard}
                     />
                   )
                 } else {
@@ -757,6 +761,8 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                       onMoveDown={() => swapBlocks(groupIndex, groupIndex + 1)}
                       canSwapTarget={false}
                       onSwapTarget={undefined}
+                      expandedConditionCard={expandedConditionCard}
+                      onToggleConditionCard={setExpandedConditionCard}
                     />
                   )
                 }

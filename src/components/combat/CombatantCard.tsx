@@ -1,11 +1,10 @@
 import { useState, useRef } from 'react'
 import { flushSync } from 'react-dom'
 import { supabase } from '../../lib/supabase'
-import { CONDITION_ICON_MAP, ConditionImage, ConditionIconWrapper } from './ConditionIcons'
-import { CONDITION_ASSETS } from '../../lib/conditionAssets'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
-import ConditionSummary, { ConditionSheetPanel } from './ConditionSummary'
+import ConditionSummary from './ConditionSummary'
+import ConditionIconDisplay from './ConditionIconDisplay'
 import BloodDrips from './BloodDrips'
 import type { Combatant, Condition, Participant } from '../../types'
 
@@ -21,13 +20,13 @@ interface Props {
   onMoveDown?: () => void
   canSwapTarget?: boolean
   onSwapTarget?: () => void
+  expandedConditionCard: string | null
+  onToggleConditionCard: (id: string | null) => void
 }
 
-export default function CombatantCard({ combatant, conditions, isActive, me, position, canMoveUp, canMoveDown, onMoveUp, onMoveDown, canSwapTarget, onSwapTarget }: Props) {
+export default function CombatantCard({ combatant, conditions, isActive, me, position, canMoveUp, canMoveDown, onMoveUp, onMoveDown, canSwapTarget, onSwapTarget, expandedConditionCard, onToggleConditionCard }: Props) {
   const [showConditions, setShowConditions] = useState(false)
 
-  // Local state for desktop sheet open
-  const [sheetOpen, setSheetOpen] = useState(false)
   // optimistic revive state: when true, treat card as alive locally until server confirms
   const [optimisticAlive, setOptimisticAlive] = useState(false)
   const hpBarRef = useRef<any>(null)
@@ -261,47 +260,15 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 )}
               </div>
 
-              {/* Right side: condition icons — fixed 56px square, pinned top-right */}
-              {conditions.length > 0 && (
-                <div className="condition-icons-row" style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, alignSelf: 'flex-start' }}>
-                  {conditions.map(c => {
-                    const asset = CONDITION_ASSETS[c.condition]
-                    async function removeCondition() {
-                      await supabase.from('conditions').delete().eq('id', c.id)
-                    }
-                    return (
-                      <ConditionIconWrapper conditionName={c.condition}>
-                        <div key={c.id} className="group"
-                          onClick={() => setSheetOpen(true)}
-                          style={{ position: 'relative', flexShrink: 0, width: 56, height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {asset
-                            ? <ConditionImage folder={asset.folder} filename={asset.filename} alt={c.condition} />
-                            : (() => { const Ic = CONDITION_ICON_MAP[c.condition]; return Ic ? <Ic /> : <span style={{ fontSize: '0.7rem' }}>{c.condition[0]}</span> })()
-                          }
-                          <button
-                            onClick={e => { e.stopPropagation(); removeCondition() }}
-                            className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-150 flex items-center justify-center"
-                            style={{
-                              top: 0, right: 0, width: 16, height: 16, borderRadius: '50%',
-                              background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(200,60,50,0.9)',
-                              color: '#e06050', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0, zIndex: 10,
-                            }}>✕</button>
-                        </div>
-                      </ConditionIconWrapper>
-                    )
-                  })}
-                </div>
-              )}
-
+              {/* Right side: condition icon — single oldest, with dropdown overlay */}
+              <ConditionIconDisplay
+                conditions={conditions}
+                combatantId={combatant.id}
+                expanded={expandedConditionCard === combatant.id}
+                onToggle={onToggleConditionCard}
+              />
             </div>
-
-          {sheetOpen && (
-            <ConditionSheetPanel open={sheetOpen} onClose={() => setSheetOpen(false)} combatantId={combatant.id} activeConditions={conditions} />
-          )}
-
           </div>
-
-
 
           {/* ── HP bar ── */}
           {canSeeHP && combatant.max_hp !== null && combatant.current_hp !== null && (
