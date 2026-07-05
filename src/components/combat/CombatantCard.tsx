@@ -179,7 +179,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         {/* ── Card content - above all layers ── */}
         <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1 }}>
 
-          {/* ── Outer row: [position] [name+pills | icons] [INIT] ── */}
+          {/* ── Outer row: [position] [name + INIT sub-row | icons] on left, nothing right ── */}
           <div style={{ display: 'flex', alignItems: 'stretch', gap: 8 }}>
 
             {/* Position bubble */}
@@ -243,15 +243,14 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                     </span>
                   )}
                   {isMonster && !isHidden && <span className="text-xs" style={{ color: 'var(--text-dim)' }}>👹</span>}
-                  {isActive && (
-                    <span className="text-xs px-2 py-0.5 rounded"
-                      style={{
-                        background: isConcentrating ? 'rgba(140,90,220,0.2)' : 'rgba(201,168,76,0.2)',
-                        color: isConcentrating ? '#c0a0f0' : 'var(--gold)',
-                        border: `1px solid ${isConcentrating ? 'rgba(140,90,220,0.4)' : 'var(--gold-dark)'}`,
-                        fontSize: '0.65rem', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif",
-                      }}>ACTIVE</span>
-                  )}
+                </div>
+
+                {/* INIT row — indented under name, replaces old top-right position */}
+                <div style={{ paddingLeft: 4, display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1 }}>
+                  <span className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>INIT</span>
+                  <span className="text-lg font-bold" style={{ color: 'var(--gold)', fontFamily: "'Cinzel', serif" }}>
+                    {combatant.initiative ?? '-'}
+                  </span>
                 </div>
 
                 {/* Pills row */}
@@ -318,14 +317,6 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
           {sheetOpen && (
             <ConditionSheetPanel open={sheetOpen} onClose={() => setSheetOpen(false)} combatantId={combatant.id} activeConditions={conditions} />
           )}
-
-            {/* INIT */}
-            <div className="shrink-0 text-right flex flex-col justify-center">
-              <div className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>INIT</div>
-              <div className="text-lg font-bold" style={{ color: 'var(--gold)', fontFamily: "'Cinzel', serif", lineHeight: 1 }}>
-                {combatant.initiative ?? '-'}
-              </div>
-            </div>
 
           </div>
 
