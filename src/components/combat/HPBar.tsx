@@ -110,13 +110,13 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
           −
         </button>
 
-        <div className="flex-1 rounded-full overflow-hidden relative" style={{ height: '100%', background: 'rgba(255,255,255,0.06)' }}>
+        <div className="flex-1 rounded-lg overflow-hidden relative" style={{ height: '100%', background: 'rgba(255,255,255,0.06)' }}>
           {/* Base HP bar */}
           <div style={{
             width: `${realPct}%`,
             height: '100%',
             background: barColor,
-            borderRadius: '9999px',
+            borderRadius: '8px',
             transition: 'width 0.3s ease',
             boxShadow: isBloodied ? '0 0 6px rgba(160,30,20,0.5)' : pct <= 25 ? '0 0 5px rgba(176,48,48,0.4)' : 'none',
           }}/>
@@ -129,7 +129,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
               top: 0,
               bottom: 0,
               background: 'rgba(200,180,220,0.5)',
-              borderRadius: '0 9999px 9999px 0',
+              borderRadius: '0 8px 8px 0',
               transition: 'left 0.3s ease, right 0.3s ease',
             }}/>
           )}
