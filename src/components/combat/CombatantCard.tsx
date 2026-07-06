@@ -307,10 +307,10 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
               </button>
 
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (isMonster) {
                     // Monsters kill instantly — no confirm
-                    supabase.from('combatants').update({ dead: true, temp_hp: 0 }).eq('id', combatant.id)
+                    await supabase.from('combatants').update({ dead: true, temp_hp: 0 }).eq('id', combatant.id)
                   } else {
                     // PC/DM-PC — show confirmation
                     setConfirmKillFor(combatant.name)
