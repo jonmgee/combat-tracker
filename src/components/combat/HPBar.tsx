@@ -169,39 +169,41 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             <span style={{ textShadow: '0 0 6px rgba(0,0,0,0.35)' }}>{hpDisplay}</span>
           </div>
 
-          {/* Temp HP badge — top-right corner, PC single card only */}
+          {/* Temp HP badge — fixed pill in top-right corner of HP bar */}
           {showTempBadge && (
             <div
               onClick={handleBadgeClick}
               style={{
                 position: 'absolute',
                 top: 0,
-                right: tempHp === 0 ? 'auto' : 0,
-                left: tempHp === 0 ? 0 : 'auto',
+                right: 0,
                 bottom: 0,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '2px',
-                padding: tempHp > 0 ? '0 5px' : '0 6px',
+                gap: '3px',
+                padding: '0 7px',
                 cursor: 'pointer',
+                background: 'rgba(0,0,0,0.35)',
+                backdropFilter: 'blur(1px)',
+                WebkitBackdropFilter: 'blur(1px)',
+                borderLeft: '1px solid rgba(255,255,255,0.08)',
                 color: '#c8b4dc',
-                fontSize: '0.65rem',
-                fontWeight: 600,
-                letterSpacing: '0.3px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                letterSpacing: '0.2px',
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
               }}
               title={tempHp === 0 ? 'Add Temporary HP' : `Temporary HP: ${tempHp}`}
             >
-              <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" style={{ flexShrink: 0 }}>
-                <path d="M10 2s3 4.5 3 8.5c0 1.5-1 3-1 3h-4s-1-1.5-1-3C7 6.5 10 2 10 2z"/>
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style={{ flexShrink: 0 }}>
+                <path d="M10 2s4 5 4 9c0 2-1.5 3-1.5 3h-5S6 13 6 11c0-4 4-9 4-9z"/>
               </svg>
-              {tempHp > 0 && (
+              {tempHp > 0 ? (
                 <span>{tempHp}</span>
-              )}
-              {tempHp === 0 && (
-                <span style={{ fontSize: '0.6rem', lineHeight: 1 }}>Temp HP</span>
+              ) : (
+                <span style={{ fontSize: '0.6rem', fontWeight: 600, lineHeight: 1, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Temp HP</span>
               )}
             </div>
           )}
