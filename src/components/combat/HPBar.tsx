@@ -146,7 +146,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             pointerEvents: 'none',
             color: 'var(--gold)',
             fontFamily: "'Inter', sans-serif",
-            fontSize: '0.95rem',
+            fontSize: '1.1rem',
             fontWeight: 700,
           }}>
             <span style={{ textShadow: '0 0 6px rgba(0,0,0,0.35)' }}>{hpDisplay}</span>
