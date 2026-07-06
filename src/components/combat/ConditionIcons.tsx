@@ -9,7 +9,7 @@ export function ConditionImage({ folder, filename, alt }: { folder: string, file
   const { webp, png } = getConditionImageUrls(folder, filename)
   if (!png && !webp) return <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>?</span>
   return (
-    <picture>
+    <picture style={{ width: '100%', height: '100%', display: 'block' }}>
       {webp && <source srcSet={webp} type="image/webp" />}
       <img src={png ?? webp} alt={alt ?? filename} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
     </picture>
