@@ -87,9 +87,7 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
           border: 'none',
           background: 'transparent',
           cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          display: 'block',
           flexShrink: 0,
         }}
       >
