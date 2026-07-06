@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { flushSync } from 'react-dom'
+import ReactDOM from 'react-dom'
 import { supabase } from '../../lib/supabase'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
@@ -24,6 +25,7 @@ interface Props {
 
 export default function CombatantCard({ combatant, conditions, isActive, me, canMoveUp, canMoveDown, onMoveUp, onMoveDown, canSwapTarget, onSwapTarget, expandedConditionCard, onToggleConditionCard }: Props) {
   const [showConditions, setShowConditions] = useState(false)
+  const [confirmKillFor, setConfirmKillFor] = useState<string | null>(null)
 
   // optimistic revive state: when true, treat card as alive locally until server confirms
   const [optimisticAlive, setOptimisticAlive] = useState(false)
@@ -305,9 +307,14 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
               </button>
 
               <button
-                onClick={async () => {
-                  const next = !combatant.dead
-                  await supabase.from('combatants').update({ dead: next }).eq('id', combatant.id)
+                onClick={() => {
+                  if (isMonster) {
+                    // Monsters kill instantly — no confirm
+                    supabase.from('combatants').update({ dead: true, temp_hp: 0 }).eq('id', combatant.id)
+                  } else {
+                    // PC/DM-PC — show confirmation
+                    setConfirmKillFor(combatant.name)
+                  }
                 }}
                 disabled={!isDM && !isMe}
                 className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
@@ -367,6 +374,48 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
           onClose={() => setShowConditions(false)}
         />
       )}
+
+      {/* ── Kill confirm dialog (PC/DM-PC only) ── */}
+      {confirmKillFor !== null && ReactDOM.createPortal(
+        <div
+          className="fixed inset-0 z-[100001] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+        >
+          <div
+            className="rounded-xl p-7 max-w-sm w-full mx-4 text-center"
+            style={{ background: 'var(--bg-panel)', border: '1px solid rgba(180,60,50,0.6)', boxShadow: '0 8px 40px rgba(0,0,0,0.8)' }}
+          >
+            <div className="text-4xl mb-3">💀</div>
+            <h3
+              className="text-lg font-bold mb-4"
+              style={{ fontFamily: "'Cinzel', serif", color: '#e06050', letterSpacing: '0.06em' }}
+            >
+              Send {confirmKillFor} to the grave?
+            </h3>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmKillFor(null)}
+                className="flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all active:scale-95"
+                style={{ background: 'var(--bg-raised)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontFamily: "'Cinzel', serif" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await supabase.from('combatants').update({ dead: true, temp_hp: 0 }).eq('id', combatant.id)
+                  setConfirmKillFor(null)
+                }}
+                className="flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all active:scale-95"
+                style={{ background: 'linear-gradient(135deg, #8a1010, #c03020)', color: '#fff', fontFamily: "'Cinzel', serif", border: 'none' }}
+              >
+                Kill
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
     </>
   )
 }
