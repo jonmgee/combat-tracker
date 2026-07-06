@@ -14,6 +14,7 @@ interface Props {
 const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false }: Props, ref) {
   const [editing, setEditing] = useState(false)
   const [delta, setDelta]     = useState('')
+  const [presetDirection, setPresetDirection] = useState<1 | -1>(1)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   useImperativeHandle(ref, () => ({
@@ -98,7 +99,17 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
  
   return (
     <div className="mt-2">
-      <div className="flex items-center gap-3 mb-2">
+      <div className="flex items-center gap-2 mb-2" style={{ height: '52px' }}>
+        {/* � Damage button */}
+        <button
+          onClick={() => { setPresetDirection(-1); if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
+          className="flex items-center justify-center rounded-lg transition-all active:scale-95"
+          style={{ width: 52, height: '100%', background: 'var(--bg-void)', color: '#c06060', border: '1px solid var(--border)', cursor: 'pointer', flexShrink: 0, fontSize: '1.2rem', lineHeight: 1 }}
+          aria-label="Deal damage"
+        >
+          −
+        </button>
+
         <div className="flex-1 rounded-full overflow-hidden relative" style={{ height: '14px', background: 'rgba(255,255,255,0.06)' }}>
           {/* Base HP bar */}
           <div style={{
@@ -141,14 +152,14 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             <span style={{ textShadow: '0 0 6px rgba(0,0,0,0.35)' }}>{hpDisplay}</span>
           </div>
         </div>
-        {/* Large pill button for editing HP */}
+        {/* + Heal button */}
         <button
-          onClick={() => { if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
-          className="flex items-center gap-1.5 py-1 px-3 rounded-lg text-sm font-semibold transition-all"
-          style={{ background: 'var(--bg-void)', color: 'var(--gold)', border: '1px solid var(--border)', cursor: 'pointer', minWidth: 88 }}
-          aria-label="Adjust HP"
+          onClick={() => { setPresetDirection(1); if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
+          className="flex items-center justify-center rounded-lg transition-all active:scale-95"
+          style={{ width: 52, height: '100%', background: 'var(--bg-void)', color: '#4a8e3a', border: '1px solid var(--border)', cursor: 'pointer', flexShrink: 0, fontSize: '1.2rem', lineHeight: 1 }}
+          aria-label="Heal"
         >
-          +-HP
+          +
         </button>
       </div>
  
@@ -163,15 +174,14 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             className="flex-1 px-2 py-1.5 rounded text-sm text-center outline-none"
             style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
           />
-          <button onClick={() => applyDelta(1)}
+          <button onClick={() => applyDelta(presetDirection)}
             className="px-3 py-1.5 rounded text-sm font-bold transition-all active:scale-95"
-            style={{ background: 'rgba(74,142,58,0.15)', color: '#4a8e3a', border: '1px solid rgba(74,142,58,0.3)' }}>
-            +
-          </button>
-          <button onClick={() => applyDelta(-1)}
-            className="px-3 py-1.5 rounded text-sm font-bold transition-all active:scale-95"
-            style={{ background: 'rgba(176,48,48,0.15)', color: '#c06060', border: '1px solid rgba(176,48,48,0.3)' }}>
-            −
+            style={{
+              background: presetDirection === 1 ? 'rgba(74,142,58,0.15)' : 'rgba(176,48,48,0.15)',
+              color: presetDirection === 1 ? '#4a8e3a' : '#c06060',
+              border: `1px solid ${presetDirection === 1 ? 'rgba(74,142,58,0.3)' : 'rgba(176,48,48,0.3)'}`,
+            }}>
+            {presetDirection === 1 ? '+' : '−'}
           </button>
         </div>
       )}
