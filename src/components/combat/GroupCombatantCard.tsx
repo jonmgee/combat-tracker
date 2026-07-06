@@ -11,13 +11,8 @@ interface Props {
   isActive: boolean           // is any of them the active combatant?
   activeId: string | null     // which specific one is active
   me: Participant
-  position: number            // shared initiative order number (e.g. 1)
   sharedName: string          // e.g. "Skeletons"
   sharedInitiative: number
-  canMoveUp?: boolean
-  canMoveDown?: boolean
-  onMoveUp?: () => void
-  onMoveDown?: () => void
   expandedConditionCard: string | null
   onToggleConditionCard: (id: string | null) => void
 }
@@ -28,13 +23,8 @@ export default function GroupCombatantCard({
   isActive,
   activeId,
   me,
-  position,
   sharedName,
   sharedInitiative,
-  canMoveUp,
-  canMoveDown,
-  onMoveUp,
-  onMoveDown,
   expandedConditionCard,
   onToggleConditionCard,
 }: Props) {
@@ -82,38 +72,6 @@ export default function GroupCombatantCard({
       {/* ── Header row ── */}
       <div className="p-4 pb-2" style={{ position: 'relative', zIndex: 2 }}>
         <div className="flex items-center gap-3">
-          <div className="shrink-0 flex flex-col items-center">
-            {canMoveUp && (
-              <button
-                onClick={onMoveUp}
-                className="cursor-pointer transition-colors hover:opacity-70"
-                style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}
-              >
-                ▲
-              </button>
-            )}
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{
-                background: isActive ? 'var(--gold)' : 'var(--bg-void)',
-                color: isActive ? '#1a1410' : 'var(--text-dim)',
-                border: isActive ? 'none' : '1px solid var(--border)',
-                fontFamily: "'Cinzel', serif",
-              }}
-            >
-              {position}
-            </div>
-            {canMoveDown && (
-              <button
-                onClick={onMoveDown}
-                className="cursor-pointer transition-colors hover:opacity-70"
-                style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}
-              >
-                ▼
-              </button>
-            )}
-          </div>
-
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span

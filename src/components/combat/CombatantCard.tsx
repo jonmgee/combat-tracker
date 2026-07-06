@@ -12,18 +12,13 @@ interface Props {
   conditions: Condition[]
   isActive: boolean
   me: Participant
-  position: number
-  canMoveUp?: boolean
-  canMoveDown?: boolean
-  onMoveUp?: () => void
-  onMoveDown?: () => void
   canSwapTarget?: boolean
   onSwapTarget?: () => void
   expandedConditionCard: string | null
   onToggleConditionCard: (id: string | null) => void
 }
 
-export default function CombatantCard({ combatant, conditions, isActive, me, position, canMoveUp, canMoveDown, onMoveUp, onMoveDown, canSwapTarget, onSwapTarget, expandedConditionCard, onToggleConditionCard }: Props) {
+export default function CombatantCard({ combatant, conditions, isActive, me, canSwapTarget, onSwapTarget, expandedConditionCard, onToggleConditionCard }: Props) {
   const [showConditions, setShowConditions] = useState(false)
 
   // optimistic revive state: when true, treat card as alive locally until server confirms
@@ -177,29 +172,8 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
         {/* ── Card content - above all layers ── */}
         <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1 }}>
 
-          {/* ── Outer row: [position] [name + INIT sub-row | icons] on left, nothing right ── */}
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: 8 }}>
-
-            {/* Position bubble — pinned to top, aligns with name */}
-            <div className="shrink-0 flex flex-col items-center" style={{ gap: 2, justifyContent: 'flex-start' }}>
-              {canMoveUp && (
-                <button onClick={onMoveUp} className="cursor-pointer transition-colors hover:opacity-70"
-                  style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▲</button>
-              )}
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                style={{
-                  background: isActive ? (isConcentrating ? 'rgba(140,90,220,0.8)' : 'var(--gold)') : 'var(--bg-void)',
-                  color: isActive ? (isConcentrating ? '#e8d8ff' : '#1a1410') : 'var(--text-dim)',
-                  border: isActive ? 'none' : '1px solid var(--border)',
-                  fontFamily: "'Cinzel', serif",
-                }}>
-                {position}
-              </div>
-              {canMoveDown && (
-                <button onClick={onMoveDown} className="cursor-pointer transition-colors hover:opacity-70"
-                  style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▼</button>
-              )}
-            </div>
+          {/* ── Outer row: [name + INIT sub-row | icons] — position badge removed ── */}
+          <div style={{ display: 'flex', alignItems: 'stretch' }}>
 
             {/* Centre: name + pills on left, icons pinned top-right */}
             <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>

@@ -380,45 +380,6 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
   const isMyTurn = !!combatants.find(c => c.id === combatState.current_combatant_id && c.participant_id === me.id)
   const myCombatantNoInit = !isDM && !!combatants.find(c => c.participant_id === me.id && c.initiative === null && c.kind === 'player')
 
-  // ── Tie-breaking reorder (DM only) ──
-  function getGroupInitiative(entry: typeof groupedCombatants[0]): number | null {
-    return entry.type === 'single'
-      ? (entry.combatant.initiative ?? null)
-      : (entry.initiative ?? null)
-  }
-
-  async function swapBlocks(idx: number, swapIdx: number) {
-    // Swap the initiative_order values between two blocks (ties only)
-    subPaused.current = true
-    try {
-      const block = groupedCombatants[idx]
-      const swapBlock = groupedCombatants[swapIdx]
-
-      const blockOrder = block.type === 'group'
-        ? (block.combatants[0].initiative_order ?? 1)
-        : (block.combatant.initiative_order ?? 1)
-      const swapOrder = swapBlock.type === 'group'
-        ? (swapBlock.combatants[0].initiative_order ?? 1)
-        : (swapBlock.combatant.initiative_order ?? 1)
-
-      const combatantsInBlock = block.type === 'group' ? block.combatants : [block.combatant]
-      const combatantsInSwap = swapBlock.type === 'group' ? swapBlock.combatants : [swapBlock.combatant]
-
-      // Give every member of this block the swap block's order
-      for (const c of combatantsInBlock) {
-        await supabase.from('combatants').update({ initiative_order: swapOrder }).eq('id', c.id)
-      }
-      // Give every member of the swap block this block's order
-      for (const c of combatantsInSwap) {
-        await supabase.from('combatants').update({ initiative_order: blockOrder }).eq('id', c.id)
-      }
-
-      await loadAll()
-    } finally {
-      subPaused.current = false
-    }
-  }
-
   // ── New combat (DM only): reset session back to lobby ──
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
@@ -717,15 +678,8 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
 
           <div className="flex flex-col gap-3">
             {(() => {
-              return groupedCombatants.map((g, groupIndex) => {
-                const thisInit = getGroupInitiative(g)
-                const prevInit = groupIndex > 0 ? getGroupInitiative(groupedCombatants[groupIndex - 1]) : null
-                const nextInit = groupIndex < groupedCombatants.length - 1 ? getGroupInitiative(groupedCombatants[groupIndex + 1]) : null
-                const tiedAbove = isDM && thisInit !== null && thisInit === prevInit
-                const tiedBelow = isDM && thisInit !== null && thisInit === nextInit
-
+              return groupedCombatants.map((g) => {
                 if (g.type === 'group') {
-                  const pos = g.combatants[0].initiative_order ?? 1
                   return (
                     <GroupCombatantCard
                       key={g.combatants[0].id}
@@ -734,19 +688,13 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                       isActive={g.combatants.some(c => c.id === combatState.current_combatant_id)}
                       activeId={combatState.current_combatant_id}
                       me={me}
-                      position={pos}
                       sharedName={g.name}
                       sharedInitiative={g.initiative}
-                      canMoveUp={tiedAbove}
-                      canMoveDown={tiedBelow}
-                      onMoveUp={() => swapBlocks(groupIndex, groupIndex - 1)}
-                      onMoveDown={() => swapBlocks(groupIndex, groupIndex + 1)}
                       expandedConditionCard={expandedConditionCard}
                       onToggleConditionCard={setExpandedConditionCard}
                     />
                   )
                 } else {
-                  const pos = g.combatant.initiative_order ?? 1
                   return (
                     <CombatantCard
                       key={g.combatant.id}
@@ -754,11 +702,6 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                       conditions={conditions.filter(cond => cond.combatant_id === g.combatant.id)}
                       isActive={g.combatant.id === combatState.current_combatant_id}
                       me={me}
-                      position={pos}
-                      canMoveUp={tiedAbove}
-                      canMoveDown={tiedBelow}
-                      onMoveUp={() => swapBlocks(groupIndex, groupIndex - 1)}
-                      onMoveDown={() => swapBlocks(groupIndex, groupIndex + 1)}
                       canSwapTarget={false}
                       onSwapTarget={undefined}
                       expandedConditionCard={expandedConditionCard}
