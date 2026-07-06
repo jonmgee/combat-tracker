@@ -12,7 +12,6 @@ interface Props {
   conditions: Condition[]
   isActive: boolean
   me: Participant
-  position: number
   canMoveUp?: boolean
   canMoveDown?: boolean
   onMoveUp?: () => void
@@ -23,7 +22,7 @@ interface Props {
   onToggleConditionCard: (id: string | null) => void
 }
 
-export default function CombatantCard({ combatant, conditions, isActive, me, position, canMoveUp, canMoveDown, onMoveUp, onMoveDown, canSwapTarget, onSwapTarget, expandedConditionCard, onToggleConditionCard }: Props) {
+export default function CombatantCard({ combatant, conditions, isActive, me, canMoveUp, canMoveDown, onMoveUp, onMoveDown, canSwapTarget, onSwapTarget, expandedConditionCard, onToggleConditionCard }: Props) {
   const [showConditions, setShowConditions] = useState(false)
 
   // optimistic revive state: when true, treat card as alive locally until server confirms
@@ -186,15 +185,6 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
                 <button onClick={onMoveUp} className="cursor-pointer transition-colors hover:opacity-70"
                   style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▲</button>
               )}
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                style={{
-                  background: isActive ? (isConcentrating ? 'rgba(140,90,220,0.8)' : 'var(--gold)') : 'var(--bg-void)',
-                  color: isActive ? (isConcentrating ? '#e8d8ff' : '#1a1410') : 'var(--text-dim)',
-                  border: isActive ? 'none' : '1px solid var(--border)',
-                  fontFamily: "'Cinzel', serif",
-                }}>
-                {position}
-              </div>
               {canMoveDown && (
                 <button onClick={onMoveDown} className="cursor-pointer transition-colors hover:opacity-70"
                   style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▼</button>

@@ -725,7 +725,6 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                 const tiedBelow = isDM && thisInit !== null && thisInit === nextInit
 
                 if (g.type === 'group') {
-                  const pos = g.combatants[0].initiative_order ?? 1
                   return (
                     <GroupCombatantCard
                       key={g.combatants[0].id}
@@ -734,7 +733,6 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                       isActive={g.combatants.some(c => c.id === combatState.current_combatant_id)}
                       activeId={combatState.current_combatant_id}
                       me={me}
-                      position={pos}
                       sharedName={g.name}
                       sharedInitiative={g.initiative}
                       canMoveUp={tiedAbove}
@@ -746,7 +744,6 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                     />
                   )
                 } else {
-                  const pos = g.combatant.initiative_order ?? 1
                   return (
                     <CombatantCard
                       key={g.combatant.id}
@@ -754,7 +751,6 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                       conditions={conditions.filter(cond => cond.combatant_id === g.combatant.id)}
                       isActive={g.combatant.id === combatState.current_combatant_id}
                       me={me}
-                      position={pos}
                       canMoveUp={tiedAbove}
                       canMoveDown={tiedBelow}
                       onMoveUp={() => swapBlocks(groupIndex, groupIndex - 1)}

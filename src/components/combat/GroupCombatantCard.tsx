@@ -11,7 +11,6 @@ interface Props {
   isActive: boolean           // is any of them the active combatant?
   activeId: string | null     // which specific one is active
   me: Participant
-  position: number            // shared initiative order number (e.g. 1)
   sharedName: string          // e.g. "Skeletons"
   sharedInitiative: number
   canMoveUp?: boolean
@@ -28,7 +27,6 @@ export default function GroupCombatantCard({
   isActive,
   activeId,
   me,
-  position,
   sharedName,
   sharedInitiative,
   canMoveUp,
@@ -92,17 +90,6 @@ export default function GroupCombatantCard({
                 ▲
               </button>
             )}
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{
-                background: isActive ? 'var(--gold)' : 'var(--bg-void)',
-                color: isActive ? '#1a1410' : 'var(--text-dim)',
-                border: isActive ? 'none' : '1px solid var(--border)',
-                fontFamily: "'Cinzel', serif",
-              }}
-            >
-              {position}
-            </div>
             {canMoveDown && (
               <button
                 onClick={onMoveDown}
