@@ -110,7 +110,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
           −
         </button>
 
-        <div className="flex-1 rounded-full overflow-hidden relative" style={{ height: '14px', background: 'rgba(255,255,255,0.06)' }}>
+        <div className="flex-1 rounded-full overflow-hidden relative" style={{ height: '100%', background: 'rgba(255,255,255,0.06)' }}>
           {/* Base HP bar */}
           <div style={{
             width: `${realPct}%`,
