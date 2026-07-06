@@ -267,6 +267,13 @@ export default function GroupCombatantCard({
                       {cBloodied ? '🩸' : 'Bloody'}
                     </button>
 
+                    {/* Condition picker */}
+                    <button
+                      onClick={() => setShowConditionsFor(c.id)}
+                      className="flex-1 py-1 rounded text-[0.55rem] transition-all active:scale-95"
+                      style={{ background: 'var(--bg-void)', border: '0.5px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
+                      + Cond
+                    </button>
                     {/* Dead toggle (DM or owner) */}
                     {cDead ? (
                       <button
@@ -318,13 +325,7 @@ export default function GroupCombatantCard({
                       </button>
                     )}
 
-                    {/* Condition picker */}
-                    <button
-                      onClick={() => setShowConditionsFor(c.id)}
-                      className="flex-1 py-1 rounded text-[0.55rem] transition-all active:scale-95"
-                      style={{ background: 'var(--bg-void)', border: '0.5px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
-                      + Cond
-                    </button>
+                    
                   </div>
                 )}
               </div>
