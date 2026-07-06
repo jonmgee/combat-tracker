@@ -99,12 +99,12 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
  
   return (
     <div className="mt-2">
-      <div className="flex items-center gap-2 mb-2" style={{ height: '40px' }}>
+      <div className="flex items-center gap-2 mb-2" style={{ height: '35px' }}>
         {/* � Damage button */}
         <button
           onClick={() => { setPresetDirection(-1); if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
           className="flex items-center justify-center rounded-lg transition-all active:scale-95"
-          style={{ width: 40, height: '100%', background: 'var(--bg-void)', color: '#c06060', border: '1px solid var(--border)', cursor: 'pointer', flexShrink: 0, fontSize: '1.1rem', lineHeight: 1 }}
+          style={{ width: 35, height: '100%', background: 'var(--bg-void)', color: '#c06060', border: '1px solid var(--border)', cursor: 'pointer', flexShrink: 0, fontSize: '1rem', lineHeight: 1 }}
           aria-label="Deal damage"
         >
           −
@@ -156,7 +156,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
         <button
           onClick={() => { setPresetDirection(1); if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
           className="flex items-center justify-center rounded-lg transition-all active:scale-95"
-          style={{ width: 40, height: '100%', background: 'var(--bg-void)', color: '#4a8e3a', border: '1px solid var(--border)', cursor: 'pointer', flexShrink: 0, fontSize: '1.1rem', lineHeight: 1 }}
+          style={{ width: 35, height: '100%', background: 'var(--bg-void)', color: '#4a8e3a', border: '1px solid var(--border)', cursor: 'pointer', flexShrink: 0, fontSize: '1rem', lineHeight: 1 }}
           aria-label="Heal"
         >
           +
