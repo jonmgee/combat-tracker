@@ -203,7 +203,10 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
               {tempHp > 0 ? (
                 <span>{tempHp}</span>
               ) : (
-                <span style={{ fontSize: '0.6rem', fontWeight: 600, lineHeight: 1, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Temp HP</span>
+                <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.5rem', fontWeight: 700, lineHeight: 1.2, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                  <span>Temp</span>
+                  <span>HP</span>
+                </span>
               )}
             </div>
           )}
