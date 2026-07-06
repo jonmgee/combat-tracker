@@ -29,7 +29,7 @@ function iconTile(conditionName: string) {
 }
 
 export default function ConditionIconDisplay({ conditions, combatantId, expanded, onToggle }: Props) {
-  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -37,7 +37,16 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
   useEffect(() => {
     if (!expanded || !btnRef.current) return
     const rect = btnRef.current.getBoundingClientRect()
-    setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    const dropdownWidth = 220
+    // Start by right-aligning with the button (same as old behaviour)
+    let left = rect.right - dropdownWidth
+    // If that clips the left edge, align left edge with button left
+    if (left < 8) left = rect.left
+    // If that clips the right edge, clamp to 8px from right
+    if (left + dropdownWidth > window.innerWidth - 8) left = window.innerWidth - dropdownWidth - 8
+    // Safety: never go negative
+    if (left < 8) left = 8
+    setMenuPos({ top: rect.bottom + 4, left })
   }, [expanded])
 
   useEffect(() => {
@@ -125,7 +134,7 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
           style={{
             position: 'fixed',
             top: menuPos.top,
-            right: menuPos.right,
+            left: menuPos.left,
             zIndex: 100000,
             minWidth: 220,
             background: 'var(--bg-panel)',
