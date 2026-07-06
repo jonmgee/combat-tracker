@@ -244,23 +244,22 @@ export default function GroupCombatantCard({
 
                 {/* Actions */}
                 {!cDead && (
-                  <div className="flex gap-1 mt-1" style={{ flexWrap: 'wrap' }}>
+                  <div className="flex gap-2 mt-2">
                     {/* Bloodied toggle */}
                     <button
                       onClick={() => toggleBloodied(c)}
                       disabled={!isDM && !cOwns}
-                      className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95 disabled:active:scale-100"
+                      className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
                       style={{
                         flex: 1,
                         background: cBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
-                        border: `0.5px solid ${cBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
+                        border: `1px solid ${cBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
                         color: cBloodied ? '#c07070' : 'var(--text-dim)',
                         cursor: (!isDM && !cOwns) ? 'not-allowed' : 'pointer',
                         opacity: (!isDM && !cOwns) ? 0.4 : 1,
-                        lineHeight: 1,
                       }}
                     >
-                      <svg viewBox="0 0 11 11" fill="none" style={{ width: 9, height: 9, flexShrink: 0 }}>
+                      <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
                         <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
                           stroke="currentColor" strokeWidth="0.9" fill={cBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
                       </svg>
@@ -270,8 +269,8 @@ export default function GroupCombatantCard({
                     {/* Condition picker */}
                     <button
                       onClick={() => setShowConditionsFor(c.id)}
-                      className="flex-1 py-1 rounded text-[0.55rem] transition-all active:scale-95"
-                      style={{ background: 'var(--bg-void)', border: '0.5px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
+                      className="flex items-center justify-center py-1.5 rounded-lg text-xs transition-all active:scale-95"
+                      style={{ flex: 1, background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
                       + Cond
                     </button>
                     {/* Dead toggle (DM or owner) */}
@@ -290,15 +289,14 @@ export default function GroupCombatantCard({
                           }
                         }}
                         disabled={!isDM && !cOwns}
-                        className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95 disabled:active:scale-100"
+                        className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
                         style={{
                           flex: 1,
                           background: 'var(--bg-void)',
-                          border: '0.5px solid var(--border)',
+                          border: '1px solid var(--border)',
                           color: 'var(--text-dim)',
                           cursor: (!isDM && !cOwns) ? 'not-allowed' : 'pointer',
                           opacity: (!isDM && !cOwns) ? 0.4 : 1,
-                          lineHeight: 1,
                         }}
                       >
                         Revive
@@ -310,15 +308,14 @@ export default function GroupCombatantCard({
                           await supabase.from('combatants').update({ dead: next }).eq('id', c.id)
                         }}
                         disabled={!isDM && !cOwns}
-                        className="flex items-center gap-0.5 px-1.5 py-1 rounded text-[0.55rem] transition-all active:scale-95 disabled:active:scale-100"
+                        className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
                         style={{
                           flex: 1,
                           background: cDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
-                          border: `0.5px solid ${cDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
+                          border: `1px solid ${cDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
                           color: cDead ? '#c06060' : 'var(--text-dim)',
                           cursor: (!isDM && !cOwns) ? 'not-allowed' : 'pointer',
                           opacity: (!isDM && !cOwns) ? 0.4 : 1,
-                          lineHeight: 1,
                         }}
                       >
                         {cDead ? '💀' : '💀 Kill'}
