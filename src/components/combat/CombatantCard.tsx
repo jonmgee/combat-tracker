@@ -273,6 +273,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, pos
               tempHp={combatant.temp_hp}
               isBloodied={isBloodied}
               isDead={isDead && !optimisticAlive}
+              showTempBadge={combatant.kind === 'player'}
             />
           )}
 

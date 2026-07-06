@@ -1,7 +1,7 @@
 import React, { useState, useRef, useImperativeHandle } from 'react'
 import { flushSync } from 'react-dom'
 import { supabase } from '../../lib/supabase'
- 
+
 interface Props {
   combatantId: string
   currentHp: number
@@ -9,17 +9,19 @@ interface Props {
   tempHp: number
   isBloodied?: boolean
   isDead?: boolean
+  showTempBadge?: boolean
 }
- 
-const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false }: Props, ref) {
+
+const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false, showTempBadge = false }: Props, ref) {
   const [editing, setEditing] = useState(false)
+  const [tempEditing, setTempEditing] = useState(false)
   const [delta, setDelta]     = useState('')
   const [presetDirection, setPresetDirection] = useState<1 | -1>(1)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   useImperativeHandle(ref, () => ({
     focusAndEdit() {
-      if (!editing) {
+      if (!editing && !tempEditing) {
         try { flushSync(() => setEditing(true)) } catch (e) {}
         try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {}
       }
@@ -40,10 +42,10 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
   }
 
   const effectiveHp = currentHp + tempHp
- 
+
   const pct = Math.max(0, Math.min(100, (effectiveHp / maxHp) * 100))
   const realPct = Math.max(0, Math.min(100, (currentHp / maxHp) * 100))
- 
+
   // Warm tavern palette instead of clinical greens
   const barColor = isBloodied
     ? 'linear-gradient(to right, #6a1010, #a83030)'   // bloodied — deep red
@@ -52,7 +54,20 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
     : pct > 25
     ? '#c8873a'                                         // hurt — amber
     : '#b03030'                                         // critical — red
- 
+
+  async function applyTempHp() {
+    const val = parseInt(delta)
+    if (isNaN(val)) return
+    if (val <= 0) {
+      // Entered 0 or negative — clear temp HP
+      await supabase.from('combatants').update({ temp_hp: 0 }).eq('id', combatantId)
+    } else {
+      await supabase.from('combatants').update({ temp_hp: val }).eq('id', combatantId)
+    }
+    setDelta('')
+    setTempEditing(false)
+  }
+
   async function applyDelta(sign: 1 | -1) {
     const val = parseInt(delta)
     if (isNaN(val) || val <= 0) return
@@ -92,15 +107,29 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
     setEditing(false)
   }
 
-  // Display string: show "hp+temp/max" when temp HP present
-  const hpDisplay = tempHp > 0
-    ? `${currentHp}+${tempHp}/${maxHp}`
-    : `${currentHp}/${maxHp}`
- 
+  function handleBadgeClick(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (tempEditing) {
+      // Already editing — apply value
+      applyTempHp()
+    } else {
+      setDelta(tempHp > 0 ? String(tempHp) : '')
+      setTempEditing(true)
+      setEditing(false)
+      // Focus on next tick after render
+      setTimeout(() => {
+        try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {}
+      }, 0)
+    }
+  }
+
+  // Display string — clean, no temp HP clutter
+  const hpDisplay = `${currentHp}/${maxHp}`
+
   return (
     <div className="mt-2">
       <div className="flex items-center gap-2 mb-2" style={{ height: '35px' }}>
-        {/* � Damage button */}
+        {/* − Damage button */}
         <button
           onClick={() => { setPresetDirection(-1); if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
           className="flex items-center justify-center rounded-lg transition-all active:scale-95"
@@ -120,20 +149,8 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             transition: 'width 0.3s ease',
             boxShadow: isBloodied ? '0 0 6px rgba(160,30,20,0.5)' : pct <= 25 ? '0 0 5px rgba(176,48,48,0.4)' : 'none',
           }}/>
-          {/* Temp HP overlay — sits on top, lighter colour */}
-          {tempHp > 0 && (
-            <div style={{
-              position: 'absolute',
-              right: `${100 - Math.min(100, (effectiveHp / maxHp) * 100)}%`,
-              left: `${realPct}%`,
-              top: 0,
-              bottom: 0,
-              background: 'rgba(200,180,220,0.5)',
-              borderRadius: '0 8px 8px 0',
-              transition: 'left 0.3s ease, right 0.3s ease',
-            }}/>
-          )}
-{/* HP label centered inside bar */}
+
+          {/* HP label centered inside bar */}
           <div style={{
             position: 'absolute',
             left: 0,
@@ -151,7 +168,45 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
           }}>
             <span style={{ textShadow: '0 0 6px rgba(0,0,0,0.35)' }}>{hpDisplay}</span>
           </div>
+
+          {/* Temp HP badge — top-right corner, PC single card only */}
+          {showTempBadge && (
+            <div
+              onClick={handleBadgeClick}
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: tempHp === 0 ? 'auto' : 0,
+                left: tempHp === 0 ? 0 : 'auto',
+                bottom: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                padding: tempHp > 0 ? '0 5px' : '0 6px',
+                cursor: 'pointer',
+                color: '#c8b4dc',
+                fontSize: '0.65rem',
+                fontWeight: 600,
+                letterSpacing: '0.3px',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+              }}
+              title={tempHp === 0 ? 'Add Temporary HP' : `Temporary HP: ${tempHp}`}
+            >
+              <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" style={{ flexShrink: 0 }}>
+                <path d="M10 2s3 4.5 3 8.5c0 1.5-1 3-1 3h-4s-1-1.5-1-3C7 6.5 10 2 10 2z"/>
+              </svg>
+              {tempHp > 0 && (
+                <span>{tempHp}</span>
+              )}
+              {tempHp === 0 && (
+                <span style={{ fontSize: '0.6rem', lineHeight: 1 }}>Temp HP</span>
+              )}
+            </div>
+          )}
         </div>
+
         {/* + Heal button */}
         <button
           onClick={() => { setPresetDirection(1); if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
@@ -162,8 +217,9 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
           +
         </button>
       </div>
- 
-      {editing && (
+
+      {/* Editing row — supports both HP editing and Temp HP editing */}
+      {editing && !tempEditing && (
         <div className="flex gap-1.5 mt-1 fade-in">
           <input
             ref={inputRef}
@@ -185,9 +241,41 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
           </button>
         </div>
       )}
+
+      {/* Temp HP editing row */}
+      {tempEditing && (
+        <div className="flex gap-1.5 mt-1 fade-in">
+          <input
+            ref={inputRef}
+            type="tel" inputMode="numeric" pattern="\d*"
+            value={delta}
+            onChange={e => setDelta(e.target.value)}
+            placeholder={tempHp > 0 ? 'Overtype Temp HP' : 'Enter Temp HP'}
+            className="flex-1 px-2 py-1.5 rounded text-sm text-center outline-none"
+            style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
+          />
+          <button onClick={applyTempHp}
+            className="px-3 py-1.5 rounded text-sm font-bold transition-all active:scale-95"
+            style={{
+              background: 'rgba(200,180,220,0.15)',
+              color: '#c8b4dc',
+              border: '1px solid rgba(200,180,220,0.3)',
+            }}>
+            Set
+          </button>
+          <button onClick={() => { setDelta(''); setTempEditing(false) }}
+            className="px-3 py-1.5 rounded text-sm font-bold transition-all active:scale-95"
+            style={{
+              background: 'rgba(200,200,200,0.1)',
+              color: 'var(--text-dim)',
+              border: '1px solid rgba(200,200,200,0.2)',
+            }}>
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   )
-}
-)
+})
 
 export default HPBar
