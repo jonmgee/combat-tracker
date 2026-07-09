@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import lanternLogo from '../assets/Lantern3.png'
-import crossedAxes from '../assets/crossedaxes.png'
+import lanternLogo from '../assets/Lantern3.webp'
+import crossedAxes from '../assets/crossedaxes.webp'
 import { supabase } from '../lib/supabase'
 import { requestNotificationPermission, registerServiceWorker } from '../lib/notifications'
 import type { Session, Participant, CombatState } from '../types'

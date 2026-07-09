@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import lanternLogo from '../assets/Lantern3.png'
+import lanternLogo from '../assets/Lantern3.webp'
 import { fireLocalNotification } from '../lib/notifications'
 import InitiativeEntry from './combat/InitiativeEntry'
 import CombatantCard from './combat/CombatantCard'

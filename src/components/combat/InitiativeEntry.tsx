@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../lib/supabase'
-import rollIcon from '../../assets/rollforinitiative3.png'
-import crossedAxes from '../../assets/crossedaxes.png'
+import rollIcon from '../../assets/rollforinitiative3.webp'
+import crossedAxes from '../../assets/crossedaxes.webp'
 import type { Combatant, Participant } from '../../types'
 
 interface Props {
