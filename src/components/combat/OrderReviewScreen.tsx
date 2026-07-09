@@ -489,7 +489,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
               Locked In
             </h1>
             <p className="mt-1 text-sm" style={{ color: 'var(--text-dim)' }}>
-              Waiting for the Dungeon Master...
+              {isDM ? 'Check the order, settle any ties, then begin.' : 'Waiting for the Dungeon Master…'}
             </p>
           </div>
 
