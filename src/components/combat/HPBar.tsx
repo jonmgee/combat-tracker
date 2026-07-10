@@ -70,6 +70,26 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
     setTempEditing(false)
   }
 
+  // Keep the Bloodied condition row in step with real HP (temp excluded):
+  // on whenever HP sits below half max, off whenever it recovers to half or more.
+  // Also clears a manually-toggled Bloodied once healing crosses the line.
+  async function syncBloodied(newHp: number) {
+    if (newHp < maxHp * 0.5) {
+      const { data: existing } = await supabase.from('conditions')
+        .select('id')
+        .eq('combatant_id', combatantId)
+        .eq('condition', 'Bloodied')
+        .limit(1)
+      if (!existing || existing.length === 0) {
+        await supabase.from('conditions').insert({ combatant_id: combatantId, condition: 'Bloodied', category: 'spell' })
+      }
+    } else {
+      await supabase.from('conditions').delete()
+        .eq('combatant_id', combatantId)
+        .eq('condition', 'Bloodied')
+    }
+  }
+
   async function applyDelta(sign: 1 | -1) {
     const val = parseInt(delta)
     if (isNaN(val) || val <= 0) return
@@ -84,6 +104,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
           .eq('combatant_id', combatantId)
           .eq('condition', 'Unconscious')
       }
+      await syncBloodied(next)
     } else {
       // Damage — hits temp HP first
       let remaining = val
@@ -116,11 +137,14 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
           if (!existing || existing.length === 0) {
             await supabase.from('conditions').insert({ combatant_id: combatantId, condition: 'Unconscious', category: 'standard' })
           }
+          await syncBloodied(0)
         } else {
+          // Dead monsters vanish from the list — no condition bookkeeping needed
           await supabase.from('combatants').update({ current_hp: 0, temp_hp: 0, dead: true }).eq('id', combatantId)
         }
       } else {
         await supabase.from('combatants').update({ current_hp: newHp, temp_hp: newTemp }).eq('id', combatantId)
+        await syncBloodied(newHp)
       }
     }
 
@@ -213,7 +237,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             alignItems: 'center',
             justifyContent: 'center',
             // Reserve the badge's footprint so the figure never collides with the shield
-            paddingRight: showTempBadge ? (tempHp === 0 ? 86 : 48) : 0,
+            paddingRight: showTempBadge ? 52 : 0,
             pointerEvents: 'none',
             color: 'var(--gold)',
             fontFamily: "'Cinzel', serif",
@@ -248,41 +272,34 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
               }}
               title={tempHp === 0 ? 'Add Temporary HP' : `Temporary HP: ${tempHp}`}
             >
-              {/* Shield with the value inside when active */}
-              <svg width="42" height="42" viewBox="0 0 20 20"
+              {/* Shield — ward value inside when active, 'Temp HP +' label inside when empty */}
+              <svg width="46" height="46" viewBox="0 0 20 20"
                 style={{ flexShrink: 0, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
                 <path
                   d="M10 1.5 L16.5 4 V9.5 C16.5 13.8 14 16.6 10 18.5 C6 16.6 3.5 13.8 3.5 9.5 V4 Z"
-                  fill={tempHp > 0 ? '#5f4d86' : 'rgba(50,40,72,0.55)'}
-                  stroke={tempHp > 0 ? '#a48fcc' : 'rgba(164,143,204,0.45)'}
+                  fill={tempHp > 0 ? '#5f4d86' : 'rgba(50,40,72,0.72)'}
+                  stroke={tempHp > 0 ? '#a48fcc' : 'rgba(164,143,204,0.55)'}
                   strokeWidth="0.9"
                 />
-                {tempHp > 0 && (
+                {tempHp > 0 ? (
                   <text x="10" y="10.5" textAnchor="middle" dominantBaseline="middle"
                     fill="#ece3f8" fontSize={String(tempHp).length > 2 ? 6 : 7.5} fontWeight="700"
                     fontFamily="'Inter', sans-serif">
                     {tempHp}
                   </text>
-                )}
-                {tempHp === 0 && (
-                  <text x="10" y="10.8" textAnchor="middle" dominantBaseline="middle"
-                    fill="#b9a5d8" fontSize="9" fontWeight="700"
-                    fontFamily="'Inter', sans-serif">
-                    +
-                  </text>
+                ) : (
+                  <>
+                    <text x="10" y="7.6" textAnchor="middle" dominantBaseline="middle"
+                      fill="#c3b1e0" fontSize="4" fontWeight="700" fontFamily="'Inter', sans-serif">
+                      Temp
+                    </text>
+                    <text x="10" y="12.4" textAnchor="middle" dominantBaseline="middle"
+                      fill="#c3b1e0" fontSize="4" fontWeight="700" fontFamily="'Inter', sans-serif">
+                      HP +
+                    </text>
+                  </>
                 )}
               </svg>
-              {/* First-time-user label — only when no ward is active */}
-              {tempHp === 0 && (
-                <span style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                  color: '#b9a5d8', fontSize: '0.62rem', fontWeight: 700, lineHeight: 1.2,
-                  textShadow: '0 1px 3px rgba(0,0,0,0.7)', letterSpacing: '0.02em',
-                }}>
-                  <span>Temp</span>
-                  <span>HP +</span>
-                </span>
-              )}
             </div>
           )}
         </div>
