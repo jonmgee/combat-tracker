@@ -243,7 +243,7 @@ export default function GroupCombatantCard({
                       combatantId={c.id}
                       expanded={expandedConditionCard === c.id}
                       onToggle={onToggleConditionCard}
-                      size={34}
+                      size={42}
                     />
                   </div>
                 )}

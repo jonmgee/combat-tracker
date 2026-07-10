@@ -175,7 +175,8 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
           −
         </button>
 
-        <div className="flex-1 rounded-lg overflow-hidden relative" style={{ height: '100%', background: 'rgba(255,255,255,0.06)' }}>
+        {/* overflow stays visible so the temp HP shield can overshoot the bar edge */}
+        <div className="flex-1 rounded-lg relative" style={{ height: '100%', background: 'rgba(255,255,255,0.06)' }}>
           {/* Base HP bar */}
           <div style={{
             width: `${realPct}%`,
@@ -201,7 +202,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             }}/>
           )}
 
-          {/* HP label centered inside bar */}
+          {/* HP label centered inside bar — Cinzel to match the app's numerals */}
           <div style={{
             position: 'absolute',
             left: 0,
@@ -211,50 +212,77 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            // Reserve the badge's footprint so the figure never collides with the shield
+            paddingRight: showTempBadge ? (tempHp === 0 ? 86 : 48) : 0,
             pointerEvents: 'none',
             color: 'var(--gold)',
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "'Cinzel', serif",
             fontSize: '1.1rem',
             fontWeight: 700,
           }}>
-            <span style={{ textShadow: '0 0 6px rgba(0,0,0,0.35)' }}>{hpDisplay}</span>
+            <span style={{ textShadow: '0 0 6px rgba(0,0,0,0.45)' }}>
+              {hpDisplay}
+              {tempHp > 0 && (
+                <span style={{ color: '#c8b4dc', marginLeft: 3 }}>+{tempHp}</span>
+              )}
+            </span>
           </div>
 
-          {/* Temp HP badge — fixed pill in top-right corner of HP bar */}
+          {/* Temp HP badge — big shield anchored to the bar's right edge,
+              allowed to overshoot the bar height slightly */}
           {showTempBadge && (
             <div
               onClick={handleBadgeClick}
               style={{
                 position: 'absolute',
-                top: 0,
-                right: 0,
-                bottom: 0,
+                top: '50%',
+                right: 4,
+                transform: 'translateY(-50%)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '3px',
-                padding: '0 7px',
+                gap: 4,
                 cursor: 'pointer',
-                // Quiet when empty — just a faint tappable shield, no pill chrome
-                background: tempHp > 0 ? 'rgba(0,0,0,0.35)' : 'transparent',
-                backdropFilter: tempHp > 0 ? 'blur(1px)' : undefined,
-                WebkitBackdropFilter: tempHp > 0 ? 'blur(1px)' : undefined,
-                borderLeft: tempHp > 0 ? '1px solid rgba(255,255,255,0.08)' : '1px solid transparent',
-                color: '#c8b4dc',
-                fontSize: '0.7rem',
-                fontWeight: 700,
-                letterSpacing: '0.2px',
+                zIndex: 2,
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
               }}
               title={tempHp === 0 ? 'Add Temporary HP' : `Temporary HP: ${tempHp}`}
             >
-              {/* Shield — the D&D glyph for a ward, not a water drop */}
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"
-                style={{ flexShrink: 0, opacity: tempHp > 0 ? 1 : 0.4 }}>
-                <path d="M10 1.5 L16.5 4 V9.5 C16.5 13.8 14 16.6 10 18.5 C6 16.6 3.5 13.8 3.5 9.5 V4 Z"/>
+              {/* Shield with the value inside when active */}
+              <svg width="42" height="42" viewBox="0 0 20 20"
+                style={{ flexShrink: 0, filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+                <path
+                  d="M10 1.5 L16.5 4 V9.5 C16.5 13.8 14 16.6 10 18.5 C6 16.6 3.5 13.8 3.5 9.5 V4 Z"
+                  fill={tempHp > 0 ? '#5f4d86' : 'rgba(50,40,72,0.55)'}
+                  stroke={tempHp > 0 ? '#a48fcc' : 'rgba(164,143,204,0.45)'}
+                  strokeWidth="0.9"
+                />
+                {tempHp > 0 && (
+                  <text x="10" y="10.5" textAnchor="middle" dominantBaseline="middle"
+                    fill="#ece3f8" fontSize={String(tempHp).length > 2 ? 6 : 7.5} fontWeight="700"
+                    fontFamily="'Inter', sans-serif">
+                    {tempHp}
+                  </text>
+                )}
+                {tempHp === 0 && (
+                  <text x="10" y="10.8" textAnchor="middle" dominantBaseline="middle"
+                    fill="#b9a5d8" fontSize="9" fontWeight="700"
+                    fontFamily="'Inter', sans-serif">
+                    +
+                  </text>
+                )}
               </svg>
-              {tempHp > 0 && <span>{tempHp}</span>}
+              {/* First-time-user label — only when no ward is active */}
+              {tempHp === 0 && (
+                <span style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                  color: '#b9a5d8', fontSize: '0.62rem', fontWeight: 700, lineHeight: 1.2,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.7)', letterSpacing: '0.02em',
+                }}>
+                  <span>Temp</span>
+                  <span>HP +</span>
+                </span>
+              )}
             </div>
           )}
         </div>

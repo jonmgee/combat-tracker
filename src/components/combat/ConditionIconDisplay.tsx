@@ -31,7 +31,7 @@ function iconTile(conditionName: string) {
   return <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{conditionName[0]}</span>
 }
 
-export default function ConditionIconDisplay({ conditions, combatantId, expanded, onToggle, size = 44 }: Props) {
+export default function ConditionIconDisplay({ conditions, combatantId, expanded, onToggle, size = 54 }: Props) {
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
   const rowRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
