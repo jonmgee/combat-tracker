@@ -260,7 +260,8 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
               style={{
                 position: 'absolute',
                 top: '50%',
-                right: 4,
+                // Caps the bar's right end, overshooting the edge slightly
+                right: -6,
                 transform: 'translateY(-50%)',
                 display: 'flex',
                 alignItems: 'center',
