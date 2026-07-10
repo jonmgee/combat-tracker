@@ -10,9 +10,11 @@ interface Props {
   isBloodied?: boolean
   isDead?: boolean
   showTempBadge?: boolean
+  /** PCs drop Unconscious at 0 HP instead of dying (5e) — monsters die instantly */
+  isPlayer?: boolean
 }
 
-const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false, showTempBadge = false }: Props, ref) {
+const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, tempHp, isBloodied = false, isDead = false, showTempBadge = false, isPlayer = false }: Props, ref) {
   const [editing, setEditing] = useState(false)
   const [tempEditing, setTempEditing] = useState(false)
   const [delta, setDelta]     = useState('')
@@ -41,17 +43,17 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
     )
   }
 
-  const effectiveHp = currentHp + tempHp
-
-  const pct = Math.max(0, Math.min(100, (effectiveHp / maxHp) * 100))
   const realPct = Math.max(0, Math.min(100, (currentHp / maxHp) * 100))
+  // Temp HP renders as its own segment appended to the fill, capped at the bar's end
+  const tempPct = Math.max(0, Math.min(100 - realPct, (tempHp / maxHp) * 100))
 
-  // Warm tavern palette instead of clinical greens
+  // Warm tavern palette instead of clinical greens — judged on real HP only;
+  // the ward is visible as its own segment
   const barColor = isBloodied
     ? 'linear-gradient(to right, #6a1010, #a83030)'   // bloodied — deep red
-    : pct > 50
+    : realPct > 50
     ? '#3b6f2c'                                         // healthy — forest green (darkened for contrast)
-    : pct > 25
+    : realPct > 25
     ? '#c8873a'                                         // hurt — amber
     : '#b03030'                                         // critical — red
 
@@ -76,6 +78,12 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
       // Healing — only affects real HP, not temp HP (5e rule: temp HP can't be healed)
       const next = Math.min(maxHp, currentHp + val)
       await supabase.from('combatants').update({ current_hp: next }).eq('id', combatantId)
+      // Regaining HP from 0 wakes an unconscious PC (5e)
+      if (isPlayer && currentHp === 0 && next > 0) {
+        await supabase.from('conditions').delete()
+          .eq('combatant_id', combatantId)
+          .eq('condition', 'Unconscious')
+      }
     } else {
       // Damage — hits temp HP first
       let remaining = val
@@ -97,7 +105,20 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
       }
 
       if (newHp <= 0) {
-        await supabase.from('combatants').update({ current_hp: 0, temp_hp: 0, dead: true }).eq('id', combatantId)
+        if (isPlayer) {
+          // PCs drop Unconscious at 0 HP (5e) — the Kill button still exists for actual death
+          await supabase.from('combatants').update({ current_hp: 0, temp_hp: 0 }).eq('id', combatantId)
+          const { data: existing } = await supabase.from('conditions')
+            .select('id')
+            .eq('combatant_id', combatantId)
+            .eq('condition', 'Unconscious')
+            .limit(1)
+          if (!existing || existing.length === 0) {
+            await supabase.from('conditions').insert({ combatant_id: combatantId, condition: 'Unconscious', category: 'standard' })
+          }
+        } else {
+          await supabase.from('combatants').update({ current_hp: 0, temp_hp: 0, dead: true }).eq('id', combatantId)
+        }
       } else {
         await supabase.from('combatants').update({ current_hp: newHp, temp_hp: newTemp }).eq('id', combatantId)
       }
@@ -126,12 +147,27 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
   // Display string — clean, no temp HP clutter
   const hpDisplay = `${currentHp}/${maxHp}`
 
+  // − / + open the editor with their direction; tapping the *same* direction
+  // again closes it, tapping the other direction switches without closing
+  function handleDirectionTap(sign: 1 | -1) {
+    if (editing && presetDirection === sign) {
+      setEditing(false)
+      return
+    }
+    setPresetDirection(sign)
+    setTempEditing(false)
+    if (!editing) {
+      try { flushSync(() => setEditing(true)) } catch (e) {}
+    }
+    try { inputRef.current?.focus(); inputRef.current?.select() } catch (e) {}
+  }
+
   return (
     <div className="mt-2">
       <div className="flex items-center gap-2 mb-2" style={{ height: '35px' }}>
         {/* − Damage button */}
         <button
-          onClick={() => { setPresetDirection(-1); if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
+          onClick={() => handleDirectionTap(-1)}
           className="flex items-center justify-center rounded-lg transition-all active:scale-95"
           style={{ width: 35, height: '100%', background: 'var(--bg-void)', color: '#c06060', border: '1px solid var(--border)', cursor: 'pointer', flexShrink: 0, fontSize: '1rem', lineHeight: 1 }}
           aria-label="Deal damage"
@@ -145,10 +181,25 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             width: `${realPct}%`,
             height: '100%',
             background: barColor,
-            borderRadius: '8px',
+            borderRadius: tempPct > 0 ? '8px 0 0 8px' : '8px',
             transition: 'width 0.3s ease',
-            boxShadow: isBloodied ? '0 0 6px rgba(160,30,20,0.5)' : pct <= 25 ? '0 0 5px rgba(176,48,48,0.4)' : 'none',
+            boxShadow: isBloodied ? '0 0 6px rgba(160,30,20,0.5)' : realPct <= 25 ? '0 0 5px rgba(176,48,48,0.4)' : 'none',
           }}/>
+
+          {/* Temp HP ward segment — appended to the fill so the buffer is visible on the bar */}
+          {tempPct > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: `${realPct}%`,
+              width: `${tempPct}%`,
+              background: 'linear-gradient(to right, #5f4d86, #7a659e)',
+              borderRadius: '0 8px 8px 0',
+              transition: 'left 0.3s ease, width 0.3s ease',
+              boxShadow: 'inset 0 0 6px rgba(200,180,220,0.35)',
+            }}/>
+          )}
 
           {/* HP label centered inside bar */}
           <div style={{
@@ -184,10 +235,11 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
                 gap: '3px',
                 padding: '0 7px',
                 cursor: 'pointer',
-                background: 'rgba(0,0,0,0.35)',
-                backdropFilter: 'blur(1px)',
-                WebkitBackdropFilter: 'blur(1px)',
-                borderLeft: '1px solid rgba(255,255,255,0.08)',
+                // Quiet when empty — just a faint tappable shield, no pill chrome
+                background: tempHp > 0 ? 'rgba(0,0,0,0.35)' : 'transparent',
+                backdropFilter: tempHp > 0 ? 'blur(1px)' : undefined,
+                WebkitBackdropFilter: tempHp > 0 ? 'blur(1px)' : undefined,
+                borderLeft: tempHp > 0 ? '1px solid rgba(255,255,255,0.08)' : '1px solid transparent',
                 color: '#c8b4dc',
                 fontSize: '0.7rem',
                 fontWeight: 700,
@@ -197,24 +249,19 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
               }}
               title={tempHp === 0 ? 'Add Temporary HP' : `Temporary HP: ${tempHp}`}
             >
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style={{ flexShrink: 0 }}>
-                <path d="M10 2s4 5 4 9c0 2-1.5 3-1.5 3h-5S6 13 6 11c0-4 4-9 4-9z"/>
+              {/* Shield — the D&D glyph for a ward, not a water drop */}
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"
+                style={{ flexShrink: 0, opacity: tempHp > 0 ? 1 : 0.4 }}>
+                <path d="M10 1.5 L16.5 4 V9.5 C16.5 13.8 14 16.6 10 18.5 C6 16.6 3.5 13.8 3.5 9.5 V4 Z"/>
               </svg>
-              {tempHp > 0 ? (
-                <span>{tempHp}</span>
-              ) : (
-                <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.5rem', fontWeight: 700, lineHeight: 1.2, textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                  <span>Temp</span>
-                  <span>HP</span>
-                </span>
-              )}
+              {tempHp > 0 && <span>{tempHp}</span>}
             </div>
           )}
         </div>
 
         {/* + Heal button */}
         <button
-          onClick={() => { setPresetDirection(1); if (!editing) { flushSync(() => setEditing(true)); try { inputRef.current?.focus(); inputRef.current?.select(); } catch (e) {} } else { setEditing(false) } }}
+          onClick={() => handleDirectionTap(1)}
           className="flex items-center justify-center rounded-lg transition-all active:scale-95"
           style={{ width: 35, height: '100%', background: 'var(--bg-void)', color: '#4a8e3a', border: '1px solid var(--border)', cursor: 'pointer', flexShrink: 0, fontSize: '1rem', lineHeight: 1 }}
           aria-label="Heal"
@@ -231,6 +278,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             type="tel" inputMode="numeric" pattern="\d*"
             value={delta}
             onChange={e => setDelta(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') applyDelta(presetDirection) }}
             placeholder="Amount"
             className="flex-1 px-2 py-1.5 rounded text-sm text-center outline-none"
             style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
@@ -255,6 +303,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             type="tel" inputMode="numeric" pattern="\d*"
             value={delta}
             onChange={e => setDelta(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') applyTempHp() }}
             placeholder={tempHp > 0 ? 'Overtype Temp HP' : 'Enter Temp HP'}
             className="flex-1 px-2 py-1.5 rounded text-sm text-center outline-none"
             style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}

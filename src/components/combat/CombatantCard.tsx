@@ -266,6 +266,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
               isBloodied={isBloodied}
               isDead={isDead && !optimisticAlive}
               showTempBadge={combatant.kind === 'player'}
+              isPlayer={combatant.kind === 'player'}
             />
           )}
 
