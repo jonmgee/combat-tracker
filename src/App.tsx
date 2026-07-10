@@ -223,7 +223,7 @@ export default function App() {
   }
 
   if (screen === 'lobby' && session && me) {
-    return <LobbyScreen session={session} me={me} onCombatStart={handleCombatStart} />
+    return <LobbyScreen session={session} me={me} onCombatStart={handleCombatStart} onLeave={handleExitSession} />
   }
 
   return <HomeScreen onEnterLobby={handleEnterLobby} onEnterCombat={handleEnterCombat} />

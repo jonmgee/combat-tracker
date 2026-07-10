@@ -10,15 +10,15 @@ interface Props {
   me: Participant
   sessionId: string
   onBeginCombat: () => void
+  onBackToInitiative?: () => void
 }
 
 type GroupedEntry =
   | { type: 'player'; combatant: Combatant }
   | { type: 'monster'; combatants: Combatant[]; name: string; count: number; initiative: number; isHidden: boolean }
 
-export default function OrderReviewScreen({ combatants: initialCombatants, participants: initialParticipants, me, sessionId, onBeginCombat }: Props) {
+export default function OrderReviewScreen({ combatants: initialCombatants, participants: initialParticipants, me, sessionId, onBeginCombat, onBackToInitiative }: Props) {
   const isDM = me.role === 'dm'
-  console.log('[DM_ALERT_DIAG] Mounted:', new Date().toISOString(), { sessionId, role: me.role, myId: me.id })
 
   // ── Own combatants state — re-fetched after every swap/nudge so screen stays in sync ──
   const [combatants, setCombatants] = useState<Combatant[]>(initialCombatants)
@@ -55,7 +55,6 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   // ── Fresh participant data — fetch directly so lobby toggles are always current ──
   useEffect(() => {
     let mounted = true
-    console.log('[DM_ALERT_DIAG] participants fetch effect started:', new Date().toISOString())
 
     // Fetch once up-front
     const fetchParticipants = () => {
@@ -63,7 +62,6 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
         .select('*')
         .eq('session_id', sessionId)
         .then(({ data }) => {
-          console.log('[DM_ALERT_DIAG] participants fetched:', new Date().toISOString(), data?.length, 'rows')
           if (data && mounted) setParticipants(data as Participant[])
         })
     }
@@ -79,8 +77,7 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
 
     // Defensive: also subscribe to combat_state changes directly so this view refreshes when others touch combat_state
     const cs = supabase.channel(`combat_state:session:${sessionId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'combat_state', filter: `session_id=eq.${sessionId}` }, (payload) => {
-        console.debug('[OrderReview][realtime][combat_state] payload', payload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'combat_state', filter: `session_id=eq.${sessionId}` }, () => {
         reloadCombatants()
       })
       .subscribe()
@@ -188,21 +185,11 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
   )
 
   const alertSwapTargets = useMemo(() => {
-    if (!myAlertCombatant) { console.debug('[DEBUG alertSwapTargets] no myAlertCombatant'); return [] }
-    const targets = players.filter(c =>
+    if (!myAlertCombatant) return []
+    return players.filter(c =>
       c.id !== myAlertCombatant.id && c.participant_id !== null
     )
-    console.debug('[DEBUG alertSwapTargets]', {
-      myAlertCombatantId: myAlertCombatant.id,
-      myAlertName: myAlertCombatant.name,
-      myAlertPartId: myAlertCombatant.participant_id,
-      targetCount: targets.length,
-      targets: targets.map(t => ({ id: t.id, name: t.name, pid: t.participant_id })),
-      allPlayerNames: players.map(p => ({ id: p.id, name: p.name, pid: p.participant_id, kind: p.kind }))
-    })
-    return targets
   }, [players, myAlertCombatant])
-  console.log('alertSwapTargets:', alertSwapTargets)
 
   // ── DM Alert proxy for DM-PCs ──
   // Automatically detect the first DM-PC with Alert Feat enabled and unused.
@@ -224,23 +211,6 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
       c.id !== dmAlertCombatant.id && c.participant_id !== null
     )
   }, [players, dmAlertCombatant])
-
-  // ── DM Alert diagnostic — dumps every render so we can see whether data is stale or missing ──
-  console.log('[DM_ALERT_DIAG]', new Date().toISOString(), {
-    isDM,
-    participantCount: participants.length,
-    participants: participants.map(p => ({
-      id: p.id, name: p.name, role: p.role,
-      alert_feat: p.alert_feat,
-      alert_used: p.alert_used
-    })),
-    alertEnabledParticipantIds: Array.from(alertEnabledParticipantIds),
-    myAlertCombatant: myAlertCombatant ? { id: myAlertCombatant.id, name: myAlertCombatant.name, pid: myAlertCombatant.participant_id } : null,
-    alertSwapTargets: alertSwapTargets.map(t => ({ id: t.id, name: t.name, pid: t.participant_id })),
-    dmAlertCombatant: dmAlertCombatant ? { id: dmAlertCombatant.id, name: dmAlertCombatant.name, pid: dmAlertCombatant.participant_id } : null,
-    dmAlertSwapTargets: dmAlertSwapTargets.map(t => ({ id: t.id, name: t.name, pid: t.participant_id })),
-    playerCombatants: players.map(p => ({ id: p.id, name: p.name, pid: p.participant_id }))
-  })
 
   // ── Core swap logic (shared between player and DM-proxy paths) ──
   async function performAlertSwap(
@@ -323,21 +293,10 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     const tDown = isDM && tiedBelow(idx)
 
     const thisHasAlert = isPlayerEntry && alertEnabledParticipantIds.has(combatant.participant_id ?? '')
-    const isDmProxyActive = isDM && dmAlertCombatant !== null && dmAlertCombatant.id === combatant.id
     const isAlertSwapTarget = isPlayerEntry && (
       (!isDM && alertSwapTargets.some(t => t.id === combatant.id)) ||
       (isDM && dmAlertSwapTargets.some(t => t.id === combatant.id))
     )
-    if (isDM && isPlayerEntry) {
-      console.log('[DM_ALERT_DIAG] renderEntry player row:', new Date().toISOString(), {
-        name: combatant.name,
-        participant_id: combatant.participant_id,
-        thisHasAlert,
-        isDmProxyActive,
-        isAlertSwapTarget
-      })
-    }
-
     return (
       <div
         key={combatant.id}
@@ -491,6 +450,15 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
             <p className="mt-1 text-sm" style={{ color: 'var(--text-dim)' }}>
               {isDM ? 'Check the order, settle any ties, then begin.' : 'Waiting for the Dungeon Master…'}
             </p>
+            {isDM && onBackToInitiative && (
+              <button
+                onClick={onBackToInitiative}
+                className="mt-3 text-xs transition-opacity hover:opacity-70"
+                style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.06em', textDecoration: 'underline', textUnderlineOffset: 3 }}
+              >
+                ← Back to roll call
+              </button>
+            )}
           </div>
 
           <div className="rounded-xl parchment" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)' }}>

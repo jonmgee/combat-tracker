@@ -451,6 +451,59 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
     }
   }
 
+  // ── Back out of order review to the initiative screen (DM only) ──
+  // Deletes the monster / DM-PC combatants that were inserted on "Review the
+  // Order" and re-seeds the monster form from them, so nothing is retyped.
+  // Player combatants (and their initiatives) are untouched.
+  const [monsterPrefill, setMonsterPrefill] = useState<{ name: string; count: string; initiative: string; hp: string; hpEnabled: boolean }[]>([])
+
+  async function handleBackToInitiative() {
+    if (!isDM) return
+    subPaused.current = true
+    try {
+      const { data: all } = await supabase.from('combatants')
+        .select('*').eq('session_id', session.id)
+      const list = (all ?? []) as Combatant[]
+
+      // Rebuild monster form rows: group monsters by name + initiative
+      const monsters = list.filter(c => c.kind === 'monster')
+      const groups = new Map<string, { name: string; count: number; initiative: number | null; hp: number | null; hpEnabled: boolean }>()
+      for (const m of monsters) {
+        const key = `${m.name}::${m.initiative}`
+        const g = groups.get(key)
+        if (g) g.count++
+        else groups.set(key, { name: m.name, count: 1, initiative: m.initiative, hp: m.max_hp, hpEnabled: m.hp_enabled })
+      }
+      setMonsterPrefill([...groups.values()].map(g => ({
+        name: g.name,
+        count: String(g.count),
+        initiative: g.initiative !== null ? String(g.initiative) : '',
+        hp: g.hp !== null ? String(g.hp) : '',
+        hpEnabled: g.hpEnabled,
+      })))
+
+      // Remove monsters + DM-PC combatants (their participants persist and
+      // reappear as persistent DM-PCs on the initiative screen)
+      const dmPcParticipantIds = new Set(participants.filter(p => p.role === 'dm_pc').map(p => p.id))
+      const toDelete = list
+        .filter(c => c.kind === 'monster' || (c.participant_id !== null && dmPcParticipantIds.has(c.participant_id)))
+        .map(c => c.id)
+      if (toDelete.length > 0) {
+        await supabase.from('combatants').delete().in('id', toDelete)
+      }
+
+      await supabase.from('combat_state').update({
+        phase: 'initiative',
+        current_combatant_id: null,
+        updated_at: new Date().toISOString(),
+      }).eq('session_id', session.id)
+
+      await loadAll()
+    } finally {
+      subPaused.current = false
+    }
+  }
+
   // ── Begin combat from order review ──
   async function handleBeginCombat() {
     // Reload combatants sorted by existing initiative_order (nudges + swaps preserved)
@@ -489,6 +542,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
         me={me}
         sessionId={session.id}
         onBeginCombat={handleBeginCombat}
+        onBackToInitiative={handleBackToInitiative}
       />
     )
   }
@@ -501,6 +555,8 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
         participants={participants}
         me={me}
         sessionId={session.id}
+        monsterPrefill={monsterPrefill}
+        onBackToLobby={handleNewCombat}
         onReady={async ({ playerUpdates, monsterInserts, pcInserts }) => {
           // Pause subscription-driven loads while we write
           subPaused.current = true

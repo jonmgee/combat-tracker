@@ -9,9 +9,10 @@ interface Props {
   session: Session
   me: Participant
   onCombatStart: (state: CombatState) => void
+  onLeave: () => void
 }
 
-export default function LobbyScreen({ session, me, onCombatStart }: Props) {
+export default function LobbyScreen({ session, me, onCombatStart, onLeave }: Props) {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading]           = useState(false)
   const [copied, setCopied]             = useState(false)
@@ -395,6 +396,15 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
           </div>
         )}
       </div>
+
+      {/* ── Quiet exit — this screen previously had no way back ── */}
+      <button
+        onClick={onLeave}
+        className="mt-6 text-xs transition-opacity hover:opacity-70"
+        style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.06em', textDecoration: 'underline', textUnderlineOffset: 3 }}
+      >
+        ← Leave session
+      </button>
     </div>
   )
 }
