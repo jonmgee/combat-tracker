@@ -152,7 +152,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
               background: 'linear-gradient(to bottom, transparent, rgba(190,30,20,0.9), transparent)',
               borderRadius: '0 2px 2px 0', zIndex: 3,
             }}/>
-            <BloodDrips count={4} />
+            <BloodDrips />
           </>
         )}
 

@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
 import ConditionIconDisplay from './ConditionIconDisplay'
+import BloodDrips from './BloodDrips'
 import type { Combatant, Condition, Participant } from '../../types'
 
 interface Props {
@@ -182,10 +183,13 @@ export default function GroupCombatantCard({
             >
               {/* Sub-card bloodied seep */}
               {cBloodied && (
-                <div style={{
-                  position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none',
-                  background: 'linear-gradient(to bottom, rgba(160,20,10,0.15) 0%, transparent 60%)',
-                }}/>
+                <>
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none',
+                    background: 'linear-gradient(to bottom, rgba(160,20,10,0.15) 0%, transparent 60%)',
+                  }}/>
+                  <BloodDrips width={64} style={{ left: 8 }} />
+                </>
               )}
 
               {/* Sub-card concentration effects */}
