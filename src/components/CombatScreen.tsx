@@ -563,59 +563,32 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-void)' }}>
 
-      {/* ── Header ── */}
+      {/* ── Header — informational only: Round · Now Acting · room code.
+             DM actions live in the bottom action bar. ── */}
       <div
-        className="sticky top-0 z-10 px-5 py-3 flex items-center justify-between"
+        className="sticky top-0 z-10 px-5 py-2.5"
         style={{ background: 'var(--bg-panel)', borderBottom: '1px solid var(--border)', boxShadow: '0 2px 12px rgba(0,0,0,0.5)' }}
       >
-        <div>
-          <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Round</div>
-          <div className="flex items-center gap-2">
-            <div className="text-3xl font-bold" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', lineHeight: 1 }}>
+        <div className="mx-auto w-full flex items-center justify-between gap-3" style={{ maxWidth: 720 }}>
+          <div className="flex items-baseline gap-2 shrink-0">
+            <span className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Round</span>
+            <span className="text-2xl font-bold" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', lineHeight: 1 }}>
               {combatState.round_number}
-            </div>
-            {isDM && (
-              <button
-                onClick={() => setShowSummon(true)}
-                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95"
-                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
-              >
-                + Add Monster
-              </button>
-            )}
+            </span>
           </div>
-        </div>
 
-        <div className="text-center">
-          <div className="text-xs uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>Now Acting</div>
-          <div className="text-sm font-semibold" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold-light)' }}>
-            {currentCombatant?.name ?? '-'}
-          </div>
-        </div>
-
-        <div className="text-right">
-          <div className="text-xs mb-1 uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
-            {session.room_code}
-          </div>
-          {isDM && (
-            <div className="flex flex-col items-end gap-1">
-              <button
-                onClick={advanceTurn}
-                disabled={advancing}
-                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
-              >
-                {advancing ? '...' : 'Next Turn ▶'}
-              </button>
-              <button
-                onClick={() => setShowResetConfirm(true)}
-                className="text-xs transition-all hover:opacity-70"
-                style={{ color: 'var(--text-dim)', fontFamily: "'Cinzel', serif", letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-              >
-                Start New Combat
-              </button>
+          <div className="text-center min-w-0">
+            <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Now Acting</div>
+            <div className="font-semibold truncate" style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold-light)', fontSize: '1.05rem', lineHeight: 1.2 }}>
+              {currentCombatant?.name ?? '—'}
             </div>
-          )}
+          </div>
+
+          <div className="text-right shrink-0">
+            <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
+              {session.room_code}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -708,9 +681,9 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
         </div>
       )}
 
-      {/* ── Combatant list with lantern ── */}
-      <div className="flex-1 overflow-auto py-4">
-        <div className="relative px-4" id="combatant-list-wrap" style={{ paddingLeft: '56px' }}>
+      {/* ── Combatant list with lantern — centered column so desktop doesn't stretch ── */}
+      <div className="flex-1 overflow-auto py-4" style={{ paddingBottom: isDM ? 96 : 24 }}>
+        <div className="relative px-4 mx-auto w-full" id="combatant-list-wrap" style={{ paddingLeft: '56px', maxWidth: 720 }}>
 
           {/* Lantern - tracks active card position */}
           <LanternColumnWrapper activeId={combatState.current_combatant_id} />
@@ -774,6 +747,46 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
           </div>
         </div>
       </div>
+
+      {/* ── DM action bar — fixed to the bottom where the thumb is ── */}
+      {isDM && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-20 px-4 py-3"
+          style={{
+            background: 'rgba(26,20,16,0.92)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            borderTop: '1px solid var(--border)',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.5)',
+            paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))',
+          }}
+        >
+          <div className="mx-auto w-full flex items-center gap-3" style={{ maxWidth: 720 }}>
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="shrink-0 text-xs transition-all hover:opacity-70"
+              style={{ color: 'var(--text-dim)', fontFamily: "'Cinzel', serif", letterSpacing: '0.06em', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem 0.25rem' }}
+            >
+              New<br/>Combat
+            </button>
+            <button
+              onClick={() => setShowSummon(true)}
+              className="shrink-0 px-4 py-3 rounded-lg font-semibold text-sm transition-all active:scale-95"
+              style={{ background: 'var(--bg-raised)', color: 'var(--gold)', border: '1px solid var(--gold-dark)', fontFamily: "'Cinzel', serif" }}
+            >
+              + Monster
+            </button>
+            <button
+              onClick={advanceTurn}
+              disabled={advancing}
+              className="flex-1 py-3 rounded-lg font-bold text-base transition-all active:scale-95 disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif", letterSpacing: '0.05em', boxShadow: '0 4px 16px rgba(201,168,76,0.3)' }}
+            >
+              {advancing ? '…' : 'Next Turn ▶'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Summon monster modal (DM only) ── */}
       {showSummon && (

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom'
 import { supabase } from '../../lib/supabase'
 import { CONDITION_ICON_MAP, ConditionImage } from './ConditionIcons'
 import { CONDITION_ASSETS } from '../../lib/conditionAssets'
+import { CONDITION_MAP } from '../../lib/conditions'
 import type { Condition } from '../../types'
 
 interface Props {
@@ -10,6 +11,8 @@ interface Props {
   combatantId: string
   expanded: boolean
   onToggle: (combatantId: string | null) => void
+  /** Tile size in px — cards use the default, group sub-cards go smaller */
+  size?: number
 }
 
 function oldestFirst(list: Condition[]): Condition[] {
@@ -28,26 +31,25 @@ function iconTile(conditionName: string) {
   return <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{conditionName[0]}</span>
 }
 
-export default function ConditionIconDisplay({ conditions, combatantId, expanded, onToggle }: Props) {
+export default function ConditionIconDisplay({ conditions, combatantId, expanded, onToggle, size = 44 }: Props) {
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null)
-  const btnRef = useRef<HTMLButtonElement>(null)
+  const rowRef = useRef<HTMLDivElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   // All hooks unconditionally — before any early return
   useEffect(() => {
-    if (!expanded || !btnRef.current) return
-    const rect = btnRef.current.getBoundingClientRect()
-    const dropdownWidth = 220
-    // Start by right-aligning with the button (same as old behaviour)
-    let left = rect.right - dropdownWidth
-    // If that clips the left edge, align left edge with button left
-    if (left < 8) left = rect.left
-    // If that clips the right edge, clamp to 8px from right
+    if (!expanded || !rowRef.current) return
+    const rect = rowRef.current.getBoundingClientRect()
+    const dropdownWidth = Math.min(320, window.innerWidth - 16)
+    let left = rect.left
     if (left + dropdownWidth > window.innerWidth - 8) left = window.innerWidth - dropdownWidth - 8
-    // Safety: never go negative
     if (left < 8) left = 8
-    setMenuPos({ top: rect.bottom + 4, left })
-  }, [expanded])
+    // Flip above if there's no room below
+    const estHeight = Math.min(conditions.length * 64 + 16, 340)
+    let top = rect.bottom + 4
+    if (top + estHeight > window.innerHeight - 8) top = Math.max(8, rect.top - estHeight - 4)
+    setMenuPos({ top, left })
+  }, [expanded, conditions.length])
 
   useEffect(() => {
     if (!expanded) return
@@ -55,8 +57,8 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
       if (
         menuRef.current &&
         !menuRef.current.contains(e.target as Node) &&
-        btnRef.current &&
-        !btnRef.current.contains(e.target as Node)
+        rowRef.current &&
+        !rowRef.current.contains(e.target as Node)
       ) {
         onToggle(null)
         setMenuPos(null)
@@ -74,57 +76,46 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
   if (conditions.length === 0) return null
 
   const sorted = oldestFirst(conditions)
-  const first = sorted[0]
-  const overflowCount = conditions.length - 1
   const open = expanded
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div ref={rowRef} style={{ position: 'relative' }}>
+      {/* Full row of condition tiles — uses the card's width instead of a single padded icon */}
       <button
-        ref={btnRef}
         onClick={e => {
           e.stopPropagation()
           e.preventDefault()
           onToggle(open ? null : combatantId)
           if (open) setMenuPos(null)
         }}
+        aria-label={`${conditions.length} condition${conditions.length !== 1 ? 's' : ''} — tap for details`}
         style={{
-          position: 'relative',
-          width: 52,
-          height: 52,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 6,
           padding: 0,
           border: 'none',
           background: 'transparent',
           cursor: 'pointer',
-          display: 'block',
-          flexShrink: 0,
         }}
       >
-        {iconTile(first.condition)}
-
-        {overflowCount > 0 && (
-          <div
+        {sorted.map(cond => (
+          <span
+            key={cond.id}
+            title={cond.condition}
             style={{
-              position: 'absolute',
-              bottom: -2,
-              right: -2,
-              width: 18,
-              height: 18,
-              borderRadius: '50%',
-              background: 'var(--bg-panel)',
-              border: '1px solid var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-dim)',
-              fontSize: 10,
-              lineHeight: 1,
-              pointerEvents: 'none',
+              width: size,
+              height: size,
+              borderRadius: Math.round(size * 0.18),
+              overflow: 'hidden',
+              flexShrink: 0,
+              display: 'block',
+              boxShadow: open ? '0 0 0 1px var(--gold-dark)' : '0 0 0 1px rgba(255,255,255,0.06)',
             }}
           >
-            ▼
-          </div>
-        )}
+            {iconTile(cond.condition)}
+          </span>
+        ))}
       </button>
 
       {/* Portal dropdown to body so it escapes any parent stacking context */}
@@ -136,7 +127,9 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
             top: menuPos.top,
             left: menuPos.left,
             zIndex: 100000,
-            minWidth: 220,
+            width: Math.min(320, window.innerWidth - 16),
+            maxHeight: 340,
+            overflowY: 'auto',
             background: 'var(--bg-panel)',
             border: '1px solid var(--border)',
             borderRadius: 10,
@@ -144,59 +137,69 @@ export default function ConditionIconDisplay({ conditions, combatantId, expanded
             padding: 8,
           }}
         >
-          {sorted.map(cond => (
-            <div
-              key={cond.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '6px 8px',
-                borderRadius: 6,
-              }}
-            >
-              <div style={{ flex: 1, textAlign: 'left', fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600, fontFamily: "'Cinzel', serif" }}>
-                {cond.condition}
-              </div>
+          {sorted.map(cond => {
+            const def = CONDITION_MAP[cond.condition]
+            return (
               <div
+                key={cond.id}
                 style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                  flexShrink: 0,
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  padding: '8px',
+                  borderRadius: 6,
                 }}
               >
-                {iconTile(cond.condition)}
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                  }}
+                >
+                  {iconTile(cond.condition)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600, fontFamily: "'Cinzel', serif" }}>
+                    {cond.condition}
+                  </div>
+                  {def?.desc && (
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', lineHeight: 1.35, marginTop: 2 }}>
+                      {def.desc}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={async e => {
+                    e.stopPropagation()
+                    // NB: the Supabase builder only executes when awaited
+                    await supabase.from('conditions').delete().eq('id', cond.id)
+                  }}
+                  aria-label={`Remove ${cond.condition}`}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(200,60,50,0.7)',
+                    color: '#e06050',
+                    width: 22,
+                    height: 22,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    lineHeight: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginTop: 2,
+                  }}
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                onClick={e => {
-                  e.stopPropagation()
-                  supabase.from('conditions').delete().eq('id', cond.id)
-                }}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid rgba(200,60,50,0.7)',
-                  color: '#e06050',
-                  width: 22,
-                  height: 22,
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  lineHeight: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
+            )
+          })}
         </div>,
         document.body
       )}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { CONDITION_ICON_MAP, ConditionImage } from './ConditionIcons'
 import { TAB_CONDITIONS, TAB_BOONS, TAB_COMBAT, CONDITION_ASSETS } from '../../lib/conditionAssets'
@@ -20,12 +20,13 @@ const TABS: { key: NewTabs; label: string }[] = [
 
 export default function ConditionPicker({ combatantId, activeConditions, onClose }: Props) {
   const [activeTab, setActiveTab] = useState<NewTabs>('conditions')
-  const [toggling, setToggling] = useState<Set<string>>(new Set())
+  // Ref (not state) so two taps in the same tick can't both slip past the guard
+  const togglingRef = useRef<Set<string>>(new Set())
   const activeNames = new Set(activeConditions.map(c => c.condition))
 
   async function toggle(name: string) {
-    if (toggling.has(name)) return // already in flight — prevent duplicate
-    setToggling(prev => new Set(prev).add(name))
+    if (togglingRef.current.has(name)) return // already in flight — prevent duplicate
+    togglingRef.current.add(name)
     try {
       const cond = activeConditions.find(c => c.condition === name)
       if (cond) {
@@ -35,11 +36,7 @@ export default function ConditionPicker({ combatantId, activeConditions, onClose
         await supabase.from('conditions').insert({ combatant_id: combatantId, condition: name, category: 'standard' })
       }
     } finally {
-      setToggling(prev => {
-        const next = new Set(prev)
-        next.delete(name)
-        return next
-      })
+      togglingRef.current.delete(name)
     }
   }
 

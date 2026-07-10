@@ -22,7 +22,7 @@ export const CONDITIONS: ConditionDef[] = [
   { name: 'Grappled',          category: 'standard', icon: '🤝', desc: "Your speed becomes 0. You can't benefit from speed bonuses. Ends if the grappler is incapacitated or you escape." },
   { name: 'Incapacitated',     category: 'standard', icon: '💫', desc: 'You can\'t take any Actions, Bonus Actions, or Reactions. You still have Movement.' },
   { name: 'Invisible',         category: 'standard', icon: '👻', desc: 'You can\'t be seen. Attack rolls against you have Advantage. Your attack rolls have Advantage. You can still be heard or smelled.' },
-  { name: 'Paralysed',         category: 'standard', icon: '⚡', desc: "Incapacitated, can't move or speak. Attack rolls against you have Advantage. Hits from within 5 ft. are Critical Hits. Str and Dex saves auto-fail." },
+  { name: 'Paralyzed',         category: 'standard', icon: '⚡', desc: "Incapacitated, can't move or speak. Attack rolls against you have Advantage. Hits from within 5 ft. are Critical Hits. Str and Dex saves auto-fail." },
   { name: 'Petrified',         category: 'standard', icon: '🪨', desc: "Transformed to stone. Incapacitated, unaware of surroundings. Resistance to all damage. Immune to poison and disease." },
   { name: 'Poisoned',          category: 'standard', icon: '🤢', desc: 'You have Disadvantage on attack rolls and ability checks.' },
   { name: 'Prone',             category: 'standard', icon: '⬇️', desc: "Must crawl or spend half speed to stand. Melee attack rolls against you have Advantage. Ranged attack rolls against you have Disadvantage. Your attack rolls have Disadvantage." },

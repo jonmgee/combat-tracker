@@ -170,19 +170,15 @@ body {
   100% { transform: translateY(-52px) scale(0.3); opacity: 0; }
 }
  
-/* Condition summary mobile behaviour */
-.condition-summary {
-  display: none; /* default hidden; shown via media query on narrow screens */
+/* Monster group sub-card grid: 3-up on desktop, 2-up on phones.
+   minmax(0,1fr) lets sub-cards shrink instead of overflowing the card. */
+.group-subgrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-
 @media (max-width: 640px) {
-  /* hide full icon row and show compact summary.
-     IMPORTANT: scope the hide rule to the *old top-row* icon placement only.
-     The selector below targets the explicit .condition-icons-row that lives in the
-     card's right-side icon column. Do not use a broad descendant selector that
-     can accidentally match the pillbox or Bloodied toggle. */
-  .condition-icons-row { display: none; }
-  .condition-summary { display: flex; }
+  .group-subgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ═══════════════════════════════════════════
@@ -206,20 +202,6 @@ body {
   0%,100% { opacity: 0.85; }
   40%     { opacity: 1.0; }
   70%     { opacity: 0.78; }
-}
-
-/* Mobile rule fix: ensure correct media query syntax and target the real class names used by components */
-@media (max-width: 640px) {
-  /* hide the desktop icon row (exact class rendered by components) and show compact mobile wrapper */
-  .condition-icons-row { display: none !important; }
-  .condition-summary-mobile { display: flex !important; align-items: center; gap: 6px; margin-top: 6px; width: 100%; justify-content: flex-start; }
-  /* ensure the original condition-summary (if present) does not duplicate UI on mobile */
-  .condition-summary { display: none !important; }
-
-  /* Show the inner ConditionSummary rendered INSIDE the .condition-summary-mobile wrapper.
-     The ConditionSummary component sets an inline style display:none; override it here with !important
-     so the compact icons are visible on mobile without restructuring components. */
-  .condition-summary-mobile .condition-summary { display: flex !important; align-items: center; gap: 6px; }
 }
 
 /* Scoped placeholder italic utility (used by Join character name input) */
