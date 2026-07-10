@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import lanternLogo from '../assets/Lantern3.png'
-import crossedAxes from '../assets/crossedaxes.png'
+import lanternLogo from '../assets/Lantern3.webp'
+import crossedAxes from '../assets/crossedaxes.webp'
 import { supabase } from '../lib/supabase'
 import { requestNotificationPermission, registerServiceWorker } from '../lib/notifications'
 import type { Session, Participant, CombatState } from '../types'
@@ -9,9 +9,10 @@ interface Props {
   session: Session
   me: Participant
   onCombatStart: (state: CombatState) => void
+  onLeave: () => void
 }
 
-export default function LobbyScreen({ session, me, onCombatStart }: Props) {
+export default function LobbyScreen({ session, me, onCombatStart, onLeave }: Props) {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading]           = useState(false)
   const [copied, setCopied]             = useState(false)
@@ -173,8 +174,15 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
         style={{ background: 'var(--bg-panel)', border: '1px solid var(--gold-dark)', boxShadow: '0 0 24px rgba(201,168,76,0.15)', animationDelay: '0.05s' }}>
         <div className="p-6 text-center">
           <p className="text-xs uppercase tracking-widest mb-3" style={{ color: 'var(--text-dim)' }}>Room Code</p>
-          <div className="text-5xl font-bold tracking-widest mb-4 candle-flicker"
-            style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', letterSpacing: '0.25em' }}>
+          <div className="font-bold mb-4 candle-flicker"
+            style={{
+              fontFamily: "'Cinzel', serif",
+              color: 'var(--gold)',
+              // Scale to the code length so long codes stay on one line
+              fontSize: session.room_code.length > 11 ? '1.6rem' : session.room_code.length > 9 ? '1.9rem' : '2.4rem',
+              letterSpacing: '0.12em',
+              whiteSpace: 'nowrap',
+            }}>
             {session.room_code}
           </div>
           <div className="flex justify-center gap-3 mt-3">
@@ -388,6 +396,15 @@ export default function LobbyScreen({ session, me, onCombatStart }: Props) {
           </div>
         )}
       </div>
+
+      {/* ── Quiet exit — this screen previously had no way back ── */}
+      <button
+        onClick={onLeave}
+        className="mt-6 text-xs transition-opacity hover:opacity-70"
+        style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.06em', textDecoration: 'underline', textUnderlineOffset: 3 }}
+      >
+        ← Leave session
+      </button>
     </div>
   )
 }

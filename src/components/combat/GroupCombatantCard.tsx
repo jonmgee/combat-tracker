@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase'
 import HPBar from './HPBar'
 import ConditionPicker from './ConditionPicker'
 import ConditionIconDisplay from './ConditionIconDisplay'
+import BloodDrips from './BloodDrips'
 import type { Combatant, Condition, Participant } from '../../types'
 
 interface Props {
@@ -66,6 +67,8 @@ export default function GroupCombatantCard({
         boxShadow: cardShadow,
         animation: cardAnimation,
         position: 'relative',
+        // Let the active card carry the light — everyone else recedes slightly
+        opacity: isActive ? 1 : 0.92,
       }}
     >
       {/* ── All effects per-sub-card; group just gets the active gold edge ── */}
@@ -142,12 +145,12 @@ export default function GroupCombatantCard({
         </div>
       </div>
 
-      {/* ── Sub-cards grid ── */}
-      <div className="px-3 pb-3 grid gap-2"
+      {/* ── Sub-cards grid — minmax(0,1fr) stops overflow; drops to 2 columns on phones ── */}
+      <div className={`px-3 pb-3 grid gap-2 ${combatants.length > 2 ? 'group-subgrid' : ''}`}
         style={{
-          gridTemplateColumns: combatants.length <= 3
-            ? `repeat(${combatants.length}, 1fr)`
-            : `repeat(3, 1fr)`,
+          gridTemplateColumns: combatants.length <= 2
+            ? `repeat(${combatants.length}, minmax(0, 1fr))`
+            : undefined,
         }}
       >
         {combatants.map((c, idx) => {
@@ -180,10 +183,13 @@ export default function GroupCombatantCard({
             >
               {/* Sub-card bloodied seep */}
               {cBloodied && (
-                <div style={{
-                  position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none',
-                  background: 'linear-gradient(to bottom, rgba(160,20,10,0.15) 0%, transparent 60%)',
-                }}/>
+                <>
+                  <div style={{
+                    position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none',
+                    background: 'linear-gradient(to bottom, rgba(160,20,10,0.15) 0%, transparent 60%)',
+                  }}/>
+                  <BloodDrips width={64} style={{ left: 8 }} />
+                </>
               )}
 
               {/* Sub-card concentration effects */}
@@ -229,100 +235,104 @@ export default function GroupCombatantCard({
                   />
                 )}
 
-                {/* Condition icon — single oldest, with dropdown overlay */}
-                <ConditionIconDisplay
-                  conditions={cConditions}
-                  combatantId={c.id}
-                  expanded={expandedConditionCard === c.id}
-                  onToggle={onToggleConditionCard}
-                />
+                {/* Condition tiles — row fills the sub-card width */}
+                {cConditions.length > 0 && (
+                  <div className="mt-1">
+                    <ConditionIconDisplay
+                      conditions={cConditions}
+                      combatantId={c.id}
+                      expanded={expandedConditionCard === c.id}
+                      onToggle={onToggleConditionCard}
+                      size={42}
+                    />
+                  </div>
+                )}
 
                 {/* Dead badge */}
                 {cDead && (
                   <div className="mt-1 text-xs" style={{ color: '#c06060' }}>💀 Dead</div>
                 )}
 
-                {/* Actions */}
+                {/* Actions — DM/owner get the full set; other players only + Cond */}
                 {!cDead && (
-                  <div className="flex gap-2 mt-2">
-                    {/* Bloodied toggle */}
-                    <button
-                      onClick={() => toggleBloodied(c)}
-                      disabled={!isDM && !cOwns}
-                      className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
-                      style={{
-                        flex: 1,
-                        background: cBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
-                        border: `1px solid ${cBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
-                        color: cBloodied ? '#c07070' : 'var(--text-dim)',
-                        cursor: (!isDM && !cOwns) ? 'not-allowed' : 'pointer',
-                        opacity: (!isDM && !cOwns) ? 0.4 : 1,
-                      }}
-                    >
-                      <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
-                        <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
-                          stroke="currentColor" strokeWidth="0.9" fill={cBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
-                      </svg>
-                      {cBloodied ? '🩸' : 'Bloody'}
-                    </button>
-
-                    {/* Condition picker */}
-                    <button
-                      onClick={() => setShowConditionsFor(c.id)}
-                      className="flex items-center justify-center py-1.5 rounded-lg text-xs transition-all active:scale-95"
-                      style={{ flex: 1, background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
-                      + Cond
-                    </button>
-                    {/* Dead toggle (DM or owner) */}
-                    {cDead ? (
+                  <div className="flex gap-1.5 mt-2">
+                    {(isDM || cOwns) && (
                       <button
-                        onClick={async () => {
-                          setOptimisticAliveIds(prev => ({ ...prev, [c.id]: true }))
-                          if (canSeeHP && c.max_hp !== null && c.current_hp !== null) {
-                            try { hpRefs.current[c.id]?.focusAndEdit() } catch (e) {}
-                          }
-                          try {
-                            await supabase.from('combatants').update({ dead: false }).eq('id', c.id)
-                          } catch (err) {
-                            setOptimisticAliveIds(prev => { const n = { ...prev }; delete n[c.id]; return n })
-                            console.error('Revive failed', err)
-                          }
-                        }}
-                        disabled={!isDM && !cOwns}
-                        className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
+                        onClick={() => toggleBloodied(c)}
+                        className="flex items-center justify-center gap-1 py-1.5 rounded-md transition-all active:scale-95"
                         style={{
                           flex: 1,
-                          background: 'var(--bg-void)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--text-dim)',
-                          cursor: (!isDM && !cOwns) ? 'not-allowed' : 'pointer',
-                          opacity: (!isDM && !cOwns) ? 0.4 : 1,
+                          minWidth: 0,
+                          fontSize: '0.65rem',
+                          whiteSpace: 'nowrap',
+                          background: cBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
+                          border: `1px solid ${cBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
+                          color: cBloodied ? '#c07070' : 'var(--text-dim)',
+                          cursor: 'pointer',
                         }}
                       >
-                        Revive
-                      </button>
-                    ) : (
-                      <button
-                        onClick={async () => {
-                          const next = !c.dead
-                          await supabase.from('combatants').update({ dead: next }).eq('id', c.id)
-                        }}
-                        disabled={!isDM && !cOwns}
-                        className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
-                        style={{
-                          flex: 1,
-                          background: cDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
-                          border: `1px solid ${cDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
-                          color: cDead ? '#c06060' : 'var(--text-dim)',
-                          cursor: (!isDM && !cOwns) ? 'not-allowed' : 'pointer',
-                          opacity: (!isDM && !cOwns) ? 0.4 : 1,
-                        }}
-                      >
-                        {cDead ? '💀' : '💀 Kill'}
+                        {cBloodied ? '🩸' : 'Bloody'}
                       </button>
                     )}
 
-                    
+                    <button
+                      onClick={() => setShowConditionsFor(c.id)}
+                      className="flex items-center justify-center py-1.5 rounded-md transition-all active:scale-95"
+                      style={{ flex: 1, minWidth: 0, fontSize: '0.65rem',
+                          whiteSpace: 'nowrap', background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
+                      + Cond
+                    </button>
+
+                    {(isDM || cOwns) && (
+                      <button
+                        onClick={async () => {
+                          await supabase.from('combatants').update({ dead: true }).eq('id', c.id)
+                        }}
+                        className="flex items-center justify-center gap-1 py-1.5 rounded-md transition-all active:scale-95"
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          fontSize: '0.65rem',
+                          whiteSpace: 'nowrap',
+                          background: 'var(--bg-void)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--text-dim)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Kill
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Revive (dead sub-card, DM/owner only) */}
+                {cDead && (isDM || cOwns) && (
+                  <div className="flex gap-1.5 mt-2">
+                    <button
+                      onClick={async () => {
+                        setOptimisticAliveIds(prev => ({ ...prev, [c.id]: true }))
+                        if (canSeeHP && c.max_hp !== null && c.current_hp !== null) {
+                          try { hpRefs.current[c.id]?.focusAndEdit() } catch (e) {}
+                        }
+                        try {
+                          await supabase.from('combatants').update({ dead: false }).eq('id', c.id)
+                        } catch (err) {
+                          setOptimisticAliveIds(prev => { const n = { ...prev }; delete n[c.id]; return n })
+                          console.error('Revive failed', err)
+                        }
+                      }}
+                      className="flex items-center justify-center py-1.5 px-2.5 rounded-md transition-all active:scale-95"
+                      style={{
+                        fontSize: '0.65rem',
+                        background: 'var(--bg-void)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-dim)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Revive
+                    </button>
                   </div>
                 )}
               </div>

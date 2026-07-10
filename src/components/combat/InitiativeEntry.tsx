@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../lib/supabase'
-import rollIcon from '../../assets/rollforinitiative3.png'
-import crossedAxes from '../../assets/crossedaxes.png'
+import rollIcon from '../../assets/rollforinitiative3.webp'
+import crossedAxes from '../../assets/crossedaxes.webp'
 import type { Combatant, Participant } from '../../types'
 
 interface Props {
@@ -10,17 +10,25 @@ interface Props {
   me: Participant
   sessionId: string
   onReady: (data: { playerUpdates: { id: string; initiative: number }[]; monsterInserts: any[]; pcInserts: any[] }) => void
+  /** Seeds the monster form when the DM steps back from order review */
+  monsterPrefill?: { name: string; count: string; initiative: string; hp: string; hpEnabled: boolean }[]
+  /** DM escape hatch — reverts the encounter and returns everyone to the lobby */
+  onBackToLobby?: () => void
 }
 
-export default function InitiativeEntry({ combatants, participants: initialParticipants, me, sessionId, onReady }: Props) {
+export default function InitiativeEntry({ combatants, participants: initialParticipants, me, sessionId, onReady, monsterPrefill, onBackToLobby }: Props) {
   const isDM = me.role === 'dm'
 
   // Initiatives keyed by combatant id
   const [initiatives, setInitiatives] = useState<Record<string, string>>({})
-  // Monster rows (DM only)
-  const [monsters, setMonsters] = useState<{ name: string; count: string; initiative: string; hp: string; hpEnabled: boolean }[]>([
-    { name: '', count: '1', initiative: '', hp: '', hpEnabled: false }
-  ])
+  // Combatants whose already-set initiative the DM has tapped to correct
+  const [editingInit, setEditingInit] = useState<Set<string>>(new Set())
+  // Monster rows (DM only) — seeded from prefill when stepping back from order review
+  const [monsters, setMonsters] = useState<{ name: string; count: string; initiative: string; hp: string; hpEnabled: boolean }[]>(
+    monsterPrefill && monsterPrefill.length > 0
+      ? monsterPrefill
+      : [{ name: '', count: '1', initiative: '', hp: '', hpEnabled: false }]
+  )
   // DM-added PC rows with settings fields
   const [addPcRows, setAddPcRows] = useState<{
     name: string
@@ -232,6 +240,15 @@ export default function InitiativeEntry({ combatants, participants: initialParti
         <p className="mt-1 text-sm" style={{ color: 'var(--text-dim)' }}>
           {isDM ? 'Enter initiatives for all combatants and add monsters' : 'Enter your initiative roll'}
         </p>
+        {isDM && onBackToLobby && (
+          <button
+            onClick={onBackToLobby}
+            className="mt-3 text-xs transition-opacity hover:opacity-70"
+            style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.06em', textDecoration: 'underline', textUnderlineOffset: 3 }}
+          >
+            ← Back to lobby
+          </button>
+        )}
       </div>
 
       <div className="w-full max-w-sm flex flex-col gap-4">
@@ -468,14 +485,27 @@ export default function InitiativeEntry({ combatants, participants: initialParti
                   <div key={c.id} className="px-5 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
                     <div className="flex items-center gap-3">
                       <span className="flex-1 text-sm" style={{ color: 'var(--text-primary)' }}>{c.name}</span>
-                      {c.initiative !== null ? (
-                        <span className="text-lg font-bold" style={{ color: 'var(--gold)' }}>{c.initiative}</span>
+                      {c.initiative !== null && !editingInit.has(c.id) ? (
+                        // Tap to correct a mistyped roll
+                        <button
+                          onClick={() => {
+                            setEditingInit(prev => new Set(prev).add(c.id))
+                            setInitiatives(p => ({ ...p, [c.id]: String(c.initiative) }))
+                          }}
+                          title="Tap to edit"
+                          className="flex items-baseline gap-1.5 transition-opacity hover:opacity-70"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                        >
+                          <span className="text-lg font-bold" style={{ color: 'var(--gold)' }}>{c.initiative}</span>
+                          <span style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>✎</span>
+                        </button>
                       ) : (
                         <input
                           type="tel" inputMode="numeric" pattern="\d*"
                           value={initiatives[c.id] ?? ''}
                           onChange={e => setInitiatives(p => ({ ...p, [c.id]: e.target.value }))}
                           placeholder="—"
+                          autoFocus={editingInit.has(c.id)}
                           className="w-16 px-2 py-1.5 rounded text-center outline-none text-sm"
                           style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--gold)' }}
                         />

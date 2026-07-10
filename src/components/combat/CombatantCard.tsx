@@ -115,6 +115,8 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
           boxShadow: cardShadow,
           animation: `${concAnimation} ${isConcentrating ? '6s' : '3s'} ease-in-out infinite`,
           position: 'relative',
+          // Let the active card carry the light — everyone else recedes slightly
+          opacity: isActive ? 1 : 0.92,
         }}
       >
         {/* ── Concentration aura layers ── */}
@@ -150,7 +152,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
               background: 'linear-gradient(to bottom, transparent, rgba(190,30,20,0.9), transparent)',
               borderRadius: '0 2px 2px 0', zIndex: 3,
             }}/>
-            <BloodDrips count={4} />
+            <BloodDrips />
           </>
         )}
 
@@ -178,74 +180,72 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
         {/* ── Card content - above all layers ── */}
         <div className="p-4" style={{ position: 'relative', zIndex: 2, opacity: isDead ? 0.5 : 1 }}>
 
-          {/* ── Outer row: [position] [name + INIT sub-row | icons] on left, nothing right ── */}
-          <div style={{ display: 'flex', alignItems: 'stretch', gap: 8 }}>
+          {/* ── Top row: [tie arrows] [name + badges] ......... [INIT] ── */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
 
-            {/* Position bubble — pinned to top, aligns with name */}
-            <div className="shrink-0 flex flex-col items-center" style={{ gap: 2, justifyContent: 'flex-start' }}>
-              {canMoveUp && (
-                <button onClick={onMoveUp} className="cursor-pointer transition-colors hover:opacity-70"
-                  style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▲</button>
+            {/* Tie-break arrows — pinned to top, aligns with name */}
+            {(canMoveUp || canMoveDown) && (
+              <div className="shrink-0 flex flex-col items-center" style={{ gap: 2, justifyContent: 'flex-start' }}>
+                {canMoveUp && (
+                  <button onClick={onMoveUp} className="cursor-pointer transition-colors hover:opacity-70"
+                    style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▲</button>
+                )}
+                {canMoveDown && (
+                  <button onClick={onMoveDown} className="cursor-pointer transition-colors hover:opacity-70"
+                    style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▼</button>
+                )}
+              </div>
+            )}
+
+            {/* Name + badges */}
+            <div className="flex items-center gap-2 flex-wrap" style={{ flex: 1, minWidth: 0 }}>
+              <span className="font-semibold truncate"
+                style={{
+                  color: isConcentrating ? (isActive ? '#ddd0ff' : '#c8b8f0')
+                    : isBloodied ? (isActive ? '#e8c8c0' : '#c8a0a0')
+                    : isActive ? 'var(--gold-light)' : 'var(--text-primary)',
+                  fontFamily: "'Cinzel', serif", fontSize: '1.05rem',
+                }}>
+                {combatant.name}
+                {isDead && <span className="text-sm" style={{ marginLeft: 4 }}>💀</span>}
+              </span>
+              {isMonster && combatant.count > 1 && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded text-xs"
+                  style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}>
+                  ×{combatant.count}
+                  {isDM && (
+                    <button onClick={decrementCount} className="text-xs leading-none transition-colors hover:opacity-70"
+                      style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', lineHeight: 1 }}>-</button>
+                  )}
+                </span>
               )}
-              {canMoveDown && (
-                <button onClick={onMoveDown} className="cursor-pointer transition-colors hover:opacity-70"
-                  style={{ background: 'none', border: 'none', color: 'var(--gold-dark)', padding: 0, lineHeight: 1, fontSize: '0.6rem' }}>▼</button>
+              {isDead && (
+                <span className="text-xs px-2 py-0.5 rounded"
+                  style={{ background: 'rgba(60,30,30,0.5)', color: '#c06060', border: '1px solid rgba(180,60,50,0.4)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
+                  💀 Dead
+                </span>
               )}
+              {isHidden && isDM && (
+                <span className="text-xs px-1.5 py-0.5 rounded"
+                  style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
+                  HIDDEN
+                </span>
+              )}
+              {isMonster && !isHidden && <span className="text-xs" style={{ color: 'var(--text-dim)' }}>👹</span>}
             </div>
 
-            {/* Centre: name + pills on left, icons pinned top-right */}
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0 }}>
+            {/* INIT — top right on every card type */}
+            <div className="shrink-0 text-right" style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+              <span className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>INIT</span>
+              <span className="text-lg font-bold" style={{ color: 'var(--gold)', fontFamily: "'Cinzel', serif", lineHeight: 1 }}>
+                {combatant.initiative ?? '-'}
+              </span>
+            </div>
+          </div>
 
-              {/* Left side: name row + pills row stacked from top */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-                {/* Name + badges */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold truncate"
-                    style={{
-                      color: isConcentrating ? (isActive ? '#ddd0ff' : '#c8b8f0')
-                        : isBloodied ? (isActive ? '#e8c8c0' : '#c8a0a0')
-                        : isActive ? 'var(--gold-light)' : 'var(--text-primary)',
-                      fontFamily: "'Cinzel', serif", fontSize: '0.95rem',
-                    }}>
-                    {combatant.name}
-                    {isDead && <span className="text-sm" style={{ marginLeft: 4 }}>💀</span>}
-                  </span>
-                  {isMonster && combatant.count > 1 && (
-                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-xs"
-                      style={{ background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}>
-                      ×{combatant.count}
-                      {isDM && (
-                        <button onClick={decrementCount} className="text-xs leading-none transition-colors hover:opacity-70"
-                          style={{ color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 0 4px', lineHeight: 1 }}>-</button>
-                      )}
-                    </span>
-                  )}
-                  {isDead && (
-                    <span className="text-xs px-2 py-0.5 rounded"
-                      style={{ background: 'rgba(60,30,30,0.5)', color: '#c06060', border: '1px solid rgba(180,60,50,0.4)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
-                      💀 Dead
-                    </span>
-                  )}
-                  {isHidden && isDM && (
-                    <span className="text-xs px-1.5 py-0.5 rounded"
-                      style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
-                      HIDDEN
-                    </span>
-                  )}
-                  {isMonster && !isHidden && <span className="text-xs" style={{ color: 'var(--text-dim)' }}>👹</span>}
-                </div>
-
-                {/* INIT row — indented under name, replaces old top-right position */}
-                <div style={{ paddingLeft: 4, display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1 }}>
-                  <span className="text-xs" style={{ color: 'var(--text-dim)', letterSpacing: '0.08em' }}>INIT</span>
-                  <span className="text-lg font-bold" style={{ color: 'var(--gold)', fontFamily: "'Cinzel', serif" }}>
-                    {combatant.initiative ?? '-'}
-                  </span>
-                </div>
-
-              </div>
-
-              {/* Right side: condition icon — single oldest, with dropdown overlay */}
+          {/* ── Condition tiles — full-width row under the name ── */}
+          {conditions.length > 0 && (
+            <div className="mt-2.5">
               <ConditionIconDisplay
                 conditions={conditions}
                 combatantId={combatant.id}
@@ -253,7 +253,7 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
                 onToggle={onToggleConditionCard}
               />
             </div>
-          </div>
+          )}
 
           {/* ── HP bar ── */}
           {canSeeHP && combatant.max_hp !== null && combatant.current_hp !== null && (
@@ -266,12 +266,16 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
               isBloodied={isBloodied}
               isDead={isDead && !optimisticAlive}
               showTempBadge={combatant.kind === 'player'}
+              isPlayer={combatant.kind === 'player'}
             />
           )}
 
-          {/* ── Three-button row: Bloody / + Condition / Kill ── */}
+          {/* ── Action row ──
+              DM / owner: Bloody + Condition + Kill.
+              Other players: only + Condition (the one action they can take) —
+              no greyed-out buttons cluttering someone else's card. */}
           {!isDead && (
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-2.5">
               {canSwapTarget && (
                 <button
                   onClick={onSwapTarget}
@@ -281,58 +285,62 @@ export default function CombatantCard({ combatant, conditions, isActive, me, can
                 </button>
               )}
 
-              <button onClick={toggleBloodied}
-                disabled={!isDM && !isMe}
-                className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
-                style={{
-                  flex: 1,
-                  background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
-                  border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
-                  color: isBloodied ? '#c07070' : 'var(--text-dim)',
-                  cursor: (!isDM && !isMe) ? 'not-allowed' : 'pointer',
-                  opacity: (!isDM && !isMe) ? 0.4 : 1,
-                }}>
-                <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
-                  <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
-                    stroke="currentColor" strokeWidth="0.9" fill={isBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
-                </svg>
-                {isBloodied ? 'Bloodied' : 'Bloody'}
-              </button>
+              {(isDM || isMe) && (
+                <button onClick={toggleBloodied}
+                  className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95"
+                  style={{
+                    flex: 1,
+                    background: isBloodied ? 'rgba(140,20,15,0.3)' : 'var(--bg-void)',
+                    border: `1px solid ${isBloodied ? 'rgba(180,50,40,0.55)' : 'var(--border)'}`,
+                    color: isBloodied ? '#c07070' : 'var(--text-dim)',
+                    cursor: 'pointer',
+                  }}>
+                  <svg viewBox="0 0 11 11" fill="none" style={{ width: 11, height: 11, flexShrink: 0 }}>
+                    <path d="M5.5 1 Q8.5 4.5 8.5 6.8 A3 3 0 0 1 2.5 6.8 Q2.5 4.5 5.5 1Z"
+                      stroke="currentColor" strokeWidth="0.9" fill={isBloodied ? 'rgba(180,40,30,0.35)' : 'none'}/>
+                  </svg>
+                  {isBloodied ? 'Bloodied' : 'Bloody'}
+                </button>
+              )}
 
               <button
                 onClick={() => setShowConditions(true)}
                 className="flex items-center justify-center py-1.5 rounded-lg text-xs transition-all active:scale-95"
-                style={{ flex: 1, background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer' }}>
+                style={{
+                  flex: (isDM || isMe) ? 1 : 'none',
+                  padding: (isDM || isMe) ? undefined : '0.375rem 0.9rem',
+                  background: 'var(--bg-void)', border: '1px solid var(--border)', color: 'var(--text-dim)', cursor: 'pointer',
+                }}>
                 + Condition
               </button>
 
-              <button
-                onClick={async () => {
-                  if (isMonster) {
-                    // Monsters kill instantly — no confirm
-                    await supabase.from('combatants').update({ dead: true, temp_hp: 0 }).eq('id', combatant.id)
-                  } else {
-                    // PC/DM-PC — show confirmation
-                    setConfirmKillFor(combatant.name)
-                  }
-                }}
-                disabled={!isDM && !isMe}
-                className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95 disabled:active:scale-100"
-                style={{
-                  flex: 1,
-                  background: isDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
-                  border: `1px solid ${isDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
-                  color: isDead ? '#c06060' : 'var(--text-dim)',
-                  cursor: (!isDM && !isMe) ? 'not-allowed' : 'pointer',
-                  opacity: (!isDM && !isMe) ? 0.4 : 1,
-                }}>
-                💀 Kill
-              </button>
+              {(isDM || isMe) && (
+                <button
+                  onClick={async () => {
+                    if (isMonster) {
+                      // Monsters kill instantly — no confirm
+                      await supabase.from('combatants').update({ dead: true, temp_hp: 0 }).eq('id', combatant.id)
+                    } else {
+                      // PC/DM-PC — show confirmation
+                      setConfirmKillFor(combatant.name)
+                    }
+                  }}
+                  className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs transition-all active:scale-95"
+                  style={{
+                    flex: 1,
+                    background: isDead ? 'rgba(80,20,20,0.4)' : 'var(--bg-void)',
+                    border: `1px solid ${isDead ? 'rgba(180,50,40,0.6)' : 'var(--border)'}`,
+                    color: isDead ? '#c06060' : 'var(--text-dim)',
+                    cursor: 'pointer',
+                  }}>
+                  💀 Kill
+                </button>
+              )}
             </div>
           )}
 
-          {/* Revive row (shown only when dead) */}
-          {isDead && (
+          {/* Revive row (shown only when dead, and only to those who can use it) */}
+          {isDead && (isDM || isMe) && (
             <div className="flex gap-2 mt-2">
               <button
                 onClick={async () => {

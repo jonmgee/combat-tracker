@@ -4,7 +4,7 @@ import HomeScreen from './components/HomeScreen'
 import LobbyScreen from './components/LobbyScreen'
 import CombatScreen from './components/CombatScreen'
 import ErrorBoundary from './components/ErrorBoundary'
-import lanternLogo from './assets/Lantern3.png'
+import lanternLogo from './assets/Lantern3.webp'
 import type { Session, Participant, CombatState } from './types'
 
 type Screen = 'home' | 'lobby' | 'combat'
@@ -223,7 +223,7 @@ export default function App() {
   }
 
   if (screen === 'lobby' && session && me) {
-    return <LobbyScreen session={session} me={me} onCombatStart={handleCombatStart} />
+    return <LobbyScreen session={session} me={me} onCombatStart={handleCombatStart} onLeave={handleExitSession} />
   }
 
   return <HomeScreen onEnterLobby={handleEnterLobby} onEnterCombat={handleEnterCombat} />

@@ -1,162 +1,60 @@
-import { useEffect, useRef } from 'react'
- 
-interface Drip {
-  x: number
-  startY: number
-  stopY: number
-  y: number
-  speed: number
-  width: number
-  poolW: number
-  phase: 'drip' | 'pool' | 'idle'
-  poolProgress: number
-  idleTimer: number
-  idleMax: number
-  delay: number
-  delayTimer: number
-  streak: SVGPathElement
-  tip: SVGEllipseElement
-}
- 
+import type { CSSProperties } from 'react'
+
 interface Props {
-  /** Number of drips to animate (default 5) */
-  count?: number
+  /** Rendered width in px — height scales with it. Default suits full cards; pass ~70 for sub-cards. */
+  width?: number
+  style?: CSSProperties
 }
- 
-export default function BloodDrips({ count = 5 }: Props) {
-  const svgRef = useRef<SVGSVGElement>(null)
-  const dripsRef = useRef<Drip[]>([])
-  const rafRef = useRef<number>(0)
- 
-  useEffect(() => {
-    const svg = svgRef.current
-    if (!svg) return
- 
-    const W = 320
-    const H = 72
- 
-    // Build drip objects
-    const drips: Drip[] = []
-    for (let i = 0; i < count; i++) {
-      const x = 10 + Math.random() * (W - 20)
-      const width = 1.8 + Math.random() * 2.0
- 
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g')
- 
-      const streak = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-      streak.setAttribute('fill', 'url(#bloodGrad)')
-      g.appendChild(streak)
- 
-      const tip = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse')
-      tip.setAttribute('fill', '#991010')
-      tip.setAttribute('rx', String(width * 0.9))
-      tip.setAttribute('ry', String(width * 0.9))
-      g.appendChild(tip)
- 
-      svg.appendChild(g)
- 
-      drips.push({
-        x, startY: -6 - Math.random() * 8,
-        stopY: 18 + Math.random() * (H - 22),
-        y: -6 - Math.random() * 8,
-        speed: 0.16 + Math.random() * 0.20,
-        width,
-        poolW: width * (2.8 + Math.random() * 1.8),
-        phase: 'drip',
-        poolProgress: 0,
-        idleTimer: 0,
-        idleMax: 90 + Math.random() * 130,
-        delay: Math.random() * 220,
-        delayTimer: 0,
-        streak,
-        tip,
-      })
-    }
- 
-    dripsRef.current = drips
- 
-    function step() {
-      for (const d of dripsRef.current) {
-        if (d.delayTimer < d.delay) { d.delayTimer++; continue }
- 
-        if (d.phase === 'drip') {
-          d.y += d.speed
-          const topY = Math.max(d.startY, d.y - 14)
-          const wx = d.x + Math.sin(d.y * 0.28) * 0.9
- 
-          d.streak.setAttribute('d',
-            `M${wx - d.width / 2} ${topY} Q${wx + d.width * 0.3} ${(topY + d.y) / 2} ${wx} ${d.y} Q${wx - d.width * 0.3} ${(topY + d.y) / 2} ${wx - d.width / 2} ${topY}Z`
-          )
-          d.tip.setAttribute('cx', String(wx))
-          d.tip.setAttribute('cy', String(d.y))
- 
-          if (d.y >= d.stopY) {
-            d.phase = 'pool'
-            d.poolProgress = 0
-          }
- 
-        } else if (d.phase === 'pool') {
-          d.poolProgress = Math.min(1, d.poolProgress + 0.012)
-          const pw = d.poolW * d.poolProgress
-          const ph = Math.min(3.2, d.poolProgress * 3.8)
-          d.tip.setAttribute('rx', String(pw))
-          d.tip.setAttribute('ry', String(ph))
-          d.tip.setAttribute('cy', String(d.stopY + ph * 0.4))
-          if (d.poolProgress >= 1) d.phase = 'idle'
- 
-        } else {
-          d.idleTimer++
-          if (d.idleTimer > d.idleMax) {
-            // Reset
-            d.y = d.startY
-            d.phase = 'drip'
-            d.poolProgress = 0
-            d.idleTimer = 0
-            d.stopY = 18 + Math.random() * (H - 22)
-            d.delay = 0
-            d.delayTimer = 0
-            d.tip.setAttribute('rx', String(d.width * 0.9))
-            d.tip.setAttribute('ry', String(d.width * 0.9))
-            d.streak.setAttribute('d', '')
-          }
-        }
-      }
-      rafRef.current = requestAnimationFrame(step)
-    }
- 
-    rafRef.current = requestAnimationFrame(step)
-    return () => {
-      cancelAnimationFrame(rafRef.current)
-      // Remove drip nodes
-      for (const d of dripsRef.current) {
-        d.streak.parentElement?.remove()
-      }
-      dripsRef.current = []
-    }
-  }, [count])
- 
+
+/**
+ * Static blood seep hanging from the card's top edge.
+ * Hand-drawn shapes at fixed scale — never stretched, never animated.
+ * Dark, dried-blood tones to sit inside the candlelit palette.
+ */
+export default function BloodDrips({ width = 120, style }: Props) {
   return (
     <svg
-      ref={svgRef}
-      viewBox="0 0 320 72"
-      preserveAspectRatio="none"
+      width={width}
+      height={width * 0.22}
+      viewBox="0 0 120 26"
       style={{
         position: 'absolute',
-        top: 0, left: 0,
-        width: '100%', height: '100%',
+        top: -0.5,
+        left: 14,
         pointerEvents: 'none',
-        borderRadius: 'inherit',
-        zIndex: 1,
-        overflow: 'hidden',
+        zIndex: 3,
+        ...style,
       }}
     >
       <defs>
-        <linearGradient id="bloodGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#cc1a0a" stopOpacity="0.95"/>
-          <stop offset="100%" stopColor="#7a0804" stopOpacity="0.5"/>
+        <linearGradient id="bloodSeep" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#7d1410" stopOpacity="0.95" />
+          <stop offset="100%" stopColor="#4d0a07" stopOpacity="0.9" />
         </linearGradient>
       </defs>
+
+      {/* Rim pooled along the top edge, with bulges where the drips fall */}
+      <path
+        fill="url(#bloodSeep)"
+        d="M0,0 H120 V1.2
+           C112,2.6 106,2.2 99,2
+           C95,4.4 92.6,4.4 89,2.1
+           C80,1.6 74,2.8 66,2.6
+           C61.4,6 58.6,6 55,2.4
+           C48,2 42,3 34,2.6
+           C29.8,5.4 26.6,5.4 23,2.3
+           C15,2 8,2.8 0,1.4 Z"
+      />
+
+      {/* Drips — teardrops tapering to rounded tips, varied lengths */}
+      <path fill="url(#bloodSeep)" d="M20.6,2 Q19.6,9.5 22,15.5 Q24.4,9.5 24.4,2 Z" />
+      <circle cx="22.1" cy="15.2" r="1.7" fill="#5a0c08" />
+
+      <path fill="url(#bloodSeep)" d="M55.9,2 Q54.9,13 58,22 Q61.1,13 60.1,2 Z" />
+      <circle cx="58" cy="21.6" r="2" fill="#500a07" />
+
+      <path fill="url(#bloodSeep)" d="M90.7,2 Q90,7.5 92,11.5 Q94,7.5 93.5,2 Z" />
+      <circle cx="92" cy="11.2" r="1.4" fill="#5a0c08" />
     </svg>
   )
 }
- 
