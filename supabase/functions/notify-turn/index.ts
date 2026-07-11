@@ -4,14 +4,9 @@
 // with { session_id, combatant_id }. Looks up which participant that combatant
 // belongs to, loads their stored push subscriptions, and pushes to each.
 //
-// Secrets (set as Edge Function env vars, NEVER committed):
-//   VAPID_PUBLIC_KEY   — the same public key shipped in the client
-//   VAPID_PRIVATE_KEY  — private key, server-only
-//   SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY — injected automatically
-//
-// verify_jwt is disabled: the app invokes this with the anon key, and the
-// payload only triggers a "your turn" ping (no data returned, no sensitive
-// action), so a permissive endpoint is acceptable for this app.
+// Runs as service_role — see migration-012 for the required table grants.
+// verify_jwt is disabled: the app invokes it with the anon key and the payload
+// only triggers a "your turn" ping, so a permissive endpoint is acceptable.
 
 import webpush from 'npm:web-push@3.6.7'
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -27,15 +22,11 @@ Deno.serve(async (req) => {
 
   try {
     const { session_id, combatant_id } = await req.json()
-    if (!combatant_id) {
-      return json({ error: 'combatant_id required' }, 400)
-    }
+    if (!combatant_id) return json({ error: 'combatant_id required' }, 400)
 
     const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC_KEY')
     const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY')
-    if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-      return json({ error: 'VAPID keys not configured' }, 500)
-    }
+    if (!VAPID_PUBLIC || !VAPID_PRIVATE) return json({ error: 'VAPID keys not configured' }, 500)
     webpush.setVapidDetails('mailto:hello@torchandturn.com', VAPID_PUBLIC, VAPID_PRIVATE)
 
     const supabase = createClient(
@@ -44,24 +35,24 @@ Deno.serve(async (req) => {
     )
 
     // Which participant is this combatant? (monsters have no participant_id)
-    const { data: combatant } = await supabase
+    const { data: combatant, error: cErr } = await supabase
       .from('combatants')
       .select('participant_id, name')
       .eq('id', combatant_id)
       .maybeSingle()
-
+    if (cErr) {
+      console.error('[notify-turn] combatants lookup failed:', cErr.message)
+      return json({ error: 'combatant lookup failed', detail: cErr.message }, 500)
+    }
     if (!combatant?.participant_id) {
       return json({ skipped: 'no participant for combatant (monster or missing)' })
     }
 
-    // Don't notify the DM about their own DM-PC turns? We still do — a DM-PC is a
-    // real player slot. But skip if the participant has notifications disabled.
     const { data: participant } = await supabase
       .from('participants')
       .select('notifications_enabled')
       .eq('id', combatant.participant_id)
       .maybeSingle()
-
     if (participant && participant.notifications_enabled === false) {
       return json({ skipped: 'participant has notifications disabled' })
     }
@@ -70,7 +61,6 @@ Deno.serve(async (req) => {
       .from('push_subscriptions')
       .select('id, subscription')
       .eq('participant_id', combatant.participant_id)
-
     if (!subs || subs.length === 0) {
       return json({ skipped: 'no push subscriptions for participant' })
     }
@@ -87,18 +77,16 @@ Deno.serve(async (req) => {
         await webpush.sendNotification(row.subscription, payload)
         sent++
       } catch (err) {
-        // 404/410 mean the subscription is dead — prune it
-        const status = (err as { statusCode?: number })?.statusCode
-        if (status === 404 || status === 410) stale.push(row.id)
+        const e = err as { statusCode?: number; body?: string }
+        console.error('[notify-turn] send failed:', e?.statusCode, e?.body)
+        if (e?.statusCode === 404 || e?.statusCode === 410) stale.push(row.id)
       }
     }
-
-    if (stale.length > 0) {
-      await supabase.from('push_subscriptions').delete().in('id', stale)
-    }
+    if (stale.length > 0) await supabase.from('push_subscriptions').delete().in('id', stale)
 
     return json({ sent, pruned: stale.length, session_id })
   } catch (err) {
+    console.error('[notify-turn] error:', err)
     return json({ error: String(err) }, 500)
   }
 })
