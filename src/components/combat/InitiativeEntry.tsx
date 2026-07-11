@@ -315,7 +315,7 @@ export default function InitiativeEntry({ combatants, participants: initialParti
                       value={row.name}
                       onChange={e => setAddPcRows(rows => rows.map((r, j) => j === i ? { ...r, name: e.target.value } : r))}
                       placeholder="Character name"
-                      className="flex-1 px-3 py-2 rounded text-sm outline-none"
+                      className="flex-1 min-w-0 px-3 py-2 rounded text-sm outline-none"
                       style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
                     />
                     <input
@@ -585,7 +585,7 @@ export default function InitiativeEntry({ combatants, participants: initialParti
                       value={m.name}
                       onChange={e => setMonsters(ms => ms.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
                       placeholder="Monster name"
-                      className="flex-1 px-3 py-2 rounded text-sm outline-none"
+                      className="flex-1 min-w-0 px-3 py-2 rounded text-sm outline-none"
                       style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
                     />
                     <input
