@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import lanternLogo from '../assets/Lantern3.webp'
-import { fireLocalNotification } from '../lib/notifications'
+import { fireLocalNotification, pingTurn } from '../lib/notifications'
 import InitiativeEntry from './combat/InitiativeEntry'
 import CombatantCard from './combat/CombatantCard'
 import LanternColumn from './combat/LanternColumn'
@@ -325,6 +325,9 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
       updated_at: new Date().toISOString(),
     }).eq('session_id', session.id)
 
+    // Push a background "your turn" alert to whoever owns the new combatant
+    pingTurn(session.id, next.id)
+
     setAdvancing(false)
   }
 
@@ -530,6 +533,9 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
         current_combatant_id: first.id,
         updated_at: new Date().toISOString(),
       }).eq('session_id', session.id)
+
+      // Alert the first combatant's owner that combat has started on their turn
+      pingTurn(session.id, first.id)
     }
   }
 

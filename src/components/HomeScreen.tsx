@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { generateUniqueCode } from '../lib/roomCodes'
 import lanternLogo from '../assets/Lantern3.webp'
 import InfoSheetPanel from './InfoSheetPanel'
+import { shouldShowIosInstallHint } from '../lib/notifications'
 
 import type { Session, Participant, CombatState } from '../types'
 
@@ -375,6 +376,14 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
           </div>
         )}
       </div>
+
+      {/* iOS-only nudge: push alerts need the app on the Home Screen */}
+      {shouldShowIosInstallHint() && (
+        <p className="text-center mt-6 px-6 fade-in" style={{ color: 'var(--text-dim)', fontSize: '0.75rem', lineHeight: 1.5, maxWidth: 320 }}>
+          <span className="mr-1">📲</span>
+          On iPhone? Tap Share → <span style={{ color: 'var(--text-secondary)' }}>Add to Home Screen</span> to get a nudge when it&rsquo;s your turn.
+        </p>
+      )}
 
       {/* How it works info sheet */}
       <InfoSheetPanel open={showInfo} onClose={() => setShowInfo(false)} title="How Torch &amp; Turn Works">
