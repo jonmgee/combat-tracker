@@ -64,46 +64,99 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  * participant. Requests notification permission as part of the flow.
  * Returns 'ok' | 'denied' | 'unsupported' | 'error' so the UI can guide the user.
  */
+async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
+  // Ensure the SW is registered, then wait for it to become active
+  await registerServiceWorker()
+  try {
+    return await navigator.serviceWorker.ready
+  } catch {
+    return null
+  }
+}
+
+async function subscribeAndStore(
+  reg: ServiceWorkerRegistration,
+  participantId: string,
+  sessionId: string,
+): Promise<boolean> {
+  let sub = await reg.pushManager.getSubscription()
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+    })
+  }
+  const json = sub.toJSON()
+  const { error } = await supabase.from('push_subscriptions').upsert(
+    {
+      participant_id: participantId,
+      session_id: sessionId,
+      endpoint: json.endpoint,
+      subscription: json,
+    },
+    { onConflict: 'endpoint' },
+  )
+  if (error) {
+    console.warn('storing push subscription failed:', error)
+    return false
+  }
+  return true
+}
+
+/**
+ * Interactive enable — call from a user gesture (the toggle). Prompts for
+ * permission, subscribes, and stores the subscription.
+ */
 export async function enablePushForParticipant(
   participantId: string,
   sessionId: string,
 ): Promise<'ok' | 'denied' | 'unsupported' | 'error'> {
   if (!pushSupported()) return 'unsupported'
   try {
-    const reg = (await navigator.serviceWorker.ready) ?? (await registerServiceWorker())
+    const reg = await getRegistration()
     if (!reg) return 'unsupported'
 
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return 'denied'
 
-    // Reuse an existing subscription if present, else create one
-    let sub = await reg.pushManager.getSubscription()
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
-      })
-    }
-
-    const json = sub.toJSON()
-    // Upsert on endpoint (unique) so re-enabling doesn't create duplicates
-    const { error } = await supabase.from('push_subscriptions').upsert(
-      {
-        participant_id: participantId,
-        session_id: sessionId,
-        endpoint: json.endpoint,
-        subscription: json,
-      },
-      { onConflict: 'endpoint' },
-    )
-    if (error) {
-      console.warn('storing push subscription failed:', error)
-      return 'error'
-    }
-    return 'ok'
+    return (await subscribeAndStore(reg, participantId, sessionId)) ? 'ok' : 'error'
   } catch (e) {
     console.warn('enablePush failed:', e)
     return 'error'
+  }
+}
+
+/**
+ * Silent reconciliation — call on load when notifications are already enabled.
+ * Only subscribes if permission is *already* granted (no prompt), so it can run
+ * without a user gesture. Heals the "flag on but no subscription on this device"
+ * state (e.g. flag was set in Safari, then the app was installed to the Home Screen).
+ * Returns true if a subscription is now in place.
+ */
+export async function ensurePushSubscription(
+  participantId: string,
+  sessionId: string,
+): Promise<boolean> {
+  if (!pushSupported()) return false
+  if (Notification.permission !== 'granted') return false
+  try {
+    const reg = await getRegistration()
+    if (!reg) return false
+    return await subscribeAndStore(reg, participantId, sessionId)
+  } catch (e) {
+    console.warn('ensurePush failed:', e)
+    return false
+  }
+}
+
+/** Does this device currently hold a push subscription? (independent of the DB flag) */
+export async function hasLocalSubscription(): Promise<boolean> {
+  if (!pushSupported()) return false
+  try {
+    const reg = await navigator.serviceWorker.ready
+    return (await reg.pushManager.getSubscription()) !== null
+  } catch {
+    return false
   }
 }
 

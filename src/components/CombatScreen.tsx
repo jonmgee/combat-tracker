@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import lanternLogo from '../assets/Lantern3.webp'
-import { fireLocalNotification, pingTurn } from '../lib/notifications'
+import { fireLocalNotification, pingTurn, ensurePushSubscription } from '../lib/notifications'
 import InitiativeEntry from './combat/InitiativeEntry'
 import CombatantCard from './combat/CombatantCard'
 import LanternColumn from './combat/LanternColumn'
@@ -97,6 +97,14 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
   // Load once on mount
   useEffect(() => { loadAll() }, [loadAll])
 
+  // If this player enabled notifications, make sure this device is actually
+  // subscribed (covers rejoining straight into combat). Silent — no prompt.
+  useEffect(() => {
+    if (!isDM && me.notifications_enabled) {
+      ensurePushSubscription(me.id, session.id)
+    }
+  }, [isDM, me.id, me.notifications_enabled, session.id])
+
   // ── Real-time: combat state ──
   const combatantsRef = useRef(combatants)
   combatantsRef.current = combatants
@@ -166,6 +174,37 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [session.id, onReturnToLobby])
+
+  // ── Resync on wake / refocus ──
+  // When a phone sleeps, the realtime socket drops and misses whatever the DM
+  // did while it was asleep — and reconnecting doesn't replay those events. So
+  // whenever the tab becomes visible again, re-pull the authoritative state.
+  const resync = useCallback(async () => {
+    const { data: cs } = await supabase
+      .from('combat_state')
+      .select('*')
+      .eq('session_id', session.id)
+      .maybeSingle()
+    if (!cs) {
+      // Combat was ended/reset while we were away
+      onReturnToLobby()
+      return
+    }
+    setCombatState(cs as CombatState)
+    await loadAll()
+  }, [session.id, loadAll, onReturnToLobby])
+
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState === 'visible') resync()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [resync])
 
   // ── Assign grouped initiative_order to combatants ──
   // Same-name monsters with the same initiative share an order number,
