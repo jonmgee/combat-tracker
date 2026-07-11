@@ -3,9 +3,9 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title ?? 'Torch & Turn', {
       body: data.body ?? "It's your turn!",
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
-      tag: 'torch-and-turn',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: 'combat-turn',
       renotify: true,
     })
   )

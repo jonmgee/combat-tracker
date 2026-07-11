@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import lanternLogo from '../assets/Lantern3.webp'
 import crossedAxes from '../assets/crossedaxes.webp'
 import { supabase } from '../lib/supabase'
-import { requestNotificationPermission, registerServiceWorker } from '../lib/notifications'
+import {
+  registerServiceWorker,
+  enablePushForParticipant,
+  disablePushForParticipant,
+  shouldShowIosInstallHint,
+  isIOS,
+} from '../lib/notifications'
 import type { Session, Participant, CombatState } from '../types'
 
 interface Props {
@@ -97,13 +103,32 @@ export default function LobbyScreen({ session, me, onCombatStart, onLeave }: Pro
     return null
   }
 
+  const [notifHint, setNotifHint] = useState<string | null>(null)
+
   async function toggleNotifications() {
     const next = !notifEnabled
     setNotifEnabled(next)
+    setNotifHint(null)
     await supabase.from('participants').update({ notifications_enabled: next }).eq('id', me.id)
+
     if (next) {
-      const granted = await requestNotificationPermission()
-      if (!granted) alert('Notifications blocked. You can enable them in your browser settings.')
+      // iPhone/iPad: push only works once installed to the Home Screen
+      if (shouldShowIosInstallHint()) {
+        setNotifHint('On iPhone, add Torch & Turn to your Home Screen first (Share → Add to Home Screen), then open it from there to get turn alerts.')
+        return
+      }
+      const result = await enablePushForParticipant(me.id, session.id)
+      if (result === 'denied') {
+        setNotifHint('Notifications are blocked. Enable them for this site in your browser settings, then toggle again.')
+      } else if (result === 'unsupported') {
+        setNotifHint(isIOS()
+          ? 'Add Torch & Turn to your Home Screen and open it from there to enable alerts.'
+          : "This browser can't deliver turn alerts. Try Chrome, Edge, or Safari.")
+      } else if (result === 'error') {
+        setNotifHint("Couldn't set up alerts just now — you can try toggling again.")
+      }
+    } else {
+      await disablePushForParticipant()
     }
   }
 
@@ -355,6 +380,15 @@ export default function LobbyScreen({ session, me, onCombatStart, onLeave }: Pro
                 style={{ background: notifEnabled ? 'var(--gold)' : 'var(--text-dim)', transform: notifEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
             </div>
           </button>
+
+          {/* Notification setup hint (iOS install step, permission blocked, etc.) */}
+          {notifHint && (
+            <div className="px-4 py-3 rounded-xl fade-in" style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid var(--gold-dark)' }}>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--gold-light)' }}>
+                <span className="mr-1">📲</span>{notifHint}
+              </p>
+            </div>
+          )}
 
           {/* Alert Feat toggle */}
           <button onClick={toggleAlertFeat}
