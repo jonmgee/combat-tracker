@@ -377,11 +377,17 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
         )}
       </div>
 
-      {/* iOS-only nudge: push alerts need the app on the Home Screen */}
+      {/* iOS-only nudge: push alerts need the app on the Home Screen.
+          QR / code arrivals land in 'join' mode (usually opened in Safari, not the
+          installed app) — spell out the trade-off so they know why alerts are off. */}
       {shouldShowIosInstallHint() && (
-        <p className="text-center mt-6 px-6 fade-in" style={{ color: 'var(--text-dim)', fontSize: '0.75rem', lineHeight: 1.5, maxWidth: 320 }}>
+        <p className="text-center mt-6 px-6 fade-in" style={{ color: 'var(--text-dim)', fontSize: '0.75rem', lineHeight: 1.5, maxWidth: 340 }}>
           <span className="mr-1">📲</span>
-          On iPhone? Tap Share → <span style={{ color: 'var(--text-secondary)' }}>Add to Home Screen</span> to get a nudge when it&rsquo;s your turn.
+          {mode === 'join' ? (
+            <>You can play right here. For a <span style={{ color: 'var(--text-secondary)' }}>turn alert when it&rsquo;s your go</span>, tap Share → <span style={{ color: 'var(--text-secondary)' }}>Add to Home Screen</span>, then rejoin from that icon.</>
+          ) : (
+            <>On iPhone? Tap Share → <span style={{ color: 'var(--text-secondary)' }}>Add to Home Screen</span> to get a nudge when it&rsquo;s your turn.</>
+          )}
         </p>
       )}
 
