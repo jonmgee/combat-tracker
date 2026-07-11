@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import lanternLogo from '../assets/Lantern3.webp'
-import { fireLocalNotification, pingTurn, ensurePushSubscription } from '../lib/notifications'
+import { pingTurn, ensurePushSubscription } from '../lib/notifications'
 import InitiativeEntry from './combat/InitiativeEntry'
 import CombatantCard from './combat/CombatantCard'
 import LanternColumn from './combat/LanternColumn'
@@ -128,15 +128,9 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
         if (!subPaused.current) {
           loadAll()
         }
-
-        // Notify player if it's now their turn - use ref to avoid dep on combatants
-        if (!isDM && next.current_combatant_id && me.notifications_enabled) {
-          const currentCombatants = combatantsRef.current
-          const myCombatant = currentCombatants.find(c => c.participant_id === me.id)
-          if (myCombatant && next.current_combatant_id === myCombatant.id) {
-            fireLocalNotification('⚔️ Your Turn!', "It's your turn in combat!")
-          }
-        }
+        // NB: the "your turn" alert is delivered by the notify-turn server push
+        // (works with the app closed). We deliberately do NOT also fire a local
+        // notification here — doing so produced a duplicate banner alongside the push.
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -276,13 +270,15 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
     try {
       subPaused.current = true
 
-      // Insert the new monster row
+      // Insert the new monster row — hidden from players until the lantern
+      // reaches it (same reveal-on-first-turn behaviour as pre-combat monsters),
+      // so PCs can't see a reinforcement coming before it acts.
       const row = {
         session_id: session.id,
         name,
         kind: 'monster' as const,
         initiative: init,
-        is_hidden: false,
+        is_hidden: true,
         has_taken_turn: false,
         dead: false,
         count: 1,
