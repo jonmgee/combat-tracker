@@ -177,27 +177,23 @@ export async function disablePushForParticipant(): Promise<void> {
   }
 }
 
+// Guards against the same turn being pinged twice in quick succession
+// (e.g. a double-fired handler), which would deliver two identical banners.
+let lastPing = { combatantId: '', at: 0 }
+
 /**
  * Ask the server to push a "your turn" notification to whoever owns this
  * combatant. Fire-and-forget — never block turn advancement on it.
  */
 export function pingTurn(sessionId: string, combatantId: string): void {
+  const now = Date.now()
+  if (combatantId === lastPing.combatantId && now - lastPing.at < 4000) return
+  lastPing = { combatantId, at: now }
   try {
     supabase.functions
       .invoke('notify-turn', { body: { session_id: sessionId, combatant_id: combatantId } })
       .catch(() => {})
   } catch {
     /* noop */
-  }
-}
-
-/** Legacy in-app foreground notification (works on desktop when the tab is open;
- *  no-op on iOS). Kept as a complement to server push, not a replacement. */
-export function fireLocalNotification(title: string, body: string) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return
-  try {
-    new Notification(title, { body, icon: '/icons/icon-192.png', tag: 'combat-turn', renotify: true } as NotificationOptions)
-  } catch {
-    /* iOS throws on the constructor — ignore */
   }
 }
