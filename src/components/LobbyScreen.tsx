@@ -6,6 +6,7 @@ import {
   registerServiceWorker,
   enablePushForParticipant,
   disablePushForParticipant,
+  ensurePushSubscription,
   shouldShowIosInstallHint,
   isIOS,
 } from '../lib/notifications'
@@ -104,30 +105,81 @@ export default function LobbyScreen({ session, me, onCombatStart, onLeave }: Pro
   }
 
   const [notifHint, setNotifHint] = useState<string | null>(null)
+  // Whether THIS device actually holds a push subscription (distinct from the
+  // DB flag, which only records intent). The flag can be on with no subscription
+  // if it was enabled in Safari before installing to the Home Screen.
+  const [deviceSubscribed, setDeviceSubscribed] = useState(false)
+
+  // On mount, reconcile: if notifications are flagged on, make sure this device
+  // is actually subscribed. Silent when permission is already granted.
+  useEffect(() => {
+    let cancelled = false
+    if (!me.notifications_enabled) return
+    ;(async () => {
+      const subbed = await ensurePushSubscription(me.id, session.id)
+      if (cancelled) return
+      setDeviceSubscribed(subbed)
+      if (subbed) {
+        setNotifHint(null)
+      } else if (shouldShowIosInstallHint()) {
+        setNotifHint('On iPhone, add Torch & Turn to your Home Screen and open it from there to get turn alerts.')
+      } else {
+        setNotifHint('Turn alerts aren’t active on this device yet — tap the bell below to finish enabling them.')
+      }
+    })()
+    return () => { cancelled = true }
+  }, [me.id, me.notifications_enabled, session.id])
+
+  // Interactive enable, from the toggle tap (a user gesture — needed for the iOS prompt)
+  async function enableOnThisDevice(): Promise<boolean> {
+    if (shouldShowIosInstallHint()) {
+      setNotifHint('On iPhone, add Torch & Turn to your Home Screen first (Share → Add to Home Screen), then open it from there to get turn alerts.')
+      return false
+    }
+    const result = await enablePushForParticipant(me.id, session.id)
+    if (result === 'ok') {
+      setDeviceSubscribed(true)
+      setNotifHint(null)
+      return true
+    }
+    setNotifHint(
+      result === 'denied'
+        ? 'Notifications are blocked. Enable them for this site in your settings, then try again.'
+        : result === 'unsupported'
+        ? (isIOS()
+            ? 'Add Torch & Turn to your Home Screen and open it from there to enable alerts.'
+            : "This browser can't deliver turn alerts. Try Chrome, Edge, or Safari.")
+        : "Couldn't set up alerts just now — try again in a moment.",
+    )
+    return false
+  }
 
   async function toggleNotifications() {
-    const next = !notifEnabled
-    setNotifEnabled(next)
     setNotifHint(null)
-    await supabase.from('participants').update({ notifications_enabled: next }).eq('id', me.id)
 
-    if (next) {
-      // iPhone/iPad: push only works once installed to the Home Screen
-      if (shouldShowIosInstallHint()) {
-        setNotifHint('On iPhone, add Torch & Turn to your Home Screen first (Share → Add to Home Screen), then open it from there to get turn alerts.')
-        return
+    // Flag already on, but this device isn't subscribed → the tap means
+    // "finish setting up here", not "turn off".
+    if (notifEnabled && !deviceSubscribed) {
+      const ok = await enableOnThisDevice()
+      if (ok && !me.notifications_enabled) {
+        await supabase.from('participants').update({ notifications_enabled: true }).eq('id', me.id)
       }
-      const result = await enablePushForParticipant(me.id, session.id)
-      if (result === 'denied') {
-        setNotifHint('Notifications are blocked. Enable them for this site in your browser settings, then toggle again.')
-      } else if (result === 'unsupported') {
-        setNotifHint(isIOS()
-          ? 'Add Torch & Turn to your Home Screen and open it from there to enable alerts.'
-          : "This browser can't deliver turn alerts. Try Chrome, Edge, or Safari.")
-      } else if (result === 'error') {
-        setNotifHint("Couldn't set up alerts just now — you can try toggling again.")
+      return
+    }
+
+    if (!notifEnabled) {
+      // Turning on — only commit the flag if a subscription actually succeeds,
+      // so the toggle never shows "on" without real alerts behind it.
+      const ok = await enableOnThisDevice()
+      if (ok) {
+        setNotifEnabled(true)
+        await supabase.from('participants').update({ notifications_enabled: true }).eq('id', me.id)
       }
     } else {
+      // Turning off
+      setNotifEnabled(false)
+      setDeviceSubscribed(false)
+      await supabase.from('participants').update({ notifications_enabled: false }).eq('id', me.id)
       await disablePushForParticipant()
     }
   }
