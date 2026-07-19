@@ -378,8 +378,8 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
       </div>
 
       {/* iOS-only nudge: push alerts need the app on the Home Screen.
-          QR / code arrivals land in 'join' mode (usually opened in Safari, not the
-          installed app) — spell out the trade-off so they know why alerts are off. */}
+          Shared ?join= links land in 'join' mode and open in Safari rather than the
+          installed app — spell out the trade-off so they know why alerts are off. */}
       {shouldShowIosInstallHint() && (
         <p className="text-center mt-6 px-6 fade-in" style={{ color: 'var(--text-dim)', fontSize: '0.75rem', lineHeight: 1.5, maxWidth: 340 }}>
           <span className="mr-1">📲</span>
