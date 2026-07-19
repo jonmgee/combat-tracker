@@ -412,7 +412,7 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
               2. Get your table in
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
-              Show the QR code on your screen for players to scan, or just call out the code. Either way, they&rsquo;re in within seconds.
+              Call the code out across the table, or tap Copy Code and send it over. Either way, they&rsquo;re in within seconds.
             </p>
           </div>
 
@@ -439,6 +439,16 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
           </p>
         </div>
       </InfoSheetPanel>
+
+      {/* Footer — privacy policy has to be reachable from where data is collected. */}
+      <footer className="mt-8 mb-2 text-center">
+        <a
+          href="/privacy.html"
+          style={{ color: 'var(--text-dim)', fontSize: '0.75rem', letterSpacing: '0.04em', textDecoration: 'underline', textUnderlineOffset: '3px' }}
+        >
+          Privacy
+        </a>
+      </footer>
 
     </div>
   )

@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacy — Torch &amp; Turn</title>
+<meta name="description" content="What Torch &amp; Turn stores, why, and how long for. Short version: almost nothing, and not for long." />
+<link rel="icon" href="/icons/icon-192.png" />
+<style>
+  @font-face {
+    font-family: 'Cinzel';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('/fonts/cinzel-latin-var.woff2') format('woff2');
+  }
+  @font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 600;
+    font-display: swap;
+    src: url('/fonts/inter-latin-var.woff2') format('woff2');
+  }
+
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E2C97E;
+    --gold-dark: #9C7A2E;
+    --bg-base: #1a1410;
+    --bg-panel: #221c16;
+    --text: #E8E0D2;
+    --text-secondary: #C4B9A6;
+    --text-dim: #8B8073;
+    --border: #3a322a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 0 20px 80px;
+    background: var(--bg-base);
+    color: var(--text-secondary);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 1rem;
+    line-height: 1.65;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  main { max-width: 640px; margin: 0 auto; }
+
+  header { text-align: center; padding: 48px 0 32px; }
+
+  header img { width: 72px; height: auto; }
+
+  h1 {
+    font-family: 'Cinzel', Georgia, serif;
+    color: var(--gold);
+    font-size: 2rem;
+    letter-spacing: 0.04em;
+    margin: 20px 0 6px;
+  }
+
+  .sub { color: var(--text-dim); font-size: 0.9rem; margin: 0; }
+
+  h2 {
+    font-family: 'Cinzel', Georgia, serif;
+    color: var(--gold-light);
+    font-size: 1.25rem;
+    letter-spacing: 0.03em;
+    margin: 40px 0 10px;
+  }
+
+  p, li { font-size: 0.95rem; }
+
+  a { color: var(--gold); }
+
+  strong { color: var(--text); font-weight: 600; }
+
+  ul { padding-left: 20px; }
+  li { margin-bottom: 8px; }
+
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--gold-dark);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 28px 0;
+  }
+
+  .panel h2 { margin-top: 0; }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .back { display: inline-block; margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+
+  <header>
+    <img src="/icons/icon-192.png" alt="" />
+    <h1>Privacy</h1>
+    <p class="sub">Torch &amp; Turn · last updated 19 July 2026</p>
+  </header>
+
+  <div class="panel">
+    <h2>The short version</h2>
+    <p>
+      Torch &amp; Turn has no accounts. We never ask for your name, your email or a password.
+      What you type into a session is deleted automatically <strong>24 hours after that session
+      starts</strong> — all of it, permanently. There is no analytics, no advertising, no tracking,
+      and the site makes no requests to any third party.
+    </p>
+    <p style="margin-bottom:0">
+      Session ends, code retires, data goes with it.
+    </p>
+  </div>
+
+  <h2>Who we are</h2>
+  <p>
+    Torch &amp; Turn is run by <strong>Appwrights Guild</strong>, a small hobby project based in the
+    United Kingdom. For data protection purposes, Appwrights Guild is the data controller.
+    You can reach us at <a href="mailto:appwrightsguild@proton.me">appwrightsguild@proton.me</a>.
+  </p>
+
+  <h2>What we store</h2>
+  <p>When you create or join a session, we store:</p>
+  <ul>
+    <li>The <strong>room code</strong> for the session, which we generate.</li>
+    <li>The <strong>name you type in</strong> when you join. This is meant to be a character name, but it is whatever you choose to enter.</li>
+    <li>Whether you are the DM or a player.</li>
+    <li><strong>Game data</strong> for that session — initiative order, hit points if you turn them on, and conditions.</li>
+  </ul>
+  <p>
+    If you switch on turn alerts, we also store a <strong>push subscription</strong> for that device.
+    That is an identifier issued by your browser plus the keys needed to send a notification to it.
+    It does not tell us who you are, but it does identify your device, so we treat it as personal data.
+  </p>
+  <p>
+    Your browser also keeps a small <strong>rejoin token</strong> in local storage, so that refreshing
+    the page or locking your phone does not throw you out of the game. It holds a session ID and a
+    participant ID, nothing more. It is not a cookie and it is not used for tracking. You can clear it
+    at any time by leaving the session.
+  </p>
+
+  <h2>What we don't store</h2>
+  <ul>
+    <li>No accounts, usernames or passwords.</li>
+    <li>No email addresses.</li>
+    <li>No payment details — the app is free.</li>
+    <li>No analytics, advertising, tracking pixels or profiling.</li>
+    <li>No cookies.</li>
+  </ul>
+
+  <h2>How long we keep it</h2>
+  <p>
+    <strong>24 hours.</strong> An automated job runs every hour and permanently deletes any session
+    created more than a day ago, along with everything attached to it — participants, combatants,
+    conditions and push subscriptions. There is no archive and no backup copy kept beyond that.
+  </p>
+  <p>
+    In practice this means a game you ran on Friday night no longer exists by Saturday evening.
+  </p>
+
+  <h2>Why we're allowed to store it</h2>
+  <p>
+    For running a session, our lawful basis is <strong>legitimate interests</strong> — you asked us to
+    run a game for you, and we cannot do that without holding the game while it happens.
+  </p>
+  <p>
+    For turn alerts, our lawful basis is <strong>consent</strong>. Your browser asks before we can send
+    you anything, and you can withdraw it at any time by turning alerts off in the app or revoking
+    notification permission in your browser settings.
+  </p>
+
+  <h2>Who else touches it</h2>
+  <p>
+    We use two service providers, both acting on our instructions:
+  </p>
+  <ul>
+    <li><strong>Vercel</strong> hosts the website.</li>
+    <li><strong>Supabase</strong> hosts the database.</li>
+  </ul>
+  <p>
+    Both keep their own server logs, which will include your IP address as a normal part of serving
+    web traffic. We do not use those logs to build any profile of you, and we do not combine them with
+    anything else.
+  </p>
+  <p>
+    If you turn on turn alerts, the notification itself is delivered through your browser maker's push
+    service — Apple, Google or Mozilla, depending on your device. That is how web notifications work
+    on every site; we cannot send you one without going through them.
+  </p>
+  <p>
+    We do not sell your data, share it for advertising, or pass it to anyone else.
+  </p>
+
+  <h2>Your rights</h2>
+  <p>
+    Under UK data protection law you have the right to access your data, correct it, have it deleted,
+    object to how it is used, and receive a copy of it.
+  </p>
+  <p>
+    Being straight with you about a limitation here: because Torch &amp; Turn has no accounts, we hold
+    nothing that identifies you. If you emailed us asking for your data, we would have no way of
+    telling which rows in the database are yours, so we could not reliably act on the request. The
+    flip side is that everything is deleted within 24 hours regardless, without you having to ask.
+  </p>
+  <p>
+    If you want your data gone sooner than that, leave the session and ask your DM to end it, or email
+    us with the room code and we will delete that session outright.
+  </p>
+
+  <h2>Children</h2>
+  <p>
+    Torch &amp; Turn is a tool for playing tabletop games and is suitable for all ages. It collects no
+    personal details, so a child using it gives away nothing beyond a character name that vanishes the
+    next day. We would still suggest younger players use a character name rather than their real one —
+    which is good practice at the table anyway.
+  </p>
+
+  <h2>Changes</h2>
+  <p>
+    If we change what we collect, we will update this page and the date at the top. Given the direction
+    of travel is to collect less rather than more, we do not expect this to change often.
+  </p>
+
+  <h2>Complaints</h2>
+  <p>
+    If you think we have handled your data badly, please tell us first at
+    <a href="mailto:appwrightsguild@proton.me">appwrightsguild@proton.me</a> and we will try to put it
+    right. You also have the right to complain to the Information Commissioner's Office, the UK's data
+    protection regulator, at <a href="https://ico.org.uk/make-a-complaint/" rel="noopener noreferrer">ico.org.uk</a>.
+  </p>
+
+  <footer>
+    Appwrights Guild · <a href="mailto:appwrightsguild@proton.me">appwrightsguild@proton.me</a>
+    <br />
+    <a class="back" href="/">← Back to Torch &amp; Turn</a>
+  </footer>
+
+</main>
+</body>
+</html>
