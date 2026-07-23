@@ -28,7 +28,6 @@ async function shrinkIcons() {
 const UI_IMAGES = [
   { file: 'lockedin.png', width: 512 },
   { file: 'crossedaxes.png', width: 256 },
-  { file: 'crossedswords.png', width: 256 },
 ]
 
 async function shrinkUi() {

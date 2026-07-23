@@ -228,7 +228,6 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     // Mark alert used for this participant
     await supabase.from('participants').update({ alert_used: true }).eq('id', sourceParticipantId)
 
-    console.debug('[OrderReview] swapped initiatives, recalculating orders')
     // Recalculate grouped initiative_order immediately so the pre-combat order reflects the swap
     const { data: allCombatants } = await supabase.from('combatants')
       .select('*')
@@ -261,27 +260,22 @@ export default function OrderReviewScreen({ combatants: initialCombatants, parti
     supabase.from('participants').select('*').eq('session_id', sessionId)
       .then(({ data }) => { if (data) setParticipants(data as Participant[]) })
 
-    console.debug('[OrderReview] touching combat_state.updated_at to trigger reloads')
+    // Touch combat_state.updated_at so other clients' realtime reloads fire
     await supabase.from('combat_state').update({ updated_at: new Date().toISOString() }).eq('session_id', sessionId)
   }
 
   async function handleAlertSwap(targetId: string) {
-    console.debug('[OrderReview] handleAlertSwap start', { targetId })
-    if (!myAlertCombatant) { console.debug('[DEBUG handleAlertSwap] FAIL: no myAlertCombatant'); return }
+    if (!myAlertCombatant) return
     const target = players.find(c => c.id === targetId)
-    if (!target) { console.debug('[DEBUG handleAlertSwap] FAIL: target not found in players', { targetId, playerIds: players.map(p => ({ id: p.id, name: p.name, pid: p.participant_id })) }); return }
-    console.debug('[DEBUG handleAlertSwap] proceeding', { sourceName: myAlertCombatant.name, targetName: target.name, sourcePartId: meRefreshed.id })
+    if (!target) return
     await performAlertSwap(myAlertCombatant, target, meRefreshed.id)
-    console.debug('[OrderReview] handleAlertSwap complete')
   }
 
   async function handleDmAlertSwap(targetId: string) {
-    console.debug('[OrderReview] handleDmAlertSwap start', { targetId })
     if (!dmAlertCombatant || !dmAlertCombatant.participant_id) return
     const target = players.find(c => c.id === targetId)
     if (!target) return
     await performAlertSwap(dmAlertCombatant, target, dmAlertCombatant.participant_id)
-    console.debug('[OrderReview] handleDmAlertSwap complete')
   }
 
   // ── Render a grouped entry row ──
