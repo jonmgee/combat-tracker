@@ -326,7 +326,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             onChange={e => setDelta(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') applyDelta(presetDirection) }}
             placeholder="Amount"
-            className="flex-1 px-2 py-1.5 rounded text-sm text-center outline-none"
+            className="flex-1 min-w-0 px-2 py-1.5 rounded text-sm text-center outline-none"
             style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
           />
           <button onClick={() => applyDelta(presetDirection)}
@@ -351,7 +351,7 @@ const HPBar = React.forwardRef(function HPBar({ combatantId, currentHp, maxHp, t
             onChange={e => setDelta(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') applyTempHp() }}
             placeholder={tempHp > 0 ? 'Overtype Temp HP' : 'Enter Temp HP'}
-            className="flex-1 px-2 py-1.5 rounded text-sm text-center outline-none"
+            className="flex-1 min-w-0 px-2 py-1.5 rounded text-sm text-center outline-none"
             style={{ background: 'var(--bg-input)', border: '1px solid var(--border-light)', color: 'var(--text-primary)' }}
           />
           <button onClick={applyTempHp}
