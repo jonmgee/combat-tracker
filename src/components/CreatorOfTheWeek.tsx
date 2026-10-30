@@ -61,11 +61,12 @@ export default function CreatorOfTheWeek() {
   const chip = "relative inline-flex items-center gap-1.5 rounded-full font-semibold text-xs transition-opacity hover:opacity-80 after:absolute after:-inset-1 after:content-['']"
   const chipStyle = {
     minHeight: 36,
-    padding: '0 14px',
+    padding: '0 11px',
     color: 'var(--gold)',
     border: '1px solid var(--gold-dark)',
     fontFamily: cinzel,
-    letterSpacing: '0.04em',
+    letterSpacing: '0.02em',
+    whiteSpace: 'nowrap' as const,
     textDecoration: 'none',
   }
 
@@ -115,46 +116,52 @@ export default function CreatorOfTheWeek() {
         </button>
       </div>
 
-      <div className="p-4 flex items-start gap-3">
-        {creator.photo && (
-          <img
-            src={guildFile(creator.photo)}
-            alt=""
-            className="rounded-lg flex-none"
-            style={{ width: 64, height: 64, objectFit: 'cover', border: '1px solid var(--gold-dark)' }}
-          />
-        )}
-        <div className="flex-1" style={{ minWidth: 0 }}>
-          <p className="font-bold" style={{ fontFamily: cinzel, color: 'var(--text-primary)', fontSize: '1.05rem' }}>
-            {creator.name}
-          </p>
-          {handle && <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>@{handle}</p>}
-          {creator.line && (
-            <p className="mt-1 italic" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.35 }}>
-              {creator.line}
-            </p>
+      {/* Name and handle on one line, the line about them beneath, then the
+          links. The card is phone-width at every size, so this is the layout. */}
+      <div className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          {creator.photo && (
+            <img
+              src={guildFile(creator.photo)}
+              alt=""
+              className="rounded-lg flex-none"
+              style={{ width: 56, height: 56, objectFit: 'cover', border: '1px solid var(--gold-dark)' }}
+            />
           )}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            {creator.tiktok && (
-              <a href={tiktokUrl(creator.tiktok)} target="_blank" rel="noopener noreferrer" className={chip} style={chipStyle}>
-                TikTok <OutIcon />
-              </a>
+          <div className="flex-1" style={{ minWidth: 0 }}>
+            <p className="flex flex-wrap items-center gap-x-2">
+              <span className="font-bold" style={{ fontFamily: cinzel, color: 'var(--text-primary)', fontSize: '1.05rem' }}>
+                {creator.name}
+              </span>
+              {handle && <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>@{handle}</span>}
+            </p>
+            {creator.line && (
+              <p className="mt-1 italic" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.35 }}>
+                {creator.line}
+              </p>
             )}
-            {creator.instagram && (
-              <a href={instagramUrl(creator.instagram)} target="_blank" rel="noopener noreferrer" className={chip} style={chipStyle}>
-                Instagram <OutIcon />
-              </a>
-            )}
-            <a
-              href={PAST_CREATORS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-auto py-2"
-              style={{ color: 'var(--text-dim)', fontSize: '0.75rem', textDecoration: 'underline', textUnderlineOffset: 3 }}
-            >
-              Past creators
-            </a>
           </div>
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <a
+            href={PAST_CREATORS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mr-auto py-2"
+            style={{ color: 'var(--text-dim)', fontSize: '0.75rem', whiteSpace: 'nowrap', textDecoration: 'underline', textUnderlineOffset: 3 }}
+          >
+            Past creators
+          </a>
+          {creator.tiktok && (
+            <a href={tiktokUrl(creator.tiktok)} target="_blank" rel="noopener noreferrer" className={chip} style={chipStyle}>
+              TikTok <OutIcon />
+            </a>
+          )}
+          {creator.instagram && (
+            <a href={instagramUrl(creator.instagram)} target="_blank" rel="noopener noreferrer" className={chip} style={chipStyle}>
+              Instagram <OutIcon />
+            </a>
+          )}
         </div>
       </div>
     </section>
