@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { generateUniqueCode } from '../lib/roomCodes'
 import lanternLogo from '../assets/Lantern3.webp'
 import InfoSheetPanel from './InfoSheetPanel'
+import CreatorOfTheWeek from './CreatorOfTheWeek'
 import { shouldShowIosInstallHint } from '../lib/notifications'
 
 import type { Session, Participant, CombatState } from '../types'
@@ -390,6 +391,8 @@ export default function HomeScreen({ onEnterLobby, onEnterCombat }: Props) {
           )}
         </p>
       )}
+
+      {mode === 'idle' && <CreatorOfTheWeek />}
 
       {/* How it works info sheet */}
       <InfoSheetPanel open={showInfo} onClose={() => setShowInfo(false)} title="How Torch &amp; Turn Works">
