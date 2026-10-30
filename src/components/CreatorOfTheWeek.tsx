@@ -94,7 +94,7 @@ export default function CreatorOfTheWeek() {
             D&amp;D Creator of the Week
           </h2>
           <p className="italic" style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.35 }}>
-            Highlighting the best creators in our community. Share the love!
+            Highlighting the best creators in our community. Check them out, enjoy what they do and share the love!
           </p>
         </div>
         <button
