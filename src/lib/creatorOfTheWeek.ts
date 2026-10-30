@@ -66,6 +66,10 @@ function pretendNow(): number | null {
   return wallClock(Number(m[1]), Number(m[2]), Number(m[3]), m[4] ? Number(m[4]) : 12, m[5] ? Number(m[5]) : 0)
 }
 
+// Noted the moment the site loads: signing in sends you back to the home
+// page without the ?cotw-date= part, so waiting for the card would lose it.
+pretendNow()
+
 function londonNow(): number {
   const pretend = pretendNow()
   if (pretend !== null) return pretend
@@ -119,16 +123,6 @@ function closedSinceShowing(now: number): boolean {
   } catch {
     return false
   }
-}
-
-/** '1–7 Nov', or '29 Nov – 5 Dec' across a month's end. */
-export function weekLabel(start: string): string {
-  const a = new Date(dayAt8(start))
-  const b = new Date(dayAt8(start) + 6 * DAY)
-  const month = (d: Date) => d.toLocaleString('en-GB', { month: 'short', timeZone: 'UTC' })
-  return a.getUTCMonth() === b.getUTCMonth()
-    ? `${a.getUTCDate()}–${b.getUTCDate()} ${month(b)}`
-    : `${a.getUTCDate()} ${month(a)} – ${b.getUTCDate()} ${month(b)}`
 }
 
 /** This week's creator, or null when there isn't one, it's been closed

@@ -4,8 +4,25 @@ import {
   PAST_CREATORS_URL,
   tiktokUrl,
   useCreatorOfTheWeek,
-  weekLabel,
 } from '../lib/creatorOfTheWeek'
+
+/** A small gilt medal: marks the card as the guild's pick at a glance. */
+function Medal() {
+  return (
+    <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true" className="flex-none">
+      <defs>
+        <linearGradient id="cotw-gilt" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#f7e6a6" />
+          <stop offset="0.5" stopColor="#c69a3e" />
+          <stop offset="1" stopColor="#9c7120" />
+        </linearGradient>
+      </defs>
+      <circle cx="16" cy="16" r="15" fill="url(#cotw-gilt)" />
+      <circle cx="16" cy="16" r="12" fill="none" stroke="#5a3d0c" strokeOpacity="0.45" />
+      <path d="M16 8.5l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z" fill="#1a1410" />
+    </svg>
+  )
+}
 
 /**
  * The guild's D&D Creator of the Week, on the home screen only — never in a
@@ -30,14 +47,14 @@ export default function CreatorOfTheWeek() {
         animationDelay: '0.2s',
       }}
     >
-      <div className="flex items-center gap-2">
-        <span
-          className="flex-1 text-xs font-semibold"
-          style={{ fontFamily: cinzel, color: 'var(--gold)', letterSpacing: '0.1em' }}
+      <div className="flex items-center gap-2.5 pb-2" style={{ borderBottom: '1px solid var(--gold-dark)' }}>
+        <Medal />
+        <h2
+          className="flex-1 font-bold leading-tight"
+          style={{ fontFamily: cinzel, color: 'var(--gold)', fontSize: '0.86rem', letterSpacing: '0.01em', whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', textShadow: '0 0 12px rgba(201,168,76,0.35)' }}
         >
-          D&amp;D CREATOR OF THE WEEK
-        </span>
-        <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>{weekLabel(creator.start)}</span>
+          D&amp;D Creator of the Week
+        </h2>
         <button
           type="button"
           onClick={close}
