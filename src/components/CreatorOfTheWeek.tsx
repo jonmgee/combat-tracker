@@ -50,12 +50,24 @@ function OutIcon() {
  * lobby or mid-combat. Sits under the Create/Join panel so it never pushes
  * the buttons players came for off a phone screen. Closing it holds until
  * the next showing (8am Sunday, a new creator; 8am Thursday, the same one).
+ * The links are small chips, not buttons: the creator is the point.
  */
 export default function CreatorOfTheWeek() {
   const [creator, close] = useCreatorOfTheWeek()
   if (!creator) return null
   const handle = creator.tiktok ?? creator.instagram
   const cinzel = "'Cinzel', serif"
+  // A 36px chip with an invisible 4px margin of tap all round: 44px to a thumb.
+  const chip = "relative inline-flex items-center gap-1.5 rounded-full font-semibold text-xs transition-opacity hover:opacity-80 after:absolute after:-inset-1 after:content-['']"
+  const chipStyle = {
+    minHeight: 36,
+    padding: '0 14px',
+    color: 'var(--gold)',
+    border: '1px solid var(--gold-dark)',
+    fontFamily: cinzel,
+    letterSpacing: '0.04em',
+    textDecoration: 'none',
+  }
 
   return (
     <section
@@ -69,21 +81,26 @@ export default function CreatorOfTheWeek() {
       }}
     >
       <div
-        className="flex items-center gap-2.5 py-1 pl-3 pr-1"
+        className="flex items-center gap-2.5 py-1.5 pl-3 pr-1"
         style={{ background: 'rgba(201,168,76,0.14)', borderBottom: '1px solid var(--gold-dark)' }}
       >
         <Medal />
-        <h2
-          className="flex-1 font-bold leading-tight"
-          style={{ fontFamily: cinzel, color: 'var(--gold)', fontSize: '0.86rem', letterSpacing: '0.01em', whiteSpace: 'nowrap', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', textShadow: '0 0 12px rgba(201,168,76,0.35)' }}
-        >
-          D&amp;D Creator of the Week
-        </h2>
+        <div className="flex-1" style={{ minWidth: 0 }}>
+          <h2
+            className="font-bold leading-tight"
+            style={{ fontFamily: cinzel, color: 'var(--gold)', fontSize: '0.86rem', letterSpacing: '0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textShadow: '0 0 12px rgba(201,168,76,0.35)' }}
+          >
+            D&amp;D Creator of the Week
+          </h2>
+          <p className="italic" style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', lineHeight: 1.35 }}>
+            Highlighting the best creators in our community. Share the love!
+          </p>
+        </div>
         <button
           type="button"
           onClick={close}
           aria-label="Hide until the next showing"
-          className="flex items-center justify-center hover:opacity-80"
+          className="flex items-center justify-center flex-none hover:opacity-80"
           style={{
             width: 44,
             height: 44,
@@ -98,79 +115,47 @@ export default function CreatorOfTheWeek() {
         </button>
       </div>
 
-      <div className="p-4 flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          {creator.photo && (
-            <img
-              src={guildFile(creator.photo)}
-              alt=""
-              className="rounded-lg flex-none"
-              style={{ width: 64, height: 64, objectFit: 'cover', border: '1px solid var(--gold-dark)' }}
-            />
-          )}
-          <div className="min-w-0">
-            <p className="font-bold" style={{ fontFamily: cinzel, color: 'var(--text-primary)', fontSize: '1.05rem' }}>
-              {creator.name}
+      <div className="p-4 flex items-start gap-3">
+        {creator.photo && (
+          <img
+            src={guildFile(creator.photo)}
+            alt=""
+            className="rounded-lg flex-none"
+            style={{ width: 64, height: 64, objectFit: 'cover', border: '1px solid var(--gold-dark)' }}
+          />
+        )}
+        <div className="flex-1" style={{ minWidth: 0 }}>
+          <p className="font-bold" style={{ fontFamily: cinzel, color: 'var(--text-primary)', fontSize: '1.05rem' }}>
+            {creator.name}
+          </p>
+          {handle && <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>@{handle}</p>}
+          {creator.line && (
+            <p className="mt-1 italic" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.35 }}>
+              {creator.line}
             </p>
-            {handle && <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>@{handle}</p>}
-            {creator.line && (
-              <p className="mt-1 italic" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.35 }}>
-                {creator.line}
-              </p>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {creator.tiktok && (
+              <a href={tiktokUrl(creator.tiktok)} target="_blank" rel="noopener noreferrer" className={chip} style={chipStyle}>
+                TikTok <OutIcon />
+              </a>
             )}
+            {creator.instagram && (
+              <a href={instagramUrl(creator.instagram)} target="_blank" rel="noopener noreferrer" className={chip} style={chipStyle}>
+                Instagram <OutIcon />
+              </a>
+            )}
+            <a
+              href={PAST_CREATORS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto py-2"
+              style={{ color: 'var(--text-dim)', fontSize: '0.75rem', textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              Past creators
+            </a>
           </div>
         </div>
-
-        <div className="flex gap-2">
-          {creator.tiktok && (
-            <a
-              href={tiktokUrl(creator.tiktok)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg font-semibold text-sm active:scale-95 transition-all duration-150"
-              style={{
-                minHeight: 44,
-                background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))',
-                color: '#1a1410',
-                fontFamily: cinzel,
-                letterSpacing: '0.04em',
-                textDecoration: 'none',
-              }}
-            >
-              Watch on TikTok <OutIcon />
-            </a>
-          )}
-          {creator.instagram && (
-            <a
-              href={instagramUrl(creator.instagram)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg font-semibold text-sm active:scale-95 transition-all duration-150"
-              style={{
-                minHeight: 44,
-                color: 'var(--gold)',
-                border: '1px solid var(--gold-dark)',
-                fontFamily: cinzel,
-                letterSpacing: '0.04em',
-                textDecoration: 'none',
-              }}
-            >
-              Instagram <OutIcon />
-            </a>
-          )}
-        </div>
-
-        <p className="flex justify-between" style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>
-          <span>Picked by the Appwrights Guild</span>
-          <a
-            href={PAST_CREATORS_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: 3 }}
-          >
-            Past creators
-          </a>
-        </p>
       </div>
     </section>
   )
