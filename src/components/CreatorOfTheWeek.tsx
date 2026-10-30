@@ -24,6 +24,27 @@ function Medal() {
   )
 }
 
+/** "Opens elsewhere", drawn rather than typed: iPhones and iPads swap the
+ *  ↗ character for a blue emoji. */
+function OutIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="flex-none"
+    >
+      <path d="M7 17 17 7M9 7h8v8" />
+    </svg>
+  )
+}
+
 /**
  * The guild's D&D Creator of the Week, on the home screen only — never in a
  * lobby or mid-combat. Sits under the Create/Join panel so it never pushes
@@ -39,7 +60,7 @@ export default function CreatorOfTheWeek() {
   return (
     <section
       aria-label="D&D Creator of the Week"
-      className="w-full max-w-sm rounded-xl mt-5 p-4 flex flex-col gap-3 fade-in"
+      className="w-full max-w-sm rounded-xl mt-5 flex flex-col overflow-hidden fade-in"
       style={{
         background: 'var(--bg-panel)',
         border: '1px solid var(--border-light)',
@@ -47,7 +68,10 @@ export default function CreatorOfTheWeek() {
         animationDelay: '0.2s',
       }}
     >
-      <div className="flex items-center gap-2.5 pb-2" style={{ borderBottom: '1px solid var(--gold-dark)' }}>
+      <div
+        className="flex items-center gap-2.5 py-1 pl-3 pr-1"
+        style={{ background: 'rgba(201,168,76,0.14)', borderBottom: '1px solid var(--gold-dark)' }}
+      >
         <Medal />
         <h2
           className="flex-1 font-bold leading-tight"
@@ -63,7 +87,6 @@ export default function CreatorOfTheWeek() {
           style={{
             width: 44,
             height: 44,
-            margin: '-12px -12px -12px 0',
             background: 'none',
             border: 'none',
             color: 'var(--text-dim)',
@@ -75,78 +98,80 @@ export default function CreatorOfTheWeek() {
         </button>
       </div>
 
-      <div className="flex items-center gap-3">
-        {creator.photo && (
-          <img
-            src={guildFile(creator.photo)}
-            alt=""
-            className="rounded-lg flex-none"
-            style={{ width: 64, height: 64, objectFit: 'cover', border: '1px solid var(--gold-dark)' }}
-          />
-        )}
-        <div className="min-w-0">
-          <p className="font-bold" style={{ fontFamily: cinzel, color: 'var(--text-primary)', fontSize: '1.05rem' }}>
-            {creator.name}
-          </p>
-          {handle && <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>@{handle}</p>}
-          {creator.line && (
-            <p className="mt-1 italic" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.35 }}>
-              {creator.line}
+      <div className="p-4 flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          {creator.photo && (
+            <img
+              src={guildFile(creator.photo)}
+              alt=""
+              className="rounded-lg flex-none"
+              style={{ width: 64, height: 64, objectFit: 'cover', border: '1px solid var(--gold-dark)' }}
+            />
+          )}
+          <div className="min-w-0">
+            <p className="font-bold" style={{ fontFamily: cinzel, color: 'var(--text-primary)', fontSize: '1.05rem' }}>
+              {creator.name}
             </p>
+            {handle && <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>@{handle}</p>}
+            {creator.line && (
+              <p className="mt-1 italic" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.35 }}>
+                {creator.line}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          {creator.tiktok && (
+            <a
+              href={tiktokUrl(creator.tiktok)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg font-semibold text-sm active:scale-95 transition-all duration-150"
+              style={{
+                minHeight: 44,
+                background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))',
+                color: '#1a1410',
+                fontFamily: cinzel,
+                letterSpacing: '0.04em',
+                textDecoration: 'none',
+              }}
+            >
+              Watch on TikTok <OutIcon />
+            </a>
+          )}
+          {creator.instagram && (
+            <a
+              href={instagramUrl(creator.instagram)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg font-semibold text-sm active:scale-95 transition-all duration-150"
+              style={{
+                minHeight: 44,
+                color: 'var(--gold)',
+                border: '1px solid var(--gold-dark)',
+                fontFamily: cinzel,
+                letterSpacing: '0.04em',
+                textDecoration: 'none',
+              }}
+            >
+              Instagram <OutIcon />
+            </a>
           )}
         </div>
-      </div>
 
-      <div className="flex gap-2">
-        {creator.tiktok && (
+        <p className="flex justify-between" style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>
+          <span>Picked by the Appwrights Guild</span>
           <a
-            href={tiktokUrl(creator.tiktok)}
+            href={PAST_CREATORS_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center rounded-lg font-semibold text-sm active:scale-95 transition-all duration-150"
-            style={{
-              minHeight: 44,
-              background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))',
-              color: '#1a1410',
-              fontFamily: cinzel,
-              letterSpacing: '0.04em',
-              textDecoration: 'none',
-            }}
+            style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: 3 }}
           >
-            Watch on TikTok ↗
+            Past creators
           </a>
-        )}
-        {creator.instagram && (
-          <a
-            href={instagramUrl(creator.instagram)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center rounded-lg font-semibold text-sm active:scale-95 transition-all duration-150"
-            style={{
-              minHeight: 44,
-              color: 'var(--gold)',
-              border: '1px solid var(--gold-dark)',
-              fontFamily: cinzel,
-              letterSpacing: '0.04em',
-              textDecoration: 'none',
-            }}
-          >
-            Instagram ↗
-          </a>
-        )}
+        </p>
       </div>
-
-      <p className="flex justify-between" style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>
-        <span>Picked by the Appwrights Guild</span>
-        <a
-          href={PAST_CREATORS_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: 'var(--gold)', textDecoration: 'underline', textUnderlineOffset: 3 }}
-        >
-          Past creators
-        </a>
-      </p>
     </section>
   )
 }
