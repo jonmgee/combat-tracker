@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import lanternLogo from '../assets/Lantern3.webp'
-import { pingTurn, ensurePushSubscription } from '../lib/notifications'
+import { pingTurn, ensurePushSubscription, enablePushForParticipant, pushSupported } from '../lib/notifications'
 import InitiativeEntry from './combat/InitiativeEntry'
 import CombatantCard from './combat/CombatantCard'
 import LanternColumn from './combat/LanternColumn'
@@ -99,11 +99,31 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
 
   // If this player enabled notifications, make sure this device is actually
   // subscribed (covers rejoining straight into combat). Silent — no prompt.
+  // Where that can't work without asking (a device that has never allowed
+  // alerts: someone who joined mid-combat and so skipped the lobby's bell),
+  // offer a one-tap "turn on" strip, since the prompt needs a tap.
+  const [alertsOffHere, setAlertsOffHere] = useState(false)
+  const [alertsHint, setAlertsHint] = useState<string | null>(null)
   useEffect(() => {
-    if (!isDM && me.notifications_enabled) {
-      ensurePushSubscription(me.id, session.id)
-    }
+    if (isDM || !me.notifications_enabled) return
+    let cancelled = false
+    ensurePushSubscription(me.id, session.id).then((ok) => {
+      if (!cancelled) setAlertsOffHere(!ok && pushSupported())
+    })
+    return () => { cancelled = true }
   }, [isDM, me.id, me.notifications_enabled, session.id])
+
+  async function turnOnAlertsHere() {
+    const result = await enablePushForParticipant(me.id, session.id)
+    if (result === 'ok') {
+      setAlertsOffHere(false)
+      setAlertsHint(null)
+    } else {
+      setAlertsHint(result === 'denied'
+        ? 'Notifications are blocked here. Allow them in your settings, then try again.'
+        : 'Couldn’t set up alerts just now. Try again in a moment.')
+    }
+  }
 
   // ── Real-time: combat state ──
   const combatantsRef = useRef(combatants)
@@ -688,6 +708,33 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
           </div>
         </div>
       </div>
+
+      {/* ── Turn alerts not set up on this device (e.g. joined mid-combat) ── */}
+      {!isDM && alertsOffHere && (
+        <div
+          className="px-5 py-3 flex items-center justify-center gap-3 flex-wrap text-center"
+          style={{ background: 'rgba(201,168,76,0.06)', borderBottom: '1px solid var(--gold-dark)' }}
+        >
+          <span className="text-sm" style={{ color: 'var(--text-dim)' }}>
+            {alertsHint ?? '🔔 Get a nudge when it’s your turn?'}
+          </span>
+          <button
+            onClick={turnOnAlertsHere}
+            className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-all active:scale-95"
+            style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+          >
+            Turn on alerts
+          </button>
+          <button
+            onClick={() => setAlertsOffHere(false)}
+            aria-label="Not now"
+            className="text-sm px-1"
+            style={{ color: 'var(--text-dim)' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* ── Late-joiner: initiative + HP setup ── */}
       {!isDM && myCombatantNoInit && (

@@ -64,6 +64,32 @@ export default function LobbyScreen({ session, me, onCombatStart, onLeave }: Pro
     return () => { supabase.removeChannel(channel) }
   }, [session.id, isDM, onCombatStart])
 
+  // ── Resync on wake / refocus ──
+  // Same reason as CombatScreen's: a sleeping phone's realtime socket drops, so a
+  // player who locked their phone here missed the DM starting combat and stayed
+  // in the lobby. Re-pull the lobby (and, for players, whether combat has begun)
+  // on mount and whenever the page becomes visible again.
+  useEffect(() => {
+    async function catchUp() {
+      const { data } = await supabase.from('participants').select('*').eq('session_id', session.id)
+        .order('joined_at', { ascending: true })
+      if (data) setParticipants(data as Participant[])
+      if (isDM) return
+      const { data: cs } = await supabase.from('combat_state').select('*').eq('session_id', session.id).maybeSingle()
+      if ((cs as CombatState | null)?.phase) onCombatStart(cs as CombatState)
+    }
+    function onVisible() {
+      if (document.visibilityState === 'visible') catchUp()
+    }
+    catchUp()
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [session.id, isDM, onCombatStart])
+
   // ── Register SW for notifications ──
   useEffect(() => {
     registerServiceWorker()
