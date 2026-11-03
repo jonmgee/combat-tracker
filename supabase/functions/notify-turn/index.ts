@@ -160,7 +160,11 @@ async function sendApns(deviceToken: string, env: string, title: string, body: s
       'apns-priority': '10',
       'apns-expiration': '0', // a turn alert is useless later: deliver now or not at all
     },
-    body: JSON.stringify({ aps: { alert: { title, body }, sound: 'default' }, tab: 'combat' }),
+    // Time-sensitive: a turn alert gets through Focus modes and summaries (the app holds the entitlement).
+    body: JSON.stringify({
+      aps: { alert: { title, body }, sound: 'default', 'interruption-level': 'time-sensitive' },
+      tab: 'combat',
+    }),
   })
   if (res.ok) return 'sent'
   const reason = await res.text()
