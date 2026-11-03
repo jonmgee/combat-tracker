@@ -14,9 +14,11 @@ interface Props {
   me: Participant
   initialState: CombatState
   onReturnToLobby: () => void
+  /** Players' way out of a fight (the lobby has its own Leave; the DM uses New Combat). */
+  onLeave: () => void
 }
 
-export default function CombatScreen({ session, me, initialState, onReturnToLobby }: Props) {
+export default function CombatScreen({ session, me, initialState, onReturnToLobby, onLeave }: Props) {
   const [combatState, setCombatState]   = useState<CombatState>(initialState)
   const [combatants, setCombatants]     = useState<Combatant[]>([])
   const [conditions, setConditions]     = useState<Condition[]>([])
@@ -479,6 +481,7 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
 
   // ── New combat (DM only): reset session back to lobby ──
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [resetting, setResetting] = useState(false)
 
   async function handleNewCombat() {
@@ -705,6 +708,15 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
             <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>
               {session.room_code}
             </div>
+            {!isDM && (
+              <button
+                onClick={() => setShowLeaveConfirm(true)}
+                className="text-xs underline mt-1"
+                style={{ color: 'var(--text-dim)' }}
+              >
+                Leave
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1028,6 +1040,46 @@ export default function CombatScreen({ session, me, initialState, onReturnToLobb
                 style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
               >
                 {summonSaving ? 'Summoning…' : 'Summon'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Leave confirmation (players) ── */}
+      {showLeaveConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+        >
+          <div
+            className="rounded-xl p-8 max-w-sm w-full mx-4 text-center"
+            style={{ background: 'var(--bg-panel)', border: '1px solid var(--gold-dark)', boxShadow: '0 8px 40px rgba(0,0,0,0.8)' }}
+          >
+            <h3
+              className="text-xl font-bold mb-2"
+              style={{ fontFamily: "'Cinzel', serif", color: 'var(--gold)', letterSpacing: '0.06em' }}
+            >
+              Leave the fight?
+            </h3>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+              You can rejoin any time with the code{' '}
+              <span className="whitespace-nowrap">{session.room_code}</span>.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="flex-1 py-3 rounded-lg font-semibold text-sm transition-all active:scale-95"
+                style={{ background: 'var(--bg-raised)', color: 'var(--text-dim)', border: '1px solid var(--border)', fontFamily: "'Cinzel', serif" }}
+              >
+                Stay
+              </button>
+              <button
+                onClick={onLeave}
+                className="flex-1 py-3 rounded-lg font-semibold text-sm transition-all active:scale-95"
+                style={{ background: 'linear-gradient(135deg, var(--gold-dark), var(--gold))', color: '#1a1410', fontFamily: "'Cinzel', serif" }}
+              >
+                Leave
               </button>
             </div>
           </div>

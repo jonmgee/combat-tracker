@@ -219,7 +219,7 @@ export default function App() {
   }
 
   if (screen === 'combat' && session && me && combatState) {
-    return <ErrorBoundary><CombatScreen session={session} me={me} initialState={combatState} onReturnToLobby={handleReturnToLobby} /></ErrorBoundary>
+    return <ErrorBoundary><CombatScreen session={session} me={me} initialState={combatState} onReturnToLobby={handleReturnToLobby} onLeave={handleExitSession} /></ErrorBoundary>
   }
 
   if (screen === 'lobby' && session && me) {
