@@ -5,6 +5,43 @@ import { supabase } from './supabase'
 // If it ever rotates, update this and the edge function's VAPID_PUBLIC_KEY together.
 const VAPID_PUBLIC_KEY = 'BMtYrZNStp04pBpdbYwXkVKqMn5TPgvYDvkshQcKsIDvHCIAWKq5CiTCal5-cvykjrowkDvYFOjZWD-XiumAqYc'
 
+// Inside the PC on Parchment iPhone app, web push can't reach the page, so the app hands over the
+// phone's address with Apple's push service instead. It's stored like a web push subscription,
+// with an "apns:" endpoint, and notify-turn sends those to Apple.
+type AppPushAnswer = { status: 'ok' | 'denied' | 'off' | 'error'; token?: string; env?: string }
+type AppPushBridge = { postMessage(body: { ask: boolean }): Promise<AppPushAnswer> }
+
+function appPush(): AppPushBridge | null {
+  const w = window as unknown as { webkit?: { messageHandlers?: { guildPush?: AppPushBridge } } }
+  return w.webkit?.messageHandlers?.guildPush ?? null
+}
+
+/** The phone's address from the app, as an endpoint; asks permission first if `ask`. */
+async function appEndpoint(ask: boolean): Promise<{ endpoint: string; answer: AppPushAnswer } | { endpoint: null; answer: AppPushAnswer }> {
+  const answer = await appPush()!.postMessage({ ask })
+  if (answer.status !== 'ok' || !answer.token) return { endpoint: null, answer }
+  return { endpoint: `apns:${answer.env}:${answer.token}`, answer }
+}
+
+async function storeAppSubscription(participantId: string, sessionId: string, ask: boolean): Promise<AppPushAnswer['status']> {
+  const { endpoint, answer } = await appEndpoint(ask)
+  if (!endpoint) return answer.status
+  const { error } = await supabase.from('push_subscriptions').upsert(
+    {
+      participant_id: participantId,
+      session_id: sessionId,
+      endpoint,
+      subscription: { apns: { token: answer.token, env: answer.env } },
+    },
+    { onConflict: 'endpoint' },
+  )
+  if (error) {
+    console.warn('storing app push address failed:', error)
+    return 'error'
+  }
+  return 'ok'
+}
+
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null
   try {
@@ -17,6 +54,7 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
 /** True when the browser can actually deliver background push (SW + Push API + Notification). */
 export function pushSupported(): boolean {
+  if (appPush()) return true
   return (
     'serviceWorker' in navigator &&
     'PushManager' in window &&
@@ -47,6 +85,7 @@ export function isStandalone(): boolean {
  * relevant and actionable: an iPhone/iPad, in Safari, not already installed.
  */
 export function shouldShowIosInstallHint(): boolean {
+  if (appPush()) return false // the app delivers alerts itself
   return isIOS() && !isStandalone()
 }
 
@@ -112,6 +151,15 @@ export async function enablePushForParticipant(
   sessionId: string,
 ): Promise<'ok' | 'denied' | 'unsupported' | 'error'> {
   if (!pushSupported()) return 'unsupported'
+  if (appPush()) {
+    try {
+      const status = await storeAppSubscription(participantId, sessionId, true)
+      return status === 'ok' ? 'ok' : status === 'denied' || status === 'off' ? 'denied' : 'error'
+    } catch (e) {
+      console.warn('enablePush (app) failed:', e)
+      return 'error'
+    }
+  }
   try {
     const reg = await getRegistration()
     if (!reg) return 'unsupported'
@@ -138,6 +186,13 @@ export async function ensurePushSubscription(
   sessionId: string,
 ): Promise<boolean> {
   if (!pushSupported()) return false
+  if (appPush()) {
+    try {
+      return (await storeAppSubscription(participantId, sessionId, false)) === 'ok'
+    } catch {
+      return false
+    }
+  }
   if (Notification.permission !== 'granted') return false
   try {
     const reg = await getRegistration()
@@ -152,6 +207,13 @@ export async function ensurePushSubscription(
 /** Does this device currently hold a push subscription? (independent of the DB flag) */
 export async function hasLocalSubscription(): Promise<boolean> {
   if (!pushSupported()) return false
+  if (appPush()) {
+    try {
+      return (await appEndpoint(false)).endpoint !== null
+    } catch {
+      return false
+    }
+  }
   try {
     const reg = await navigator.serviceWorker.ready
     return (await reg.pushManager.getSubscription()) !== null
@@ -163,6 +225,12 @@ export async function hasLocalSubscription(): Promise<boolean> {
 /** Remove this device's subscription (best-effort) and forget it server-side. */
 export async function disablePushForParticipant(): Promise<void> {
   try {
+    if (appPush()) {
+      // Forget this phone for Torch & Turn only; the app keeps its permission for the other tools.
+      const { endpoint } = await appEndpoint(false)
+      if (endpoint) await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
+      return
+    }
     if (!('serviceWorker' in navigator)) return
     const reg = await navigator.serviceWorker.ready
     const sub = await reg.pushManager.getSubscription()
